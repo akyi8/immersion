@@ -36,6 +36,31 @@ export class MemoryFs implements WorldFs {
   imageUrl(path: string): string {
     return this.files[normalize(path)] ?? '';
   }
+
+  private listeners = new Set<(paths: string[]) => void>();
+  private dirs = new Set<string>();
+
+  async writeText(path: string, content: string): Promise<void> {
+    this.files[normalize(path)] = content;
+    this.notify([normalize(path)]);
+  }
+
+  async createDir(path: string): Promise<void> {
+    // An empty folder has no files, so a placeholder keeps it listable in memory.
+    this.files[normalize(path) + '/.keep'] = '';
+    this.dirs.add(normalize(path));
+    this.notify([normalize(path)]);
+  }
+
+  onChange(callback: (paths: string[]) => void): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  private notify(paths: string[]) {
+    // Like the disk watcher, report changes after the write has finished.
+    setTimeout(() => this.listeners.forEach((l) => l(paths)), 0);
+  }
 }
 
 function normalize(path: string): string {

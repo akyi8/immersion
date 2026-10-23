@@ -5,7 +5,13 @@
   import type { Navigator } from '../../lib/nav.svelte';
   import Portrait from './Portrait.svelte';
 
-  let { index, fs, nav }: { index: WikiIndex; fs: WorldFs; nav: Navigator } = $props();
+  let {
+    index,
+    fs,
+    nav,
+    onNewEntry,
+    onNewFolder,
+  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; onNewEntry: () => void; onNewFolder: () => void } = $props();
 
   type Mode = 'working' | 'tree' | 'faces';
   const MODES: [Mode, string][] = [
@@ -105,6 +111,10 @@
         {/each}
       {/snippet}
       {@render folderView(index.root, 0)}
+      <div class="create">
+        <button type="button" onclick={onNewEntry}>+ New entry</button>
+        <button type="button" onclick={onNewFolder}>+ New folder</button>
+      </div>
     </div>
   {:else}
     <div class="faces">
@@ -202,6 +212,20 @@
     font-size: 14px;
     line-height: 1.5;
     color: var(--muted);
+  }
+  .create {
+    display: flex;
+    gap: 4px;
+    padding: 14px 16px 0;
+  }
+  .create button {
+    flex: 1;
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    padding: 8px 6px;
+    min-height: 38px;
   }
   .faces {
     display: grid;

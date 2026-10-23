@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { DirEntry, WorldFs } from './types';
 
 /** The real world folder on disk, reached through the Rust backend. */
@@ -20,6 +21,21 @@ export class DiskFs implements WorldFs {
   imageUrl(path: string): string {
     // The backend serves the open world's files on the `world` scheme.
     return convertFileSrc(path.replace(/\\/g, '/'), 'world');
+  }
+
+  writeText(path: string, content: string): Promise<void> {
+    return invoke('write_text', { rel: path, content });
+  }
+
+  createDir(path: string): Promise<void> {
+    return invoke('create_dir', { rel: path });
+  }
+
+  onChange(callback: (paths: string[]) => void): () => void {
+    const stop = listen<string[]>('world-changed', (event) => callback(event.payload));
+    return () => {
+      stop.then((unlisten) => unlisten());
+    };
   }
 }
 

@@ -4,6 +4,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { renderBody, type View } from '../../lib/render';
   import Portrait from './Portrait.svelte';
+  import EntryEditor from './EntryEditor.svelte';
 
   let {
     index,
@@ -11,8 +12,19 @@
     id,
     view,
     preview,
+    editing,
+    onEdit,
     onPreview,
-  }: { index: WikiIndex; fs: WorldFs; id: string; view: View; preview: string | null; onPreview: (id: string) => void } = $props();
+  }: {
+    index: WikiIndex;
+    fs: WorldFs;
+    id: string;
+    view: View;
+    preview: string | null;
+    editing: boolean;
+    onEdit: (on: boolean) => void;
+    onPreview: (id: string) => void;
+  } = $props();
 
   const entry = $derived(index.get(id)!);
   const html = $derived(renderBody(entry.body, index, id, view));
@@ -34,13 +46,20 @@
 <article>
   <header>
     <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
-    <div>
+    <div class="title">
       <h1>{entry.name}</h1>
       <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
     </div>
+    <button type="button" class="edit" class:on={editing} aria-pressed={editing} onclick={() => onEdit(!editing)}>{editing ? 'Done' : 'Edit'}</button>
   </header>
-  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="prose" bind:this={body} {onclick}>{@html html}</div>
+  {#if editing}
+    {#key id}
+      <EntryEditor {fs} {index} {id} {onPreview} />
+    {/key}
+  {:else}
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="prose" bind:this={body} {onclick}>{@html html}</div>
+  {/if}
 </article>
 
 <style>
@@ -53,6 +72,25 @@
     gap: 24px;
     align-items: flex-end;
     margin-bottom: 28px;
+  }
+  .title {
+    flex: 1;
+    min-width: 0;
+  }
+  .edit {
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    padding: 9px 18px;
+    min-height: 40px;
+  }
+  .edit.on {
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: var(--accent);
   }
   h1 {
     margin: 0;

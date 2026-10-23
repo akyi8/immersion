@@ -4,7 +4,7 @@
   import type { Navigator } from '../../lib/nav.svelte';
 
   // What the World module shows before any entry is open: every category and its entries.
-  let { index, nav, worldName }: { index: WikiIndex; nav: Navigator; worldName: string } = $props();
+  let { index, nav, worldName, onNewEntry }: { index: WikiIndex; nav: Navigator; worldName: string; onNewEntry: () => void } = $props();
 
   function allIn(folder: import('../../lib/index/wiki').Folder): string[] {
     return [...folder.entries, ...folder.folders.flatMap(allIn)];
@@ -12,8 +12,13 @@
 </script>
 
 <section>
-  <h1>{worldName}</h1>
-  <p class="count">{index.entries.size} entries</p>
+  <div class="top">
+    <div>
+      <h1>{worldName}</h1>
+      <p class="count">{index.entries.size} entries</p>
+    </div>
+    <button type="button" class="new" onclick={onNewEntry}>+ New entry</button>
+  </div>
   {#each index.root.folders as folder}
     {@const ids = allIn(folder)}
     {#if ids.length}
@@ -38,6 +43,22 @@
 <style>
   section {
     max-width: 900px;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .new {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 0;
+    padding: 10px 16px;
+    min-height: 44px;
   }
   h1 {
     margin: 0;
