@@ -1,0 +1,8 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# The repo root ignores lockfiles; the build needs this one.
+!package-lock.json
+src/lib/sample/full.generated.json
