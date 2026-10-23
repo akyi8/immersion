@@ -1,0 +1,142 @@
+/* The Night theme. Every color and font in the app comes from these tokens
+   (architecture decision 10), so a new theme is a new set of values here. */
+@import '@fontsource/bebas-neue/400.css';
+@import '@fontsource/atkinson-hyperlegible/400.css';
+@import '@fontsource/atkinson-hyperlegible/400-italic.css';
+@import '@fontsource/atkinson-hyperlegible/700.css';
+@import '@fontsource/atkinson-hyperlegible/700-italic.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+:root {
+  --bg: #0e1116;
+  --bg-deep: #0b0e12;
+  --surface: #151b23;
+  --surface-alt: #11161d;
+  --text: #e6e1d8;
+  --text-soft: #b9bdc2;
+  --muted: #9aa0a6;
+  --rule: #232a33;
+  --rule-strong: #2e3742;
+  --accent: #f2a541;
+  --accent-ink: #0e1116;
+  --accent-wash: #2a2418;
+
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Atkinson Hyperlegible', sans-serif;
+  --font-label: 'IBM Plex Mono', monospace;
+
+  --prose-size: 18px;
+  --prose-leading: 1.7;
+  --paragraph-gap: 1.1em;
+
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.label {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Rendered markdown: entry bodies and, later, manuscripts. */
+.prose {
+  font-size: var(--prose-size);
+  line-height: var(--prose-leading);
+}
+.prose > * {
+  margin: 0 0 var(--paragraph-gap);
+}
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: 1.6em;
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+.prose strong {
+  color: var(--text);
+}
+.prose blockquote {
+  margin-left: 0;
+  padding: 10px 16px;
+  border-left: 2px solid var(--rule-strong);
+  color: var(--text-soft);
+}
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+.prose .callout-narrator {
+  border-left-color: var(--accent);
+  background: var(--surface);
+  color: var(--text);
+}
+.prose .callout-label {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.prose table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.prose td,
+.prose th {
+  border: 1px solid var(--rule);
+  padding: 6px 10px;
+}
+.prose img {
+  max-width: 100%;
+}
+
+/* Automatic links: drawn over the text, never written into the file. */
+.mention {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-bottom: 1px dotted var(--accent);
+  cursor: pointer;
+}
+.mention:hover,
+.mention.active {
+  background: var(--accent-wash);
+}

@@ -1,0 +1,61 @@
+# Builds the Immersion desktop app for macOS and Windows.
+name: Immersion build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: immersion-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: mac
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            bundle: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          - os: windows-latest
+            name: windows
+            args: ''
+            rust-targets: ''
+            bundle: src-tauri/target/release/bundle/nsis/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      # Each build carries its run number in its version, so every download has a distinct
+      # file name and the app shows which build it is.
+      - run: npx tauri build ${{ matrix.args }} --config '{"version":"0.1.${{ github.run_number }}"}'
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Immersion-${{ matrix.name }}
+          path: ${{ matrix.bundle }}
+          if-no-files-found: error
+          retention-days: 14
