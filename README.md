@@ -37,9 +37,9 @@ An image beside an entry with the same name, such as `wren-okafor.png` next to `
 - `npm run dev` serves the app in a browser at http://localhost:1420 with a built-in demo world.
 - `npm test` runs the unit tests, and `npm run check` type-checks the code.
 - `npx tauri dev` runs the desktop app. It needs Rust and, on Linux, the WebKitGTK development libraries.
-- `npx tauri build` builds an installer for the current platform.
+- `npx tauri build` builds an installer for the current platform. Release builds sign their update files, so a local build needs the update key in `TAURI_SIGNING_PRIVATE_KEY`, or `--config '{"bundle":{"createUpdaterArtifacts":false}}'` to skip signing.
 
-GitHub Actions builds the macOS and Windows apps on every push to `main`. The builds are not yet code-signed, so macOS and Windows show a warning the first time the app opens.
+GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. The app checks for a newer release when it starts and offers to install it. Updates are signed with the project's update key, and the app refuses any update not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
 
 ## Stack
 
