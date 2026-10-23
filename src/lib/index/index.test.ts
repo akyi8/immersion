@@ -62,3 +62,13 @@ test('YAML aliases and names are honored', () => {
 test('file names become readable names', () => {
   assert.equal(nameFromFile('the-salt-market.md'), 'The Salt Market');
 });
+
+import { slugify } from '../slug.ts';
+
+test('names become safe file names', () => {
+  assert.equal(slugify('Tomas Reyes'), 'tomas-reyes');
+  assert.equal(slugify('Marta "Wren" Okafor'), 'marta-wren-okafor');
+  assert.equal(slugify("Harvey's"), 'harveys');
+  assert.equal(slugify('Café Noir'), 'cafe-noir');
+  assert.equal(slugify('  ?? '), '');
+});

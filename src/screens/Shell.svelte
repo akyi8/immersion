@@ -11,10 +11,18 @@
   let {
     index,
     fs,
+    rebuild,
     worldName,
     onShowLoading,
     onSwitchWorld,
-  }: { index: WikiIndex | null; fs: WorldFs; worldName: string; onShowLoading: () => void; onSwitchWorld: (() => void) | null } = $props();
+  }: {
+    index: WikiIndex | null;
+    fs: WorldFs;
+    rebuild: () => Promise<void>;
+    worldName: string;
+    onShowLoading: () => void;
+    onSwitchWorld: (() => void) | null;
+  } = $props();
 
   const nav = new Navigator();
 
@@ -129,7 +137,7 @@
 
   {#if nav.current.module === 'world'}
     {#if index}
-      <WorldModule {index} {fs} {nav} {view} {worldName} />
+      <WorldModule {index} {fs} {nav} {view} {worldName} {rebuild} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}

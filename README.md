@@ -2,7 +2,7 @@
 
 Immersion is a desktop app for solo tabletop roleplaying, worldbuilding, and writing fiction. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with git.
 
-Immersion is early in development. Today it opens a world folder and presents its wiki: every entry is readable, names that match other entries become links with a preview panel, a working-set sidebar gathers the people and places around the open entry, and back and forward work across the app. Editing, a writing module for manuscripts and outlines, and a play module with an AI narrator follow.
+Immersion is early in development. Today it opens a world folder and presents its wiki: every entry is readable and editable, names that match other entries become links with a preview panel, a working-set sidebar gathers the people and places around the open entry, and back and forward work across the app. Entries and folders can be created in the app, edits save on their own, and changes made in other programs appear immediately. A writing module for manuscripts and outlines and a play module with an AI narrator follow.
 
 ## What a world looks like
 

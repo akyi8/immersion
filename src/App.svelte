@@ -25,13 +25,36 @@
       phase = 'loading';
       // The index builds while the loading screen is up.
       index = await buildWikiIndex(source, world);
+      watchWorld(source);
     } catch (e) {
       problem = String(e);
       phase = 'error';
     }
   }
 
+  // Edits from anywhere (this app, Obsidian, a git pull) rebuild the index. Changes
+  // usually arrive in bursts, so the rebuild waits until they settle.
+  let stopWatching = () => {};
+  let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
+  async function rebuild() {
+    if (!fs || !world) return;
+    try {
+      world = await loadWorld(fs);
+      index = await buildWikiIndex(fs, world);
+    } catch {
+      // Keep the last good index if a file is mid-write.
+    }
+  }
+  function watchWorld(source: WorldFs) {
+    stopWatching();
+    stopWatching = source.onChange(() => {
+      if (rebuildTimer) clearTimeout(rebuildTimer);
+      rebuildTimer = setTimeout(rebuild, 250);
+    });
+  }
+
   async function switchWorld() {
+    stopWatching();
     await closeWorld();
     fs = null;
     world = null;
@@ -65,6 +88,7 @@
   <Shell
     {index}
     {fs}
+    {rebuild}
     worldName={world.name}
     onShowLoading={() => (phase = 'loading')}
     onSwitchWorld={inDesktopApp ? switchWorld : null}
