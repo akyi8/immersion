@@ -50,7 +50,7 @@ jobs:
 
       # Each build carries its run number in its version, so every download has a distinct
       # file name and the app shows which build it is.
-      - run: npx tauri build ${{ matrix.args }} --config '{"version":"0.1.${{ github.run_number }}"}'
+      - run: npx tauri build ${{ matrix.args }} --config '{"version":"0.2.${{ github.run_number }}"}'
         shell: bash
 
       - uses: actions/upload-artifact@v4
