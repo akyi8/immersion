@@ -1,29 +1,32 @@
 <script lang="ts">
-  import { tick } from 'svelte';
-  import type { WikiIndex } from '../../lib/index/wiki';
-  import type { WorldFs } from '../../lib/fs/types';
-  import type { Navigator } from '../../lib/nav.svelte';
-  import type { View } from '../../lib/render';
-  import EntryView from './EntryView.svelte';
+  import { tick, type Snippet } from 'svelte';
+  import type { Navigator } from '../lib/nav.svelte';
 
   /**
    * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
    * side, left to right. When the row is wider than the screen, it scrolls sideways, and
    * the panes that slide off the left edge stack into narrow spines with their titles
-   * running upward. Clicking a spine brings its pane back into view.
+   * running upward. Clicking a spine brings its pane back into view. Each module decides
+   * what its panes hold, through the `pane` snippet.
    */
   let {
-    index,
-    fs,
     nav,
-    view,
-    fresh,
-  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; view: View; fresh: string | null } = $props();
+    ids,
+    label,
+    pane,
+  }: {
+    nav: Navigator;
+    /** What is open, left to right. */
+    ids: string[];
+    /** The name on a pane's spine and close button. */
+    label: (id: string) => string;
+    pane: Snippet<[id: string, i: number, next: string | null]>;
+  } = $props();
 
   /** How much of a covered pane still shows: its spine. */
   const SPINE = 44;
 
-  const panes = $derived(nav.current.panes.filter((id) => index.get(id)));
+  const panes = $derived(ids);
 
   let strip: HTMLDivElement | undefined = $state();
   let spined = $state<boolean[]>([]);
@@ -84,21 +87,21 @@
 <div class="strip" bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
   <div class="row">
     {#each panes as id, i (id)}
-      {@const entry = index.get(id)!}
-      <section class="pane" class:spined={spined[i]} class:last={i === panes.length - 1} style:left="{i * SPINE}px" aria-label={entry.name}>
+      {@const name = label(id)}
+      <section class="pane" class:spined={spined[i]} class:last={i === panes.length - 1} style:left="{i * SPINE}px" aria-label={name}>
         <div class="spine" aria-hidden={!spined[i]}>
           <button type="button" class="spine-title" tabindex={spined[i] ? 0 : -1} onclick={() => show(i)}>
-            <span>{entry.name}</span>
+            <span>{name}</span>
           </button>
-          <button type="button" class="spine-close" tabindex={spined[i] ? 0 : -1} aria-label="Close {entry.name}" title="Close" onclick={() => nav.close(id)}>
+          <button type="button" class="spine-close" tabindex={spined[i] ? 0 : -1} aria-label="Close {name}" title="Close" onclick={() => nav.close(id)}>
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
         <div class="body">
-          <button type="button" class="close" aria-label="Close {entry.name}" title="Close" onclick={() => nav.close(id)}>
+          <button type="button" class="close" aria-label="Close {name}" title="Close" onclick={() => nav.close(id)}>
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
-          <EntryView {index} {fs} {id} {view} next={panes[i + 1] ?? null} fresh={fresh === id} onOpen={(target) => nav.open(target, i)} />
+          {@render pane(id, i, panes[i + 1] ?? null)}
         </div>
       </section>
     {/each}

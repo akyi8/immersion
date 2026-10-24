@@ -62,14 +62,29 @@ This folder is an Immersion world. The header above gives the world's name, the 
  * the new one.
  */
 export function withDetails(worldMd: string, details: { name: string; tagline: string }): string {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(worldMd);
   const oldName = describeWorld(worldMd).name;
+  const text = withHeader(worldMd, { name: details.name, tagline: details.tagline });
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(text)!;
+  const body = text.slice(match[0].length).replace(/^#\s+(.+)$/m, (line, heading: string) => (heading.trim() === oldName ? `# ${details.name}` : line));
+  return match[0] + body;
+}
+
+/**
+ * Sets or removes keys in a markdown file's YAML header, keeping its other keys, its
+ * comments, and the body. A file with no header gains one. A value of `undefined`
+ * removes the key, and a header left empty is removed.
+ */
+export function withHeader(text: string, changes: Record<string, unknown>): string {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   const doc: Document = match && match[1].trim() ? parseDocument(match[1]) : new Document({});
-  doc.set('name', details.name);
-  doc.set('tagline', details.tagline);
-  let body = match ? worldMd.slice(match[0].length) : worldMd;
-  body = body.replace(/^#\s+(.+)$/m, (line, heading: string) => (heading.trim() === oldName ? `# ${details.name}` : line));
-  return `---\n${doc.toString().trimEnd()}\n---\n${match ? '' : '\n'}${body}`;
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) doc.delete(key);
+    else doc.set(key, value);
+  }
+  const body = match ? text.slice(match[0].length) : text;
+  const header = doc.toString().trim();
+  if (header === '{}' || header === '') return body.replace(/^\r?\n/, '');
+  return `---\n${header}\n---\n${match ? '' : '\n'}${body}`;
 }
 
 export async function loadWorld(fs: WorldFs): Promise<World> {

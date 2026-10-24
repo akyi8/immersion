@@ -1,4 +1,4 @@
-import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs } from './types';
+import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs } from './types.ts';
 
 /**
  * An in-memory world for browser testing. Paths use forward slashes and are
@@ -7,7 +7,11 @@ import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type
 export class MemoryFs implements WorldFs {
   readonly kind = 'sample' as const;
 
-  constructor(private files: Record<string, string>) {}
+  private files: Record<string, string>;
+
+  constructor(files: Record<string, string>) {
+    this.files = files;
+  }
 
   async readText(path: string): Promise<string> {
     const text = this.files[normalize(path)];
@@ -25,7 +29,7 @@ export class MemoryFs implements WorldFs {
       if (slash === -1) seen.set(rest, false);
       else seen.set(rest.slice(0, slash), true);
     }
-    return [...seen].map(([name, isDir]) => ({ name, isDir }));
+    return [...seen].map(([name, isDir]) => ({ name, isDir, modified: this.modified[prefix + name] ?? null }));
   }
 
   async exists(path: string): Promise<boolean> {
@@ -38,10 +42,12 @@ export class MemoryFs implements WorldFs {
   }
 
   private listeners = new Set<(paths: string[]) => void>();
+  private modified: Record<string, number> = {};
   private dirs = new Set<string>();
 
   async writeText(path: string, content: string): Promise<void> {
     this.files[normalize(path)] = content;
+    this.modified[normalize(path)] = Date.now();
     this.notify([normalize(path)]);
   }
 

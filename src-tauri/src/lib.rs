@@ -30,6 +30,8 @@ struct DirEntry {
     name: String,
     #[serde(rename = "isDir")]
     is_dir: bool,
+    /// When the file last changed, in milliseconds since 1970, if the system knows.
+    modified: Option<u64>,
 }
 
 /// Joins a relative path onto the world root, refusing any path that would leave it.
@@ -370,9 +372,16 @@ fn read_dir(rel: String, state: State<OpenWorld>) -> Result<Vec<DirEntry>, Strin
     let entries = fs::read_dir(&path).map_err(|e| format!("Could not list {rel}: {e}"))?;
     Ok(entries
         .filter_map(Result::ok)
-        .map(|entry| DirEntry {
-            name: entry.file_name().to_string_lossy().into_owned(),
-            is_dir: entry.file_type().map(|t| t.is_dir()).unwrap_or(false),
+        .map(|entry| {
+            let meta = entry.metadata().ok();
+            DirEntry {
+                name: entry.file_name().to_string_lossy().into_owned(),
+                is_dir: meta.as_ref().map(|m| m.is_dir()).unwrap_or(false),
+                modified: meta
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_millis() as u64),
+            }
         })
         .collect())
 }
