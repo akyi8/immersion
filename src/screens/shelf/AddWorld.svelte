@@ -23,8 +23,13 @@
       .map((w) => w[0].toUpperCase() + w.slice(1))
       .join(' ');
   }
-  // The folder with the most markdown is the likeliest wiki, and one named for
-  // stories, drafts, or manuscripts is the likeliest home for stories.
+  // The folder with the most markdown is the likeliest wiki, unless it is an archive or
+  // a folder of assets, and one named for stories, drafts, or manuscripts is the
+  // likeliest home for stories.
+  function guessWiki(shape: FolderShape): string {
+    const likely = shape.folders.find((f) => !/^(archive|old|assets?|attachments|images|media)$/i.test(f.name));
+    return (likely ?? shape.folders[0])?.name ?? '';
+  }
   function guessStories(shape: FolderShape, wiki: string): string {
     const named = shape.folders.find((f) => f.name !== wiki && /stor|draft|manuscript|chapter|book/i.test(f.name));
     return named?.name ?? '';
@@ -34,9 +39,9 @@
   let name = $state(suggestName(folderName));
   let tagline = $state('');
   // svelte-ignore state_referenced_locally
-  let wiki = $state(shape.folders[0]?.name ?? '');
+  let wiki = $state(guessWiki(shape));
   // svelte-ignore state_referenced_locally
-  let stories = $state(guessStories(shape, shape.folders[0]?.name ?? ''));
+  let stories = $state(guessStories(shape, guessWiki(shape)));
   let busy = $state(false);
   let problem = $state('');
 
