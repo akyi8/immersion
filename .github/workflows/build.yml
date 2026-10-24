@@ -143,3 +143,21 @@ jobs:
               draft: false,
               make_latest: 'true',
             });
+
+  # A build that fails or is cancelled by a newer push leaves its draft release
+  # behind, so the draft is deleted. Drafts are invisible to the updater either way.
+  clean-up:
+    needs: [release, build]
+    if: ${{ always() && needs.release.outputs.signed == 'true' && needs.build.result != 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ needs.release.outputs.id }}
+        with:
+          script: |
+            await github.rest.repos.deleteRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: Number(process.env.RELEASE_ID),
+            });

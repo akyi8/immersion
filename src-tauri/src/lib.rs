@@ -323,6 +323,23 @@ fn default_library(app: AppHandle) -> Result<String, String> {
     Ok(docs.join("Immersion").to_string_lossy().into_owned())
 }
 
+/// Saves a shelf world's `world.md`, used to change its name and tagline.
+#[tauri::command]
+fn write_world_md(path: String, text: String, app: AppHandle) -> Result<(), String> {
+    if !load_settings(&app).worlds.contains(&path) {
+        return Err("That world is not on the shelf".into());
+    }
+    let file = PathBuf::from(&path).join("world.md");
+    let mut temp = file.clone().into_os_string();
+    temp.push(SAVING_SUFFIX);
+    let temp = PathBuf::from(temp);
+    fs::write(&temp, text).map_err(|e| format!("Could not save world.md: {e}"))?;
+    fs::rename(&temp, &file).map_err(|e| {
+        let _ = fs::remove_file(&temp);
+        format!("Could not save world.md: {e}")
+    })
+}
+
 /// Sets a shelf world's cover by copying a picture in as its `world` image.
 #[tauri::command]
 fn set_world_cover(path: String, source: String, app: AppHandle) -> Result<(), String> {
@@ -478,6 +495,7 @@ pub fn run() {
             create_world,
             default_library,
             set_world_cover,
+            write_world_md,
             set_image
         ])
         .run(tauri::generate_context!())

@@ -36,10 +36,11 @@ export class MemoryLibrary implements Library {
     const out: ShelfWorld[] = [];
     for (const path of this.shelf) {
       const fs = this.worlds.get(path)!;
-      const about = describeWorld(await fs.readText('world.md'));
+      const worldMd = await fs.readText('world.md');
+      const about = describeWorld(worldMd);
       let cover: string | null = null;
       for (const ext of ['jpg', 'jpeg', 'png', 'webp']) if (await fs.exists(`world.${ext}`)) cover ??= fs.imageUrl(`world.${ext}`);
-      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false });
+      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false, worldMd });
     }
     return out;
   }
@@ -103,6 +104,10 @@ export class MemoryLibrary implements Library {
     this.worlds.set(path, new MemoryFs(files));
     this.shelf.push(path);
     return path;
+  }
+
+  async writeWorldMd(path: string, text: string): Promise<void> {
+    await this.worlds.get(path)!.writeText('world.md', text);
   }
 
   async setCover(path: string, image: ImageSource): Promise<void> {

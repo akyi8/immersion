@@ -14,6 +14,8 @@ export interface ShelfWorld {
   cover: string | null;
   /** True when the folder is not on this computer, for example before a sync. */
   missing: boolean;
+  /** The text of the world's `world.md`, or null when the folder is missing. */
+  worldMd: string | null;
 }
 
 /** What is inside a folder the player wants to add, to help describe it as a world. */
@@ -45,4 +47,6 @@ export interface Library {
   /** Creates a world folder inside `parent` and returns its path. */
   create(parent: string, folder: string, worldMd: string, dirs: string[]): Promise<string>;
   setCover(path: string, image: ImageSource): Promise<void>;
+  /** Saves a shelf world's `world.md`, for example after its name changes. */
+  writeWorldMd(path: string, text: string): Promise<void>;
 }

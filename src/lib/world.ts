@@ -1,4 +1,4 @@
-import { parse, stringify } from 'yaml';
+import { Document, parse, parseDocument, stringify } from 'yaml';
 import type { WorldFs } from './fs/types';
 
 /** What `world.md` says about a world, with defaults for anything it leaves out. */
@@ -54,6 +54,22 @@ ${header}
 
 This folder is an Immersion world. The header above gives the world's name, the line shown under it on the loading screen, and the folders that hold the wiki and the stories. A picture named \`world.jpg\` or \`world.png\` beside this file becomes the world's cover.
 `;
+}
+
+/**
+ * Changes a world's name and tagline in its `world.md`, keeping every other line of the
+ * header, its comments, and the body. A title heading that matched the old name follows
+ * the new one.
+ */
+export function withDetails(worldMd: string, details: { name: string; tagline: string }): string {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(worldMd);
+  const oldName = describeWorld(worldMd).name;
+  const doc: Document = match && match[1].trim() ? parseDocument(match[1]) : new Document({});
+  doc.set('name', details.name);
+  doc.set('tagline', details.tagline);
+  let body = match ? worldMd.slice(match[0].length) : worldMd;
+  body = body.replace(/^#\s+(.+)$/m, (line, heading: string) => (heading.trim() === oldName ? `# ${details.name}` : line));
+  return `---\n${doc.toString().trimEnd()}\n---\n${match ? '' : '\n'}${body}`;
 }
 
 export async function loadWorld(fs: WorldFs): Promise<World> {
