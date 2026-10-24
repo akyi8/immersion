@@ -37,9 +37,9 @@ export class Navigator {
 
   /**
    * Opens an entry. Followed from the pane at `from`, it opens just to the right of that
-   * pane and closes the panes beyond it. Opened from anywhere else, such as the sidebar,
-   * it opens beside the last pane (Mike, October 24). An entry that is already open is
-   * brought into view instead.
+   * pane, and the panes beyond it move one place right (Mike, October 24). Nothing closes
+   * unless the writer closes it. Opened from anywhere else, such as the sidebar, it opens
+   * beside the last pane. An entry that is already open is brought into view instead.
    */
   open(id: string, from?: number) {
     const panes = this.current.panes;
@@ -48,7 +48,7 @@ export class Navigator {
       return;
     }
     const after = from ?? panes.length - 1;
-    this.go({ module: 'world', panes: [...panes.slice(0, after + 1), id] });
+    this.go({ module: 'world', panes: [...panes.slice(0, after + 1), id, ...panes.slice(after + 1)] });
   }
 
   close(id: string) {
