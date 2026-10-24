@@ -83,9 +83,14 @@
     {#each panes as id, i (id)}
       {@const entry = index.get(id)!}
       <section class="pane" class:spined={spined[i]} class:last={i === panes.length - 1} style:left="{i * SPINE}px" aria-label={entry.name}>
-        <button type="button" class="spine" tabindex={spined[i] ? 0 : -1} aria-hidden={!spined[i]} onclick={() => show(i)}>
-          <span>{entry.name}</span>
-        </button>
+        <div class="spine" aria-hidden={!spined[i]}>
+          <button type="button" class="spine-title" tabindex={spined[i] ? 0 : -1} onclick={() => show(i)}>
+            <span>{entry.name}</span>
+          </button>
+          <button type="button" class="spine-close" tabindex={spined[i] ? 0 : -1} aria-label="Close {entry.name}" title="Close" onclick={() => nav.close(id)}>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
+          </button>
+        </div>
         <div class="body">
           <button type="button" class="close" aria-label="Close {entry.name}" title="Close" onclick={() => nav.close(id)}>
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
@@ -146,18 +151,31 @@
     inset: 0 auto 0 0;
     width: 44px;
     z-index: 1;
-    padding: 20px 0;
+    flex-direction: column;
     background: var(--bg);
-    border: 0;
-    color: var(--text-soft);
-    cursor: pointer;
   }
   .spined .spine {
     display: flex;
-    justify-content: center;
   }
-  .spine:hover {
-    color: var(--text);
+  .spine button {
+    display: flex;
+    justify-content: center;
+    background: none;
+    border: 0;
+    color: var(--text-soft);
+  }
+  .spine-title {
+    flex: 1;
+    min-height: 0;
+    padding: 20px 0 8px;
+  }
+  .spine-close {
+    flex: 0 0 44px;
+    align-items: center;
+    color: var(--muted) !important;
+  }
+  .spine button:hover {
+    color: var(--text) !important;
     background: var(--surface);
   }
   .spine span {
