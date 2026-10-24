@@ -1,4 +1,4 @@
-import { EditorState, Prec, StateEffect, type Extension } from '@codemirror/state';
+import { EditorState, Prec, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -8,7 +8,7 @@ import {
   type ViewUpdate,
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
 import { livePreview } from './livepreview';
 import { tags } from '@lezer/highlight';
@@ -106,6 +106,47 @@ const paragraphGaps = ViewPlugin.fromClass(
 );
 
 /**
+ * The blank line between two paragraphs is one step for the cursor, not a line to type
+ * on (Mike, October 24). Arrow keys pass over it, Backspace at the start of a paragraph
+ * joins it to the one above, and a click on the gap lands at the edge of a paragraph.
+ * The blank line stays in the file, so the markdown keeps its spacing. Two or more blank
+ * lines in a row stay ordinary lines, which is also where Enter leaves the cursor.
+ */
+const gapField = StateField.define<DecorationSet>({
+  create: (state) => findGaps(state),
+  update: (gaps, tr) => (tr.docChanged ? findGaps(tr.state) : gaps),
+});
+
+const gapMark = Decoration.mark({});
+
+function findGaps(state: EditorState): DecorationSet {
+  const doc = state.doc;
+  const code: { from: number; to: number }[] = [];
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name === 'FencedCode' || node.name === 'CodeBlock') {
+        code.push({ from: node.from, to: node.to });
+        return false;
+      }
+    },
+  });
+  const builder = new RangeSetBuilder<Decoration>();
+  for (let n = 2; n < doc.lines; n++) {
+    const line = doc.line(n);
+    if (line.text.trim() !== '') continue;
+    const above = doc.line(n - 1);
+    const below = doc.line(n + 1);
+    if (above.text.trim() === '' || below.text.trim() === '') continue;
+    // Blank lines inside a code block are part of the code.
+    if (code.some((c) => c.from < line.from && c.to > line.to)) continue;
+    builder.add(above.to, below.from, gapMark);
+  }
+  return builder.finish();
+}
+
+const paragraphStep = [gapField, EditorView.atomicRanges.of((view) => view.state.field(gapField))];
+
+/**
  * Enter starts a new paragraph by writing the blank line markdown needs, so the writer
  * presses it once (design: typography). Inside lists and quotes it continues the list
  * or quote instead. Shift-Enter writes a single line break.
@@ -130,7 +171,7 @@ const markdownStyle = HighlightStyle.define([
   { tag: tags.strong, fontWeight: '700' },
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.quote, color: 'var(--text-soft)' },
-  { tag: tags.link, color: 'var(--accent)' },
+  { tag: tags.link, color: 'var(--structure)' },
   { tag: tags.url, color: 'var(--muted)' },
   { tag: tags.monospace, fontFamily: 'var(--font-label)', fontSize: '0.9em' },
   { tag: [tags.processingInstruction, tags.meta, tags.contentSeparator], color: 'var(--muted)' },
@@ -139,33 +180,33 @@ const markdownStyle = HighlightStyle.define([
 const theme = EditorView.theme(
   {
     '&': { color: 'var(--text)', backgroundColor: 'transparent', fontSize: 'var(--prose-size)' },
-    '.cm-content': { fontFamily: 'var(--font-body)', lineHeight: 'var(--prose-leading)', caretColor: 'var(--accent)', padding: '0' },
+    '.cm-content': { fontFamily: 'var(--font-body)', lineHeight: 'var(--prose-leading)', caretColor: 'var(--structure-soft)', padding: '0' },
     '.cm-line': { padding: '0' },
     '.cm-gap': { lineHeight: '0.9' },
     '&.cm-focused': { outline: 'none' },
-    '.cm-cursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
-    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--accent-wash) !important' },
+    '.cm-cursor': { borderLeftColor: 'var(--structure-soft)', borderLeftWidth: '2px' },
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--structure-deep) !important' },
     '.cm-mention': { borderBottom: '1px dotted var(--accent)', cursor: 'pointer' },
-    '.cm-md-link': { color: 'var(--accent)' },
+    '.cm-md-link': { color: 'var(--structure)' },
     '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },
     '.cm-h2, .cm-h3, .cm-h4, .cm-h5, .cm-h6': {
       fontFamily: 'var(--font-label)',
       fontSize: '12px',
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
-      color: 'var(--muted)',
+      color: 'var(--structure)',
       paddingTop: '1.2em !important',
     },
     '.cm-bullet': { color: 'var(--muted)', padding: '0 0.35em 0 0.1em' },
     '.cm-rule': { display: 'inline-block', width: '100%', borderTop: '1px solid var(--rule)', verticalAlign: 'middle' },
     '.cm-quote': { borderLeft: '2px solid var(--rule-strong)', paddingLeft: '16px !important', color: 'var(--text-soft)' },
-    '.cm-callout-narrator': { borderLeftColor: 'var(--accent)', backgroundColor: 'var(--surface)', color: 'var(--text)' },
+    '.cm-callout-narrator': { borderLeftColor: 'var(--structure)', backgroundColor: 'var(--surface)', color: 'var(--text)' },
     '.cm-callout-label': {
       fontFamily: 'var(--font-label)',
       fontSize: '11px',
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
-      color: 'var(--accent)',
+      color: 'var(--structure)',
     },
     '.cm-properties': {
       fontFamily: 'var(--font-label)',
@@ -202,6 +243,7 @@ export function createEditor(options: {
         syntaxHighlighting(markdownStyle),
         EditorView.lineWrapping,
         paragraphGaps,
+        paragraphStep,
         mentionPlugin(options.scanner, options.onMention),
         theme,
         EditorView.updateListener.of((u) => {

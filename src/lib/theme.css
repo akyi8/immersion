@@ -1,5 +1,8 @@
 /* The Night theme. Every color and font in the app comes from these tokens
-   (architecture decision 10), so a new theme is a new set of values here. */
+   (architecture decision 10), so a new theme is a new set of values here.
+   The colors come from the Absent Gods brand guide (Mike, October 24): amber marks
+   names and primary actions, and teal carries structure, such as rules, labels,
+   focus, selected states, and links. */
 @import '@fontsource/bebas-neue/400.css';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/400-italic.css';
@@ -9,18 +12,22 @@
 @import '@fontsource/ibm-plex-mono/500.css';
 
 :root {
-  --bg: #0e1116;
-  --bg-deep: #0b0e12;
-  --surface: #151b23;
-  --surface-alt: #11161d;
-  --text: #e6e1d8;
-  --text-soft: #b9bdc2;
-  --muted: #9aa0a6;
-  --rule: #232a33;
-  --rule-strong: #2e3742;
-  --accent: #f2a541;
-  --accent-ink: #0e1116;
-  --accent-wash: #2a2418;
+  --bg: #07090b;
+  --bg-deep: #050607;
+  --surface: #0e1215;
+  --surface-alt: #0b0f11;
+  --text: #ece6e3;
+  --text-soft: #a3cfcb;
+  --muted: #8d8f93;
+  --rule: #0b3433;
+  --rule-strong: #17504f;
+  --accent: #f19e2b;
+  --accent-deep: #d9772b;
+  --accent-ink: #07090b;
+  --accent-wash: rgba(241, 158, 43, 0.16);
+  --structure: #2aa3a6;
+  --structure-soft: #a3cfcb;
+  --structure-deep: #0b3433;
 
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'Atkinson Hyperlegible', sans-serif;
@@ -53,7 +60,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--structure);
   outline-offset: 2px;
 }
 
@@ -62,7 +69,7 @@ button {
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--structure);
 }
 
 /* Rendered markdown: entry bodies and, later, manuscripts. */
@@ -82,7 +89,7 @@ button {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--structure);
 }
 .prose hr {
   border: 0;
@@ -101,7 +108,7 @@ button {
   margin-bottom: 0;
 }
 .prose .callout-narrator {
-  border-left-color: var(--accent);
+  border-left-color: var(--structure);
   background: var(--surface);
   color: var(--text);
 }
@@ -110,7 +117,7 @@ button {
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--structure);
   margin-bottom: 4px;
 }
 .prose table {
