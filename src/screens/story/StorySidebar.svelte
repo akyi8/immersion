@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Manuscript, StoryIndex } from '../../lib/story/index';
+  import type { Activity } from '../../lib/story/activity';
+  import Heatmap from './Heatmap.svelte';
 
   /**
    * The binder and the drawer (Mike, October 24). The binder holds the manuscripts the
@@ -9,6 +11,7 @@
    */
   let {
     story,
+    activity,
     open,
     cursor,
     onOpen,
@@ -17,6 +20,7 @@
     onNew,
   }: {
     story: StoryIndex | null;
+    activity: Activity | null;
     /** What is open in the Story module's panes. */
     open: string[];
     cursor: { path: string; pos: number } | null;
@@ -86,6 +90,9 @@
 </script>
 
 <nav class="sidebar" aria-label="Binder and drawer">
+  {#if activity}
+    <div class="activity"><Heatmap {activity} weeks={17} /></div>
+  {/if}
   <div class="head">
     <h2 class="label">Binder</h2>
     <button type="button" class="add" onclick={() => onNew('manuscript')}>+ New manuscript</button>
@@ -160,6 +167,10 @@
     border-right: 1px solid var(--rule);
     overflow-y: auto;
     padding-bottom: 24px;
+  }
+  .activity {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--rule);
   }
   .head {
     display: flex;

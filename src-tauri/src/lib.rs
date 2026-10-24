@@ -318,6 +318,75 @@ fn create_world(parent: String, folder: String, world_md: String, dirs: Vec<Stri
     Ok(path)
 }
 
+/// Runs git inside a folder without flashing a console window on Windows.
+fn git(root: &Path, args: &[&str]) -> Option<String> {
+    let mut command = std::process::Command::new("git");
+    command.arg("-C").arg(root).args(args);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    let output = command.output().ok()?;
+    output.status.success().then(|| String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// Counts the words added in a word-level diff, by the date of the commit they came in.
+fn added_words(diff: &str, mut add: impl FnMut(Option<&str>, usize)) {
+    let mut date: Option<&str> = None;
+    for line in diff.lines() {
+        if let Some(d) = line.strip_prefix("IMMERSION-COMMIT ") {
+            date = Some(d.trim());
+        } else if line.starts_with("+++") {
+            continue;
+        } else if let Some(added) = line.strip_prefix('+') {
+            let words = added.split_whitespace().filter(|w| w.chars().any(char::is_alphanumeric)).count();
+            add(date, words);
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct Activity {
+    /// Words added on each day that had commits, as `YYYY-MM-DD` and a count.
+    days: Vec<(String, usize)>,
+    /// Words written since the last commit, which the screens count toward today.
+    uncommitted: usize,
+}
+
+/// Words written per day in one folder of the open world, read from git history
+/// (design: the activity heatmap). Moved and renamed files do not count as writing,
+/// and archive folders are left out. Returns nothing when the world is not in a git
+/// repository or git is not installed.
+#[tauri::command]
+async fn writing_activity(dir: String, days: u32, state: State<'_, OpenWorld>) -> Result<Option<Activity>, String> {
+    let root = root(&state)?;
+    inside(&root, &dir)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        git(&root, &["rev-parse", "--is-inside-work-tree"])?;
+        let since = format!("--since={days} days ago");
+        let path = format!("{dir}/");
+        let exclude = format!(":(exclude,glob){dir}/**/archive/**");
+        let log = git(
+            &root,
+            &["log", &since, "--date=short", "--pretty=format:IMMERSION-COMMIT %ad", "-p", "-M", "--word-diff=porcelain", "--no-color", "--", &path, &exclude],
+        )?;
+        let mut totals: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+        added_words(&log, |date, words| {
+            if let Some(d) = date {
+                *totals.entry(d.to_string()).or_default() += words;
+            }
+        });
+        let mut uncommitted = 0;
+        if let Some(pending) = git(&root, &["diff", "HEAD", "-M", "--word-diff=porcelain", "--no-color", "--", &path, &exclude]) {
+            added_words(&pending, |_, w| uncommitted += w);
+        }
+        Some(Activity { days: totals.into_iter().collect(), uncommitted })
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Where new worlds go unless the player chooses otherwise: Documents/Immersion.
 #[tauri::command]
 fn default_library(app: AppHandle) -> Result<String, String> {
@@ -505,6 +574,7 @@ pub fn run() {
             default_library,
             set_world_cover,
             write_world_md,
+            writing_activity,
             set_image
         ])
         .run(tauri::generate_context!())
@@ -513,7 +583,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{inside, place_image, relevant_change};
+    use super::{added_words, inside, place_image, relevant_change};
     use std::path::Path;
 
     #[test]
@@ -546,6 +616,21 @@ mod tests {
         assert!(png.exists() && jpg.exists());
         assert!(place_image(&stem, &dir.join("notes.txt")).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn added_words_are_counted_by_commit_date() {
+        let log = "IMMERSION-COMMIT 2026-10-23\ndiff --git a/s.md b/s.md\n+++ b/s.md\n@@ -1 +1 @@\n The\n+quiet harbor\n-old\n~\n+# Chapter 2\nIMMERSION-COMMIT 2026-10-24\n+one more\n";
+        let mut seen = Vec::new();
+        added_words(log, |d, w| seen.push((d.map(str::to_string), w)));
+        assert_eq!(
+            seen,
+            vec![
+                (Some("2026-10-23".to_string()), 2),
+                (Some("2026-10-23".to_string()), 2),
+                (Some("2026-10-24".to_string()), 2)
+            ]
+        );
     }
 
     #[test]

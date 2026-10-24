@@ -43,9 +43,13 @@ export class MemoryFs implements WorldFs {
 
   private listeners = new Set<(paths: string[]) => void>();
   private modified: Record<string, number> = {};
+  // Words added during this session, for the heatmap. A browser test has no history.
+  private writtenToday = 0;
   private dirs = new Set<string>();
 
   async writeText(path: string, content: string): Promise<void> {
+    const words = (text: string | undefined) => (text ?? '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+    this.writtenToday += Math.max(0, words(content) - words(this.files[normalize(path)]));
     this.files[normalize(path)] = content;
     this.modified[normalize(path)] = Date.now();
     this.notify([normalize(path)]);
@@ -68,6 +72,10 @@ export class MemoryFs implements WorldFs {
     this.files[path] = URL.createObjectURL(image.file);
     this.notify([path]);
     return path;
+  }
+
+  async writingActivity(): Promise<{ days: [string, number][]; uncommitted: number } | null> {
+    return { days: [], uncommitted: this.writtenToday };
   }
 
   onChange(callback: (paths: string[]) => void): () => void {

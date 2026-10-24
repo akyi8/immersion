@@ -42,6 +42,10 @@ export class DiskFs implements WorldFs {
     return invoke('create_dir', { rel: path });
   }
 
+  writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null> {
+    return invoke('writing_activity', { dir, days });
+  }
+
   onChange(callback: (paths: string[]) => void): () => void {
     const stop = listen<string[]>('world-changed', (event) => {
       // A picture changed in another program shows its new version too.

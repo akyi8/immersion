@@ -47,4 +47,9 @@ export interface WorldFs {
    * Obsidian, a text editor, or a git pull. Returns a function that stops listening.
    */
   onChange(callback: (paths: string[]) => void): () => void;
+  /**
+   * Words written per day in a folder over the last `days` days, for the activity
+   * heatmap. Null when there is no history to read, such as a world outside git.
+   */
+  writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null>;
 }
