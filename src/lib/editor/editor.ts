@@ -9,7 +9,8 @@ import {
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { markdown, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
+import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
+import { livePreview } from './livepreview';
 import { tags } from '@lezer/highlight';
 import type { MentionScanner } from '../index/scanner';
 
@@ -66,15 +67,13 @@ function mentionPlugin(ref: ScannerRef, onMention: (id: string) => void): Extens
       },
       { decorations: (v) => v.decorations },
     ),
-    // A plain click places the cursor, as in any editor. Ctrl-click or Cmd-click previews.
+    // A click on a name places the cursor, as in any editor, and also shows the name in
+    // the preview panel, which stays in one place and never covers the text.
     EditorView.domEventHandlers({
       mousedown(event) {
-        if (!(event.metaKey || event.ctrlKey)) return false;
         const el = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
-        if (!el?.dataset.entry) return false;
-        event.preventDefault();
-        onMention(el.dataset.entry);
-        return true;
+        if (el?.dataset.entry) onMention(el.dataset.entry);
+        return false;
       },
     }),
   ];
@@ -128,9 +127,6 @@ const paragraphKeys = Prec.high(
 );
 
 const markdownStyle = HighlightStyle.define([
-  { tag: tags.heading1, fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em' },
-  { tag: tags.heading2, fontFamily: 'var(--font-label)', fontSize: '0.75em', letterSpacing: '0.12em', color: 'var(--muted)' },
-  { tag: [tags.heading3, tags.heading4], fontFamily: 'var(--font-label)', fontSize: '0.75em', letterSpacing: '0.12em', color: 'var(--muted)' },
   { tag: tags.strong, fontWeight: '700' },
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.quote, color: 'var(--text-soft)' },
@@ -149,7 +145,37 @@ const theme = EditorView.theme(
     '&.cm-focused': { outline: 'none' },
     '.cm-cursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
     '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--accent-wash) !important' },
-    '.cm-mention': { borderBottom: '1px dotted var(--accent)' },
+    '.cm-mention': { borderBottom: '1px dotted var(--accent)', cursor: 'pointer' },
+    '.cm-md-link': { color: 'var(--accent)' },
+    '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },
+    '.cm-h2, .cm-h3, .cm-h4, .cm-h5, .cm-h6': {
+      fontFamily: 'var(--font-label)',
+      fontSize: '12px',
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--muted)',
+      paddingTop: '1.2em !important',
+    },
+    '.cm-bullet': { color: 'var(--muted)', padding: '0 0.35em 0 0.1em' },
+    '.cm-rule': { display: 'inline-block', width: '100%', borderTop: '1px solid var(--rule)', verticalAlign: 'middle' },
+    '.cm-quote': { borderLeft: '2px solid var(--rule-strong)', paddingLeft: '16px !important', color: 'var(--text-soft)' },
+    '.cm-callout-narrator': { borderLeftColor: 'var(--accent)', backgroundColor: 'var(--surface)', color: 'var(--text)' },
+    '.cm-callout-label': {
+      fontFamily: 'var(--font-label)',
+      fontSize: '11px',
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--accent)',
+    },
+    '.cm-properties': {
+      fontFamily: 'var(--font-label)',
+      fontSize: '11px',
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--muted)',
+      padding: '2px 0 10px',
+      cursor: 'pointer',
+    },
   },
   { dark: true },
 );
@@ -157,6 +183,8 @@ const theme = EditorView.theme(
 export function createEditor(options: {
   parent: HTMLElement;
   doc: string;
+  /** The entry's title, whose heading hides because the title shows above the editor. */
+  title: string;
   scanner: ScannerRef;
   onChange: (doc: string) => void;
   onMention: (id: string) => void;
@@ -169,7 +197,8 @@ export function createEditor(options: {
         history(),
         paragraphKeys,
         keymap.of([...defaultKeymap, ...historyKeymap]),
-        markdown(),
+        markdown({ base: markdownLanguage }),
+        livePreview(options.title),
         syntaxHighlighting(markdownStyle),
         EditorView.lineWrapping,
         paragraphGaps,

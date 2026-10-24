@@ -5,7 +5,14 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { createEditor, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
 
-  let { fs, index, id, onPreview }: { fs: WorldFs; index: WikiIndex; id: string; onPreview: (id: string) => void } = $props();
+  let {
+    fs,
+    index,
+    id,
+    title,
+    autofocus = false,
+    onPreview,
+  }: { fs: WorldFs; index: WikiIndex; id: string; title: string; autofocus?: boolean; onPreview: (id: string) => void } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
   const SAVE_DELAY_MS = 800;
@@ -95,9 +102,13 @@
       problem = String(e);
       return;
     }
-    view = createEditor({ parent: host, doc: lastSaved, scanner, onChange: changed, onMention: onPreview });
+    // svelte-ignore state_referenced_locally
+    view = createEditor({ parent: host, doc: lastSaved, title, scanner, onChange: changed, onMention: onPreview });
     status = 'saved';
-    view.focus();
+    if (autofocus) {
+      view.focus();
+      view.dispatch({ selection: { anchor: view.state.doc.length } });
+    }
     stopWatching = fs.onChange(changedElsewhere);
   });
 
@@ -124,22 +135,15 @@
   </div>
 {/if}
 <div class="status label" aria-live="polite">
-  {#if status === 'saving'}Saving…{:else if status === 'saved'}Saved{:else if status === 'error'}Not saved: {problem}{/if}
-  <span class="hint">Ctrl-click or Cmd-click a name to preview it</span>
+  {#if status === 'saving'}Saving…{:else if status === 'error'}Not saved: {problem}{:else}&nbsp;{/if}
 </div>
 <div class="editor" bind:this={host}></div>
 
 <style>
   .status {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     font-size: 11px;
-  }
-  .hint {
-    text-transform: none;
-    letter-spacing: 0;
+    min-height: 14px;
   }
   .editor {
     min-height: 60vh;
