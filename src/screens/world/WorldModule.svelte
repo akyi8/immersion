@@ -21,7 +21,8 @@
   }: { index: WikiIndex; fs: WorldFs; nav: Navigator; view: View; worldName: string; rebuild: () => Promise<void> } = $props();
 
   let preview = $state<string | null>(null);
-  let editing = $state<string | null>(null);
+  // The entry just created, which opens with the cursor ready in it.
+  let fresh = $state<string | null>(null);
   let creating = $state<{ kind: 'entry' | 'folder'; folder: string } | null>(null);
   let main: HTMLElement | undefined = $state();
 
@@ -31,7 +32,7 @@
     const here = nav.current.entry;
     untrack(() => {
       preview = null;
-      if (editing !== here) editing = null;
+      if (fresh !== here) fresh = null;
       main?.scrollTo({ top: 0 });
     });
   });
@@ -50,7 +51,7 @@
       if (creating?.kind === 'entry') {
         await fs.writeText(path, `# ${name}\n\n`);
         await rebuild();
-        editing = path;
+        fresh = path;
         nav.go({ module: 'world', entry: path });
       } else {
         await fs.createDir(path);
@@ -79,8 +80,7 @@
         id={nav.current.entry}
         {view}
         {preview}
-        editing={editing === nav.current.entry}
-        onEdit={(on) => (editing = on ? nav.current.entry : null)}
+        fresh={fresh === nav.current.entry}
         onPreview={(id) => (preview = id)} />
     {:else}
       <WorldHome {index} {nav} {worldName} onNewEntry={() => (creating = { kind: 'entry', folder: index.root.path })} />
