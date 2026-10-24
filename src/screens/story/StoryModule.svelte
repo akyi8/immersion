@@ -12,6 +12,8 @@
   import StorySidebar from './StorySidebar.svelte';
   import ManuscriptPane from './ManuscriptPane.svelte';
   import Dialog from '../shelf/Dialog.svelte';
+  import Heatmap from './Heatmap.svelte';
+  import type { Activity } from '../../lib/story/activity';
 
   /**
    * The Story module (Milestone 3): the binder and the drawer on the left, and the
@@ -25,6 +27,16 @@
   let cursor = $state<{ path: string; pos: number } | null>(null);
   let fresh = $state<string | null>(null);
   let problem = $state('');
+  let activity = $state.raw<Activity | null>(null);
+
+  // A year of history is read from git, so it refreshes less often than the word counts.
+  async function refreshActivity() {
+    try {
+      activity = await fs.writingActivity(storiesDir, 371);
+    } catch {
+      activity = null;
+    }
+  }
 
   async function refresh() {
     try {
@@ -37,11 +49,15 @@
   // Saves, Obsidian, and git pulls all change the files, and the counts follow.
   onMount(() => {
     refresh();
+    refreshActivity();
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let slow: ReturnType<typeof setTimeout> | null = null;
     const stop = fs.onChange((paths) => {
       if (!paths.some((p) => p.startsWith(storiesDir))) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(refresh, 300);
+      if (slow) clearTimeout(slow);
+      slow = setTimeout(refreshActivity, 3000);
     });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && ui.drafting) ui.drafting = null;
@@ -159,6 +175,7 @@
   <div class="story">
     <StorySidebar
       {story}
+      {activity}
       open={row}
       {cursor}
       onOpen={openPiece}
@@ -193,6 +210,10 @@
       <main class="home">
         <h1>Story</h1>
         <p>Open a manuscript from the binder, or a piece from the drawer. Names in your writing open their wiki entries beside it.</p>
+        {#if activity}
+          <h2 class="label">Writing, the last year</h2>
+          <div class="year"><Heatmap {activity} weeks={53} months /></div>
+        {/if}
         {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       </main>
     {/if}
@@ -239,6 +260,15 @@
     font-size: var(--prose-size);
     line-height: 1.6;
     color: var(--text-soft);
+  }
+  .home h2 {
+    margin: 36px 0 12px;
+    font-size: 11px;
+    font-weight: 400;
+  }
+  .year {
+    overflow-x: auto;
+    padding-bottom: 4px;
   }
   .problem {
     color: #ff9a9a !important;
