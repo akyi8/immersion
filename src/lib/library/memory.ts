@@ -26,6 +26,8 @@ export class MemoryLibrary implements Library {
         'lore/people/bram-hollis.md': '# Bram Hollis\n\nAda Quill owes him a debt she will not name.\n',
         'lore/places/the-old-quarter.md': '# The Old Quarter\n\nNarrow streets where Ada Quill works the lamps.\n',
         'drafts/opening.md': '# Opening\n\nThe lamps went out one street at a time.\n',
+        // An archive with more files than the wiki, as real projects often have.
+        ...Object.fromEntries([1, 2, 3, 4].map((n) => [`archive/old-${n}.md`, `# Old note ${n}\n`])),
       }),
     );
   }
