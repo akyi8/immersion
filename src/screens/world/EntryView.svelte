@@ -11,17 +11,18 @@
     fs,
     id,
     view,
-    preview,
+    next,
     fresh,
-    onPreview,
+    onOpen,
   }: {
     index: WikiIndex;
     fs: WorldFs;
     id: string;
     view: View;
-    preview: string | null;
+    /** The entry open in the pane to the right, whose name is marked in this one. */
+    next: string | null;
     fresh: boolean;
-    onPreview: (id: string) => void;
+    onOpen: (id: string) => void;
   } = $props();
 
   const entry = $derived(index.get(id)!);
@@ -31,13 +32,13 @@
   // One listener handles every automatic link in the body.
   function onclick(event: MouseEvent) {
     const link = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
-    if (link?.dataset.entry) onPreview(link.dataset.entry);
+    if (link?.dataset.entry) onOpen(link.dataset.entry);
   }
 
   $effect(() => {
-    // Mark the previewed name, so it is clear which link the preview belongs to.
+    // Mark the name whose entry is open to the right, so it is clear where that pane came from.
     void html;
-    body?.querySelectorAll<HTMLElement>('.mention').forEach((el) => el.classList.toggle('active', el.dataset.entry === preview));
+    body?.querySelectorAll<HTMLElement>('.mention').forEach((el) => el.classList.toggle('active', el.dataset.entry === next));
   });
 </script>
 
@@ -53,7 +54,7 @@
        because narrator-only text is hidden there and typing near it could damage it. -->
   {#if view === 'narrator'}
     {#key id}
-      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onPreview} />
+      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} />
     {/key}
   {:else}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->

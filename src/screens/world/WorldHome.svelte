@@ -25,7 +25,7 @@
       <h2 class="label">{folderLabel(folder.name)} <span>{ids.length}</span></h2>
       <div class="chips">
         {#each ids as id}
-          <button type="button" onclick={() => nav.go({ module: 'world', entry: id })}>{index.get(id)!.name}</button>
+          <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>
         {/each}
       </div>
     {/if}
@@ -34,7 +34,7 @@
     <h2 class="label">Unfiled</h2>
     <div class="chips">
       {#each index.root.entries as id}
-        <button type="button" onclick={() => nav.go({ module: 'world', entry: id })}>{index.get(id)!.name}</button>
+        <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>
       {/each}
     </div>
   {/if}

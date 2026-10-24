@@ -11,8 +11,17 @@
     id,
     title,
     autofocus = false,
-    onPreview,
-  }: { fs: WorldFs; index: WikiIndex; id: string; title: string; autofocus?: boolean; onPreview: (id: string) => void } = $props();
+    onOpen,
+    next,
+  }: {
+    fs: WorldFs;
+    index: WikiIndex;
+    id: string;
+    title: string;
+    autofocus?: boolean;
+    onOpen: (id: string) => void;
+    next: string | null;
+  } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
   const SAVE_DELAY_MS = 800;
@@ -103,7 +112,7 @@
       return;
     }
     // svelte-ignore state_referenced_locally
-    view = createEditor({ parent: host, doc: lastSaved, title, scanner, onChange: changed, onMention: onPreview });
+    view = createEditor({ parent: host, doc: lastSaved, title, scanner, onChange: changed, onMention: (id) => onOpen(id) });
     status = 'saved';
     if (autofocus) {
       view.focus();
@@ -112,9 +121,11 @@
     stopWatching = fs.onChange(changedElsewhere);
   });
 
-  // A rebuilt index brings new names, so the links are redrawn with the new scanner.
+  // A rebuilt index brings new names, and a new pane to the right moves the marked name,
+  // so the links are redrawn.
   $effect(() => {
     scanner.current = index.scanner;
+    scanner.next = next;
     if (view) refreshMentions(view);
   });
 

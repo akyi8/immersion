@@ -40,7 +40,7 @@
     }
   }
 
-  const current = $derived(nav.current.entry);
+  const current = $derived(nav.entry);
   const groups = $derived.by(() => {
     const out: { title: string; ids: string[] }[] = [];
     if (current) {
@@ -78,7 +78,8 @@
         {#each group.ids as id}
           {@const e = index.get(id)}
           {#if e}
-            <button type="button" class="item" onclick={() => nav.go({ module: 'world', entry: id })}>
+            <!-- The working set is about the rightmost entry, so its names open beside it. -->
+            <button type="button" class="item" onclick={() => nav.open(id, nav.current.panes.length - 1)}>
               <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
             </button>
           {/if}
@@ -107,7 +108,7 @@
             class="item"
             class:current={id === current}
             style:padding-left="{32 + depth * 14}px"
-            onclick={() => nav.go({ module: 'world', entry: id })}>{e.name}</button>
+            onclick={() => nav.open(id)}>{e.name}</button>
         {/each}
       {/snippet}
       {@render folderView(index.root, 0)}
@@ -119,7 +120,7 @@
   {:else}
     <div class="faces">
       {#each people as e (e.id)}
-        <button type="button" class="face" class:current={e.id === current} onclick={() => nav.go({ module: 'world', entry: e.id })}>
+        <button type="button" class="face" class:current={e.id === current} onclick={() => nav.open(e.id)}>
           <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
           <span>{e.name}</span>
         </button>
