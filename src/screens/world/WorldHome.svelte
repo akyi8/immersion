@@ -93,6 +93,6 @@
     min-height: 36px;
   }
   .chips button:hover {
-    border-color: var(--accent);
+    border-color: var(--structure);
   }
 </style>

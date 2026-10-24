@@ -157,9 +157,9 @@
     min-height: 38px;
   }
   .modes button.on {
-    color: var(--accent-ink);
-    background: var(--accent);
-    border-color: var(--accent);
+    color: var(--structure-soft);
+    background: var(--structure-deep);
+    border-color: var(--structure);
   }
   .list {
     display: flex;
@@ -189,8 +189,8 @@
     background: var(--surface);
   }
   .item.current {
-    color: var(--accent-ink);
-    background: var(--accent);
+    color: var(--structure-soft);
+    background: var(--structure-deep);
   }
   .folder {
     justify-content: flex-start;
@@ -221,7 +221,7 @@
   .create button {
     flex: 1;
     font-size: 13px;
-    color: var(--accent);
+    color: var(--structure);
     background: none;
     border: 1px solid var(--rule-strong);
     padding: 8px 6px;
@@ -246,6 +246,6 @@
     line-height: 1.3;
   }
   .face.current :global(.portrait) {
-    border-color: var(--accent);
+    border-color: var(--structure);
   }
 </style>
