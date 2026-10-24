@@ -103,6 +103,7 @@
     {fs}
     {rebuild}
     worldName={world.name}
+    storiesDir={world.storiesDir}
     onShowLoading={() => (phase = 'loading')}
     onShowShelf={showShelf}
   />

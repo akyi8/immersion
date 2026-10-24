@@ -3,7 +3,7 @@
   import type { EditorView } from '@codemirror/view';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
-  import { createEditor, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
+  import { createEditor, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
 
   let {
     fs,
@@ -13,6 +13,8 @@
     autofocus = false,
     onOpen,
     next,
+    jump = null,
+    onCursor,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -21,6 +23,9 @@
     autofocus?: boolean;
     onOpen: (id: string) => void;
     next: string | null;
+    /** A place in the file to move the cursor to, such as a chapter's heading. */
+    jump?: { offset: number; at: number } | null;
+    onCursor?: (pos: number) => void;
   } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
@@ -36,6 +41,7 @@
   let status = $state<'loading' | 'saved' | 'saving' | 'error'>('loading');
   let problem = $state('');
   let conflict = $state<string | null>(null);
+  let ready = $state(false);
 
   async function save() {
     if (timer) clearTimeout(timer);
@@ -112,9 +118,18 @@
       return;
     }
     // svelte-ignore state_referenced_locally
-    view = createEditor({ parent: host, doc: lastSaved, title, scanner, onChange: changed, onMention: (id) => onOpen(id) });
+    view = createEditor({
+      parent: host,
+      doc: lastSaved,
+      title,
+      scanner,
+      onChange: changed,
+      onMention: (id) => onOpen(id),
+      onCursor: (pos) => onCursor?.(pos),
+    });
     status = 'saved';
-    if (autofocus) {
+    ready = true;
+    if (autofocus && !jump) {
       view.focus();
       view.dispatch({ selection: { anchor: view.state.doc.length } });
     }
@@ -127,6 +142,11 @@
     scanner.current = index.scanner;
     scanner.next = next;
     if (view) refreshMentions(view);
+  });
+
+  // A jump waits until the editor exists, so a chapter chosen before the file loads still lands.
+  $effect(() => {
+    if (ready && jump && view) jumpTo(view, jump.offset);
   });
 
   onDestroy(() => {

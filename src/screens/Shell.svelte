@@ -5,6 +5,8 @@
   import { Navigator, type Module } from '../lib/nav.svelte';
   import type { View } from '../lib/render';
   import WorldModule from './world/WorldModule.svelte';
+  import StoryModule from './story/StoryModule.svelte';
+  import { ui } from '../lib/ui.svelte';
   import { findUpdate, installUpdate } from '../lib/updates';
   import type { Update } from '@tauri-apps/plugin-updater';
 
@@ -13,6 +15,7 @@
     fs,
     rebuild,
     worldName,
+    storiesDir,
     onShowLoading,
     onShowShelf,
   }: {
@@ -20,11 +23,17 @@
     fs: WorldFs;
     rebuild: () => Promise<void>;
     worldName: string;
+    storiesDir: string;
     onShowLoading: () => void;
     onShowShelf: () => void;
   } = $props();
 
   const nav = new Navigator();
+
+  // Drafting mode belongs to the Story module, so leaving the module leaves it too.
+  $effect(() => {
+    if (nav.current.module !== 'story') ui.drafting = null;
+  });
 
   // A newer build, if GitHub has one. Checked once at startup.
   let update = $state<Update | null>(null);
@@ -68,7 +77,7 @@
   const COMING: Record<Module, string> = {
     character: 'The Character module gets its own design session first.',
     play: 'Play is built after World and Story.',
-    story: 'The Story module arrives in Milestone 3.',
+    story: '',
     world: '',
   };
 
@@ -100,6 +109,7 @@
 </script>
 
 <div class="shell">
+  {#if !ui.drafting}
   <header>
     <div class="left">
       <div class="arrows">
@@ -132,10 +142,17 @@
       <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
   </header>
+  {/if}
 
   {#if nav.current.module === 'world'}
     {#if index}
       <WorldModule {index} {fs} {nav} {view} {worldName} {rebuild} />
+    {:else}
+      <div class="waiting">Reading the world…</div>
+    {/if}
+  {:else if nav.current.module === 'story'}
+    {#if index}
+      <StoryModule {index} {fs} {nav} {storiesDir} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}
