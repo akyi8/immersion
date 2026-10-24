@@ -232,6 +232,8 @@ export function createEditor(options: {
   scanner: ScannerRef;
   onChange: (doc: string) => void;
   onMention: (id: string) => void;
+  /** Called with the cursor's position whenever it moves. */
+  onCursor?: (pos: number) => void;
 }): EditorView {
   return new EditorView({
     parent: options.parent,
@@ -251,10 +253,32 @@ export function createEditor(options: {
         theme,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());
+          if (u.selectionSet || u.docChanged) options.onCursor?.(u.state.selection.main.head);
         }),
       ],
     }),
   });
+}
+
+/**
+ * Scrolls `pos` to the top of the view, for jumping to a chapter. When `pos` is a
+ * heading, the cursor goes to the first line of text below it, so the heading keeps
+ * its finished look instead of showing its marks.
+ */
+export function jumpTo(view: EditorView, pos: number) {
+  const doc = view.state.doc;
+  const at = Math.min(pos, doc.length);
+  let cursor = at;
+  let line = doc.lineAt(at);
+  if (/^#{1,6}\s/.test(line.text)) {
+    while (line.number < doc.lines) {
+      line = doc.line(line.number + 1);
+      if (line.text.trim() !== '') break;
+    }
+    cursor = line.from;
+  }
+  view.dispatch({ selection: { anchor: cursor }, effects: EditorView.scrollIntoView(at, { y: 'start', yMargin: 24 }) });
+  view.focus();
 }
 
 /** Replaces the whole document, used when a file changes in another program. */
