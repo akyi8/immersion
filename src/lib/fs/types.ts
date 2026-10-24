@@ -7,6 +7,8 @@
 export interface DirEntry {
   name: string;
   isDir: boolean;
+  /** When the file last changed, in milliseconds since 1970, when known. */
+  modified?: number | null;
 }
 
 /**

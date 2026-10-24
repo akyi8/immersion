@@ -113,7 +113,7 @@
       <button type="button" class="world-name" title="Show the loading screen" onclick={onShowLoading}>{worldName}</button>
       <nav aria-label="Modules">
         {#each TABS as [module, label]}
-          <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => nav.go({ module })}>{label}</button>
+          <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => nav.show(module)}>{label}</button>
         {/each}
       </nav>
     </div>

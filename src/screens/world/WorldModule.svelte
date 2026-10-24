@@ -6,7 +6,8 @@
   import type { View } from '../../lib/render';
   import { slugify } from '../../lib/slug';
   import Sidebar from './Sidebar.svelte';
-  import Panes from './Panes.svelte';
+  import Panes from '../Panes.svelte';
+  import EntryView from './EntryView.svelte';
   import WorldHome from './WorldHome.svelte';
   import CreateDialog from './CreateDialog.svelte';
 
@@ -25,11 +26,14 @@
 
   // Closing the new entry's pane, or moving elsewhere in history, ends its freshness.
   $effect(() => {
-    const open = nav.current.panes;
+    const open = nav.panes;
     untrack(() => {
       if (fresh && !open.includes(fresh)) fresh = null;
     });
   });
+
+  // Entries deleted in another program drop out of the row.
+  const entries = $derived(nav.panes.filter((id) => index.get(id)));
 
   function currentFolder(): string {
     const here = nav.entry;
@@ -67,8 +71,12 @@
     {nav}
     onNewEntry={() => (creating = { kind: 'entry', folder: currentFolder() })}
     onNewFolder={() => (creating = { kind: 'folder', folder: currentFolder() })} />
-  {#if nav.current.panes.some((id) => index.get(id))}
-    <Panes {index} {fs} {nav} {view} {fresh} />
+  {#if entries.length}
+    <Panes {nav} ids={entries} label={(id) => index.get(id)?.name ?? id}>
+      {#snippet pane(id, i, next)}
+        <EntryView {index} {fs} {id} {view} {next} fresh={fresh === id} onOpen={(target) => nav.open(target, i)} />
+      {/snippet}
+    </Panes>
   {:else}
     <main>
       <WorldHome {index} {nav} {worldName} onNewEntry={() => (creating = { kind: 'entry', folder: index.root.path })} />

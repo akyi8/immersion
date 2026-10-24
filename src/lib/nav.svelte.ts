@@ -1,62 +1,76 @@
 /**
  * Back and forward across everything the app shows (design: back and forward buttons).
- * A location is a module plus, in the World module, the row of entries open side by side
- * as sliding panes (Mike, October 24). Every change to the row is one step of history,
- * so Back after following a name closes the pane it opened.
+ * A location is a module plus, for each module, the row of things open side by side as
+ * sliding panes (Mike, October 24): wiki entries in World, and a manuscript with the
+ * entries opened from it in Story. Every change to a row is one step of history, so
+ * Back after following a name closes the pane it opened.
  */
 export type Module = 'character' | 'play' | 'world' | 'story';
 
 export interface Location {
   module: Module;
-  /** Entry ids open in the World module, left to right. Empty shows the world's home. */
-  panes: string[];
+  /** What is open in each module, left to right. An empty World row shows the world's home. */
+  rows: Partial<Record<Module, string[]>>;
+}
+
+function sameRow(a: string[] = [], b: string[] = []): boolean {
+  return a.length === b.length && a.every((p, i) => p === b[i]);
 }
 
 function same(a: Location, b: Location): boolean {
-  return a.module === b.module && a.panes.length === b.panes.length && a.panes.every((p, i) => p === b.panes[i]);
+  const modules = new Set([...Object.keys(a.rows), ...Object.keys(b.rows)]) as Set<Module>;
+  return a.module === b.module && [...modules].every((m) => sameRow(a.rows[m], b.rows[m]));
 }
 
 export class Navigator {
-  stack = $state<Location[]>([{ module: 'world', panes: [] }]);
+  stack = $state<Location[]>([{ module: 'world', rows: {} }]);
   index = $state(0);
-  /** The pane to bring into view, set when a name that is already open is followed. */
+  /** The pane to bring into view, set when something already open is opened again. */
   reveal = $state<{ id: string; at: number } | null>(null);
 
   current: Location = $derived(this.stack[this.index]);
+  /** The row of panes in the module on screen. */
+  panes: string[] = $derived(this.current.rows[this.current.module] ?? []);
   /** The rightmost open entry, which the sidebar's working set follows. */
-  entry: string | null = $derived(this.current.panes.at(-1) ?? null);
+  entry: string | null = $derived(this.panes.at(-1) ?? null);
   canBack: boolean = $derived(this.index > 0);
   canForward: boolean = $derived(this.index < this.stack.length - 1);
 
-  go(patch: Partial<Location>) {
-    const next = { ...this.current, ...patch };
+  private push(next: Location) {
     if (same(next, this.current)) return;
     this.stack = [...this.stack.slice(0, this.index + 1), next];
     this.index = this.stack.length - 1;
   }
 
+  /** Shows a module, with whatever was open in it before. */
+  show(module: Module) {
+    this.push({ ...this.current, module });
+  }
+
+  /** Replaces the row of panes in the module on screen. */
+  setRow(panes: string[]) {
+    this.push({ ...this.current, rows: { ...this.current.rows, [this.current.module]: panes } });
+  }
+
   /**
-   * Opens an entry. Followed from the pane at `from`, it opens just to the right of that
-   * pane, and the panes beyond it move one place right (Mike, October 24). Nothing closes
-   * unless the writer closes it. Opened from anywhere else, such as the sidebar, it opens
-   * beside the last pane. An entry that is already open is brought into view instead.
+   * Opens something in the module on screen. Followed from the pane at `from`, it opens
+   * just to the right of that pane, and the panes beyond it move one place right (Mike,
+   * October 24). Nothing closes unless the writer closes it. Opened from anywhere else,
+   * such as the sidebar, it opens beside the last pane. Something already open is
+   * brought into view instead.
    */
   open(id: string, from?: number) {
-    const panes = this.current.panes;
+    const panes = this.panes;
     if (panes.includes(id)) {
       this.reveal = { id, at: Date.now() };
       return;
     }
     const after = from ?? panes.length - 1;
-    this.go({ module: 'world', panes: [...panes.slice(0, after + 1), id, ...panes.slice(after + 1)] });
+    this.setRow([...panes.slice(0, after + 1), id, ...panes.slice(after + 1)]);
   }
 
   close(id: string) {
-    this.go({ panes: this.current.panes.filter((p) => p !== id) });
-  }
-
-  home() {
-    this.go({ module: 'world', panes: [] });
+    this.setRow(this.panes.filter((p) => p !== id));
   }
 
   back() {
@@ -67,13 +81,15 @@ export class Navigator {
     if (this.canForward) this.index += 1;
   }
 
-  /** Entries visited before the current location, most recent first, without repeats. */
+  /** Things opened before the current location, most recent first, without repeats. */
   recentEntries(limit = 5): string[] {
     const seen: string[] = [];
-    const open = this.current.panes;
+    const open = this.panes;
     for (let i = this.index - 1; i >= 0 && seen.length < limit; i--) {
-      for (const e of [...this.stack[i].panes].reverse()) {
-        if (seen.length < limit && !open.includes(e) && !seen.includes(e)) seen.push(e);
+      for (const row of Object.values(this.stack[i].rows)) {
+        for (const e of [...(row ?? [])].reverse()) {
+          if (seen.length < limit && !open.includes(e) && !seen.includes(e)) seen.push(e);
+        }
       }
     }
     return seen;
