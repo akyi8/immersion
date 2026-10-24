@@ -24,6 +24,8 @@ import type { MentionScanner } from '../index/scanner';
 export interface ScannerRef {
   current: MentionScanner;
   selfId: string;
+  /** The entry open in the next pane, whose name is marked. */
+  next?: string | null;
 }
 
 const rescan = StateEffect.define<null>();
@@ -43,7 +45,7 @@ function mentionPlugin(ref: ScannerRef, onMention: (id: string) => void): Extens
         for (const m of ref.current.find(line.text)) {
           if (m.id === ref.selfId) continue;
           ranges.push(
-            Decoration.mark({ class: 'cm-mention', attributes: { 'data-entry': m.id } }).range(line.from + m.start, line.from + m.end),
+            Decoration.mark({ class: m.id === ref.next ? 'cm-mention cm-mention-open' : 'cm-mention', attributes: { 'data-entry': m.id } }).range(line.from + m.start, line.from + m.end),
           );
         }
         pos = line.to + 1;
@@ -67,8 +69,8 @@ function mentionPlugin(ref: ScannerRef, onMention: (id: string) => void): Extens
       },
       { decorations: (v) => v.decorations },
     ),
-    // A click on a name places the cursor, as in any editor, and also shows the name in
-    // the preview panel, which stays in one place and never covers the text.
+    // A click on a name places the cursor, as in any editor, and also opens the name's
+    // entry in the pane to the right.
     EditorView.domEventHandlers({
       mousedown(event) {
         const el = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
@@ -187,6 +189,7 @@ const theme = EditorView.theme(
     '.cm-cursor': { borderLeftColor: 'var(--structure-soft)', borderLeftWidth: '2px' },
     '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--structure-deep) !important' },
     '.cm-mention': { borderBottom: '1px dotted var(--accent)', cursor: 'pointer' },
+    '.cm-mention-open': { backgroundColor: 'var(--accent-wash)' },
     '.cm-md-link': { color: 'var(--structure)' },
     '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },
     '.cm-h2, .cm-h3, .cm-h4, .cm-h5, .cm-h6': {

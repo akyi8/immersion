@@ -6,9 +6,8 @@
   import type { View } from '../../lib/render';
   import { slugify } from '../../lib/slug';
   import Sidebar from './Sidebar.svelte';
-  import EntryView from './EntryView.svelte';
+  import Panes from './Panes.svelte';
   import WorldHome from './WorldHome.svelte';
-  import PreviewPanel from './PreviewPanel.svelte';
   import CreateDialog from './CreateDialog.svelte';
 
   let {
@@ -20,25 +19,20 @@
     rebuild,
   }: { index: WikiIndex; fs: WorldFs; nav: Navigator; view: View; worldName: string; rebuild: () => Promise<void> } = $props();
 
-  let preview = $state<string | null>(null);
   // The entry just created, which opens with the cursor ready in it.
   let fresh = $state<string | null>(null);
   let creating = $state<{ kind: 'entry' | 'folder'; folder: string } | null>(null);
-  let main: HTMLElement | undefined = $state();
 
-  // A new location clears the preview, starts at the top, and leaves edit mode,
-  // unless the new location is the entry just created for editing.
+  // Closing the new entry's pane, or moving elsewhere in history, ends its freshness.
   $effect(() => {
-    const here = nav.current.entry;
+    const open = nav.current.panes;
     untrack(() => {
-      preview = null;
-      if (fresh !== here) fresh = null;
-      main?.scrollTo({ top: 0 });
+      if (fresh && !open.includes(fresh)) fresh = null;
     });
   });
 
   function currentFolder(): string {
-    const here = nav.current.entry;
+    const here = nav.entry;
     return here ? here.slice(0, here.lastIndexOf('/')) : index.root.path;
   }
 
@@ -52,7 +46,8 @@
         await fs.writeText(path, `# ${name}\n\n`);
         await rebuild();
         fresh = path;
-        nav.go({ module: 'world', entry: path });
+        // A new entry opens beside the ones already open, ready for typing.
+        nav.open(path, nav.current.panes.length - 1);
       } else {
         await fs.createDir(path);
         await rebuild();
@@ -72,21 +67,13 @@
     {nav}
     onNewEntry={() => (creating = { kind: 'entry', folder: currentFolder() })}
     onNewFolder={() => (creating = { kind: 'folder', folder: currentFolder() })} />
-  <main bind:this={main}>
-    {#if nav.current.entry && index.get(nav.current.entry)}
-      <EntryView
-        {index}
-        {fs}
-        id={nav.current.entry}
-        {view}
-        {preview}
-        fresh={fresh === nav.current.entry}
-        onPreview={(id) => (preview = id)} />
-    {:else}
+  {#if nav.current.panes.some((id) => index.get(id))}
+    <Panes {index} {fs} {nav} {view} {fresh} />
+  {:else}
+    <main>
       <WorldHome {index} {nav} {worldName} onNewEntry={() => (creating = { kind: 'entry', folder: index.root.path })} />
-    {/if}
-  </main>
-  <PreviewPanel {index} {fs} id={preview} onOpen={(id) => nav.go({ module: 'world', entry: id })} />
+    </main>
+  {/if}
 </div>
 
 {#if creating}
