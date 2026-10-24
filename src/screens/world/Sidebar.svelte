@@ -78,8 +78,7 @@
         {#each group.ids as id}
           {@const e = index.get(id)}
           {#if e}
-            <!-- The working set is about the rightmost entry, so its names open beside it. -->
-            <button type="button" class="item" onclick={() => nav.open(id, nav.current.panes.length - 1)}>
+            <button type="button" class="item" onclick={() => nav.open(id)}>
               <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
             </button>
           {/if}

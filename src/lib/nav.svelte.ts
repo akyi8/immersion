@@ -38,15 +38,17 @@ export class Navigator {
   /**
    * Opens an entry. Followed from the pane at `from`, it opens just to the right of that
    * pane and closes the panes beyond it. Opened from anywhere else, such as the sidebar,
-   * it starts a new row. An entry that is already open is brought into view instead.
+   * it opens beside the last pane (Mike, October 24). An entry that is already open is
+   * brought into view instead.
    */
   open(id: string, from?: number) {
     const panes = this.current.panes;
-    if (from !== undefined && panes.includes(id)) {
+    if (panes.includes(id)) {
       this.reveal = { id, at: Date.now() };
       return;
     }
-    this.go({ module: 'world', panes: from === undefined ? [id] : [...panes.slice(0, from + 1), id] });
+    const after = from ?? panes.length - 1;
+    this.go({ module: 'world', panes: [...panes.slice(0, after + 1), id] });
   }
 
   close(id: string) {
