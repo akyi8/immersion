@@ -57,13 +57,16 @@
     strip.scrollTo({ left, behavior: smooth ? 'smooth' : 'instant' });
   }
 
-  // A new row of panes slides to show its newest pane.
+  // A newly opened pane slides into view beside the pane it was opened from. Any other
+  // change to the row, such as Back or a close, shows the end of the row.
+  let before: string[] = [];
   $effect(() => {
-    void panes.length;
-    void panes.at(-1);
+    const now = [...panes];
+    const added = now.findIndex((id) => !before.includes(id));
+    before = now;
     tick().then(() => {
       fit();
-      show(Infinity);
+      show(added > 0 && added < now.length - 1 ? added - 1 : Infinity);
     });
   });
 
