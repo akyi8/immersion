@@ -2,20 +2,21 @@
   import { onMount } from 'svelte';
   import { inDesktopApp } from './lib/runtime';
   import type { WorldFs } from './lib/fs/types';
-  import { DiskFs, closeWorld, openWorldFolder, rememberedWorld } from './lib/fs/disk';
+  import type { Library } from './lib/library/types';
   import { loadWorld, type World } from './lib/world';
   import { buildWikiIndex, type WikiIndex } from './lib/index/wiki';
-  import ChooseWorld from './screens/ChooseWorld.svelte';
+  import Shelf from './screens/shelf/Shelf.svelte';
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
 
-  type Phase = 'starting' | 'choose' | 'loading' | 'inside' | 'error';
+  type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'error';
 
   let phase = $state<Phase>('starting');
   let fs = $state<WorldFs | null>(null);
   let world = $state<World | null>(null);
   let index = $state<WikiIndex | null>(null);
   let problem = $state('');
+  let library = $state.raw<Library | null>(null);
 
   async function enter(source: WorldFs) {
     try {
@@ -53,36 +54,48 @@
     });
   }
 
-  async function switchWorld() {
-    stopWatching();
-    await closeWorld();
-    fs = null;
-    world = null;
-    phase = 'choose';
+  async function open(path: string) {
+    if (!library) return;
+    try {
+      await enter(await library.open(path));
+    } catch (e) {
+      problem = String(e);
+      phase = 'error';
+    }
   }
 
+  async function showShelf() {
+    stopWatching();
+    await library?.close();
+    fs = null;
+    world = null;
+    phase = 'shelf';
+  }
+
+  // The app opens straight into the world used last, and otherwise shows the shelf.
   onMount(async () => {
-    if (!inDesktopApp) {
-      const { sampleWorld } = await import('./lib/sample');
-      await enter(sampleWorld());
-      return;
+    if (inDesktopApp) {
+      const { DiskLibrary } = await import('./lib/library/disk');
+      library = new DiskLibrary();
+    } else {
+      const [{ MemoryLibrary }, { sampleWorld }] = await Promise.all([import('./lib/library/memory'), import('./lib/sample')]);
+      library = new MemoryLibrary(sampleWorld());
     }
-    const remembered = await rememberedWorld();
-    if (remembered) {
+    const last = await library.last();
+    if (last) {
       try {
-        await openWorldFolder(remembered);
-        await enter(new DiskFs());
+        await enter(await library.open(last));
         return;
       } catch {
-        // Fall through to asking for a folder.
+        // Fall through to the shelf.
       }
     }
-    phase = 'choose';
+    phase = 'shelf';
   });
 </script>
 
-{#if phase === 'choose'}
-  <ChooseWorld onOpened={() => enter(new DiskFs())} />
+{#if phase === 'shelf' && library}
+  <Shelf {library} onOpen={open} />
 {:else if (phase === 'loading' || phase === 'inside') && world && fs}
   <!-- The main screen stays alive under the loading screen, so history survives a visit to it. -->
   <Shell
@@ -91,7 +104,7 @@
     {rebuild}
     worldName={world.name}
     onShowLoading={() => (phase = 'loading')}
-    onSwitchWorld={inDesktopApp ? switchWorld : null}
+    onShowShelf={showShelf}
   />
   {#if phase === 'loading'}
     <div class="overlay">

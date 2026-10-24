@@ -1,4 +1,4 @@
-import type { DirEntry, WorldFs } from './types';
+import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs } from './types';
 
 /**
  * An in-memory world for browser testing. Paths use forward slashes and are
@@ -50,6 +50,18 @@ export class MemoryFs implements WorldFs {
     this.files[normalize(path) + '/.keep'] = '';
     this.dirs.add(normalize(path));
     this.notify([normalize(path)]);
+  }
+
+  async setImage(stem: string, image: ImageSource): Promise<string> {
+    if (image.kind !== 'file') throw new Error('A browser takes pictures as files.');
+    const ext = imageExtension(image.file.name);
+    if (!ext) throw new Error('Pictures can be JPEG, PNG, or WebP files.');
+    const base = normalize(stem);
+    for (const other of IMAGE_EXTENSIONS) delete this.files[`${base}.${other}`];
+    const path = `${base}.${ext}`;
+    this.files[path] = URL.createObjectURL(image.file);
+    this.notify([path]);
+    return path;
   }
 
   onChange(callback: (paths: string[]) => void): () => void {

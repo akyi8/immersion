@@ -14,14 +14,14 @@
     rebuild,
     worldName,
     onShowLoading,
-    onSwitchWorld,
+    onShowShelf,
   }: {
     index: WikiIndex | null;
     fs: WorldFs;
     rebuild: () => Promise<void>;
     worldName: string;
     onShowLoading: () => void;
-    onSwitchWorld: (() => void) | null;
+    onShowShelf: () => void;
   } = $props();
 
   const nav = new Navigator();
@@ -129,9 +129,7 @@
           <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
         </div>
       {/if}
-      {#if onSwitchWorld}
-        <button type="button" class="quiet" onclick={onSwitchWorld}>Open another world</button>
-      {/if}
+      <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
   </header>
 

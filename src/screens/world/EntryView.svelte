@@ -3,6 +3,9 @@
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import { renderBody, type View } from '../../lib/render';
+  import type { ImageSource } from '../../lib/fs/types';
+  import { dropImage } from '../../lib/drop';
+  import { pickImage } from '../../lib/pickImage';
   import Portrait from './Portrait.svelte';
   import EntryEditor from './EntryEditor.svelte';
 
@@ -28,6 +31,20 @@
   const entry = $derived(index.get(id)!);
   const html = $derived(renderBody(entry.body, index, id, view));
   let body: HTMLDivElement | undefined = $state();
+  let pictureProblem = $state('');
+
+  // A picture dropped on the portrait, or chosen with Change picture, is copied in beside
+  // the entry under the entry's own name (design: the world shelf).
+  async function setPicture(image: ImageSource | null) {
+    if (!image) return;
+    pictureProblem = '';
+    try {
+      await fs.setImage(id.replace(/\.md$/i, ''), image);
+    } catch (e) {
+      pictureProblem = String(e);
+    }
+  }
+
 
   // One listener handles every automatic link in the body.
   function onclick(event: MouseEvent) {
@@ -44,10 +61,19 @@
 
 <article>
   <header>
-    <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
+    {#if view === 'narrator'}
+      <div class="picture" use:dropImage={setPicture}>
+        <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
+        <button type="button" class="change" onclick={async () => setPicture(await pickImage())}>{entry.imagePath ? 'Change picture' : 'Add picture'}</button>
+        <span class="drop-hint" aria-hidden="true">Drop to set</span>
+      </div>
+    {:else}
+      <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
+    {/if}
     <div class="title">
       <h1>{entry.name}</h1>
       <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
+      {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
     </div>
   </header>
   <!-- In Narrator view every entry is editable in place. Protagonist view reads only,
@@ -84,6 +110,48 @@
     font-size: 60px;
     letter-spacing: 0.02em;
     line-height: 1;
+  }
+  .picture {
+    position: relative;
+  }
+  .change {
+    position: absolute;
+    inset: auto 0 0 0;
+    font-size: 12px;
+    color: var(--text);
+    background: rgb(7 9 11 / 0.8);
+    border: 0;
+    border-top: 1px solid var(--rule-strong);
+    padding: 6px 4px;
+    opacity: 0;
+    transition: opacity 150ms;
+  }
+  .picture:hover .change,
+  .change:focus-visible {
+    opacity: 1;
+  }
+  .drop-hint {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgb(11 52 51 / 0.88);
+    border: 1px solid var(--structure);
+    color: var(--structure-soft);
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  :global(.picture.drop-over) .drop-hint {
+    display: flex;
+  }
+  .problem {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #ff9a9a;
   }
   .meta {
     margin-top: 8px;

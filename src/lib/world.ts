@@ -1,4 +1,4 @@
-import { parse } from 'yaml';
+import { parse, stringify } from 'yaml';
 import type { WorldFs } from './fs/types';
 
 /** What `world.md` says about a world, with defaults for anything it leaves out. */
@@ -31,9 +31,33 @@ function text(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
 }
 
-export async function loadWorld(fs: WorldFs): Promise<World> {
-  const { header, body } = splitHeader(await fs.readText('world.md'));
+/** What a `world.md` file says, with defaults for anything it leaves out. */
+export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
+  const { header, body } = splitHeader(worldMd);
   const heading = /^#\s+(.+)$/m.exec(body)?.[1]?.trim();
+  return {
+    name: text(header.name, heading ?? 'Untitled world'),
+    tagline: text(header.tagline, ''),
+    wikiDir: text(header.wiki, 'wiki'),
+    storiesDir: text(header.stories, 'stories'),
+  };
+}
+
+/** The `world.md` the app writes for a new or newly added world. */
+export function worldFile(world: { name: string; tagline: string; wikiDir: string; storiesDir: string }): string {
+  const header = stringify({ name: world.name, tagline: world.tagline, wiki: world.wikiDir, stories: world.storiesDir }).trimEnd();
+  return `---
+${header}
+---
+
+# ${world.name}
+
+This folder is an Immersion world. The header above gives the world's name, the line shown under it on the loading screen, and the folders that hold the wiki and the stories. A picture named \`world.jpg\` or \`world.png\` beside this file becomes the world's cover.
+`;
+}
+
+export async function loadWorld(fs: WorldFs): Promise<World> {
+  const described = describeWorld(await fs.readText('world.md'));
   let imagePath: string | null = null;
   for (const ext of IMAGE_EXTENSIONS) {
     if (await fs.exists(`world.${ext}`)) {
@@ -41,13 +65,7 @@ export async function loadWorld(fs: WorldFs): Promise<World> {
       break;
     }
   }
-  return {
-    name: text(header.name, heading ?? 'Untitled world'),
-    tagline: text(header.tagline, ''),
-    wikiDir: text(header.wiki, 'wiki'),
-    storiesDir: text(header.stories, 'stories'),
-    imagePath,
-  };
+  return { ...described, imagePath };
 }
 
 /** Counts the markdown files under a folder, at any depth, skipping hidden folders. */
