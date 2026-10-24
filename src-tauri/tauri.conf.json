@@ -18,11 +18,11 @@
         "height": 900,
         "minWidth": 960,
         "minHeight": 640,
-        "backgroundColor": "#0E1116"
+        "backgroundColor": "#07090B"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' world: http://world.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost world: http://world.localhost"
+      "csp": "default-src 'self'; img-src 'self' world: http://world.localhost shelf: http://shelf.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost world: http://world.localhost"
     }
   },
   "bundle": {
