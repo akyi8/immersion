@@ -62,8 +62,12 @@
 
 <Dialog title="Add a world" action="Add to the shelf" ready={!!name.trim()} {busy} {problem} onSubmit={add} {onCancel}>
   <p class="hint">
-    <code>{folderName}</code> becomes a world when it has a <code>world.md</code>. Immersion writes that one file from your
-    answers and leaves everything else in the folder as it is.
+    <code>{folderName}</code> has no <code>world.md</code> yet, so it is not a world on this computer. Immersion writes that
+    one file from your answers and leaves everything else in the folder as it is.
+  </p>
+  <p class="hint">
+    If you already added this world on another computer, its <code>world.md</code> has not reached this one. Syncing the
+    folder first, for example with a git pull, brings it across and avoids two different copies.
   </p>
   <label for="aw-name" class="label">Name</label>
   <!-- svelte-ignore a11y_autofocus -->
