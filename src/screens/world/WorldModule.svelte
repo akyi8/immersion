@@ -47,7 +47,7 @@
         await rebuild();
         fresh = path;
         // A new entry opens beside the ones already open, ready for typing.
-        nav.open(path, nav.current.panes.length - 1);
+        nav.open(path);
       } else {
         await fs.createDir(path);
         await rebuild();
