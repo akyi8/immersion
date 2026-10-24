@@ -6,6 +6,7 @@
   import { appVersion } from '../../lib/version';
   import NewWorld from './NewWorld.svelte';
   import AddWorld from './AddWorld.svelte';
+  import WorldDetails from './WorldDetails.svelte';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -18,6 +19,7 @@
   let version = $state('');
   let making = $state(false);
   let adding = $state<{ path: string; shape: FolderShape } | null>(null);
+  let editing = $state<ShelfWorld | null>(null);
   let problem = $state('');
 
   async function refresh() {
@@ -88,6 +90,7 @@
           </button>
           <div class="tools">
             {#if !world.missing}
+              <button type="button" onclick={() => (editing = world)}>Edit details</button>
               <button type="button" onclick={async () => setCover(world, await library.pickImage())}>Change cover</button>
             {/if}
             <button type="button" onclick={() => forget(world)} title="Takes the world off this shelf. Its files stay where they are.">Remove</button>
@@ -113,6 +116,16 @@
 
 {#if making}
   <NewWorld {library} onCancel={() => (making = false)} onCreated={(path) => onOpen(path)} />
+{/if}
+{#if editing}
+  <WorldDetails
+    {library}
+    world={editing}
+    onCancel={() => (editing = null)}
+    onSaved={async () => {
+      editing = null;
+      await refresh();
+    }} />
 {/if}
 {#if adding}
   <AddWorld {library} path={adding.path} shape={adding.shape} onCancel={() => (adding = null)} onAdded={(path) => onOpen(path)} />

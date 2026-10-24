@@ -26,6 +26,7 @@ export class DiskLibrary implements Library {
         tagline: about?.tagline ?? '',
         cover: w.hasCover ? `${convertFileSrc(String(i), 'shelf')}?v=${stamp}` : null,
         missing: w.worldMd === null,
+        worldMd: w.worldMd,
       };
     });
   }
@@ -71,6 +72,10 @@ export class DiskLibrary implements Library {
 
   create(parent: string, folder: string, worldMd: string, dirs: string[]): Promise<string> {
     return invoke<string>('create_world', { parent, folder, worldMd, dirs });
+  }
+
+  writeWorldMd(path: string, text: string): Promise<void> {
+    return invoke('write_world_md', { path, text });
   }
 
   async setCover(path: string, image: ImageSource): Promise<void> {
