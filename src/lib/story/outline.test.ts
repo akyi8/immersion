@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addChapter, nextChapterTitle, readOutline, renameChapter, setOutline, withoutOutlines } from './outline.ts';
+import { addChapter, nextChapterTitle, readOutline, renameChapter, setOutline, withFirstChapter, withoutOutlines } from './outline.ts';
 
 const book = `# The Tide Letter
 
@@ -69,4 +69,12 @@ test('a new chapter goes after the last numbered one, before back matter', () =>
 test('outlines are not counted as words of the book', () => {
   assert.doesNotMatch(withoutOutlines(book), /Rook waits/);
   assert.match(withoutOutlines(book), /Wren took the long way/);
+});
+
+test('a manuscript without chapters gains a first chapter that holds its prose', () => {
+  const declared = withFirstChapter('---\nmanuscript: true\n---\n\n# Salt Ghosts\n\nA seed.\n');
+  assert.equal(declared.text, '---\nmanuscript: true\n---\n\n# Salt Ghosts\n\n## Chapter 1\n\nA seed.\n');
+  assert.equal(declared.text.slice(declared.offset).startsWith('## Chapter 1'), true);
+  assert.equal(withFirstChapter('# Empty\n').text, '# Empty\n\n## Chapter 1\n\n');
+  assert.equal(withFirstChapter(book).text, book);
 });

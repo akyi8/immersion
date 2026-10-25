@@ -65,6 +65,28 @@
 </script>
 
 <nav class="sidebar" aria-label="Wiki">
+  {#snippet folderView(folder: Folder, depth: number)}
+    {#each folder.folders as child}
+      <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+        {folderLabel(child.name)}
+        <span class="count">{child.entries.length || ''}</span>
+      </button>
+      {#if isOpen(child)}
+        {@render folderView(child, depth + 1)}
+      {/if}
+    {/each}
+    {#each folder.entries as id}
+      {@const e = index.get(id)!}
+      <button
+        type="button"
+        class="item"
+        class:current={id === current}
+        style:padding-left="{32 + depth * 14}px"
+        onclick={() => nav.open(id)}>{e.name}</button>
+    {/each}
+  {/snippet}
+
   <div class="modes" role="group" aria-label="Sidebar view">
     {#each MODES as [m, label]}
       <button type="button" class:on={mode === m} aria-pressed={mode === m} onclick={() => setMode(m)}>{label}</button>
@@ -84,32 +106,17 @@
           {/if}
         {/each}
       {:else}
+        <!-- With nothing open yet, the working set has nothing to gather, so the tree stands in. -->
         <p class="hint">Open an entry, and the people and places around it gather here.</p>
+        {@render folderView(index.root, 0)}
+        <div class="create">
+          <button type="button" onclick={onNewEntry}>+ New entry</button>
+          <button type="button" onclick={onNewFolder}>+ New category</button>
+        </div>
       {/each}
     </div>
   {:else if mode === 'tree'}
     <div class="list">
-      {#snippet folderView(folder: Folder, depth: number)}
-        {#each folder.folders as child}
-          <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
-            {folderLabel(child.name)}
-            <span class="count">{child.entries.length || ''}</span>
-          </button>
-          {#if isOpen(child)}
-            {@render folderView(child, depth + 1)}
-          {/if}
-        {/each}
-        {#each folder.entries as id}
-          {@const e = index.get(id)!}
-          <button
-            type="button"
-            class="item"
-            class:current={id === current}
-            style:padding-left="{32 + depth * 14}px"
-            onclick={() => nav.open(id)}>{e.name}</button>
-        {/each}
-      {/snippet}
       {@render folderView(index.root, 0)}
       <div class="create">
         <button type="button" onclick={onNewEntry}>+ New entry</button>
