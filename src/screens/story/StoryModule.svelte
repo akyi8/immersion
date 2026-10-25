@@ -5,6 +5,7 @@
   import type { Navigator } from '../../lib/nav.svelte';
   import { buildStoryIndex, titleFromName, type Manuscript, type StoryIndex } from '../../lib/story/index';
   import { fileSource, folderSource } from '../../lib/story/outlineSource';
+  import { withFirstChapter } from '../../lib/story/outline';
   import { withHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
@@ -108,8 +109,9 @@
   async function declare(path: string, manuscript: boolean) {
     problem = '';
     try {
-      const text = await fs.readText(path);
-      await fs.writeText(path, withHeader(text, { manuscript: manuscript ? true : undefined }));
+      const text = withHeader(await fs.readText(path), { manuscript: manuscript ? true : undefined });
+      // A new manuscript's prose belongs to a chapter, so it shows in outline view.
+      await fs.writeText(path, manuscript ? withFirstChapter(text).text : text);
       await refresh();
     } catch (e) {
       problem = String(e);
@@ -165,10 +167,13 @@
     try {
       if (await fs.exists(path)) throw new Error(`Something called ${slug} already exists in the stories folder.`);
       const start = `# ${newName.trim()}\n\n`;
-      await fs.writeText(path, creating === 'manuscript' ? withHeader(start, { manuscript: true }) : start);
+      // A new manuscript opens on its first chapter, with the cursor ready in it.
+      const first = withFirstChapter(withHeader(start, { manuscript: true }));
+      await fs.writeText(path, creating === 'manuscript' ? first.text : start);
       await refresh();
       fresh = path;
       nav.open(path);
+      if (creating === 'manuscript') jump = { path, offset: first.offset, at: Date.now() };
       creating = null;
       newName = '';
     } catch (e) {

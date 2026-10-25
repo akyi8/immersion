@@ -109,7 +109,15 @@
   />
   {#if phase === 'loading'}
     <div class="overlay">
-      <Loading {world} imageUrl={world.imagePath ? fs.imageUrl(world.imagePath) : null} onEnter={() => (phase = 'inside')} />
+      <Loading
+        {world}
+        imageUrl={world.imagePath ? fs.imageUrl(world.imagePath) : null}
+        onEnter={() => (phase = 'inside')}
+        onSetCover={async (image) => {
+          if (!fs) return;
+          await fs.setImage('world', image);
+          world = await loadWorld(fs);
+        }} />
     </div>
   {/if}
 {:else if phase === 'error'}

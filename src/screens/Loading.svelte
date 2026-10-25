@@ -3,8 +3,28 @@
   import { textColorOver } from '../lib/contrast';
   import type { World } from '../lib/world';
   import { appVersion } from '../lib/version';
+  import { dropImage } from '../lib/drop';
+  import { pickImage } from '../lib/pickImage';
+  import type { ImageSource } from '../lib/fs/types';
 
-  let { world, imageUrl, onEnter }: { world: World; imageUrl: string | null; onEnter: () => void } = $props();
+  let {
+    world,
+    imageUrl,
+    onEnter,
+    onSetCover,
+  }: { world: World; imageUrl: string | null; onEnter: () => void; onSetCover: (image: ImageSource) => Promise<void> } = $props();
+
+  // A world with no cover invites one right here (Mike, October 25).
+  let coverProblem = $state('');
+  async function setCover(image: ImageSource | null) {
+    if (!image) return;
+    coverProblem = '';
+    try {
+      await onSetCover(image);
+    } catch (e) {
+      coverProblem = e instanceof Error ? e.message : String(e);
+    }
+  }
 
   // Light text until the image has been measured.
   let tone = $state<'light' | 'dark'>('light');
@@ -22,6 +42,12 @@
       tone = 'light';
     }
   }
+
+  // A cover chosen on this screen is measured again, so the name stays readable over it.
+  $effect(() => {
+    void imageUrl;
+    measure();
+  });
 
   onMount(() => {
     appVersion().then((v) => (version = v));
@@ -47,6 +73,12 @@
 <section class:dark={tone === 'dark'}>
   {#if imageUrl}
     <img src={imageUrl} alt="" crossorigin="anonymous" />
+  {:else}
+    <div class="invite" use:dropImage={setCover}>
+      <p>{world.name} has no cover yet. Drop a picture here, or</p>
+      <button type="button" class="choose" onclick={async () => setCover(await pickImage())}>Choose a picture</button>
+      {#if coverProblem}<p class="problem" role="alert">{coverProblem}</p>{/if}
+    </div>
   {/if}
   <div class="corner">
     <div>
@@ -80,6 +112,38 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .invite {
+    position: absolute;
+    inset: 15% 20% 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    border: 1px dashed var(--rule-strong);
+    color: var(--text-soft);
+  }
+  :global(.invite.drop-over) {
+    border-color: var(--structure);
+    background: rgb(11 52 51 / 0.5);
+  }
+  .invite p {
+    margin: 0;
+    font-size: 16px;
+  }
+  .invite .choose {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--structure);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    padding: 8px 14px;
+    min-height: 40px;
+  }
+  .invite .problem {
+    color: #ff9a9a;
   }
   .corner {
     position: absolute;

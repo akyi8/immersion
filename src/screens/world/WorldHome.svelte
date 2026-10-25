@@ -4,7 +4,13 @@
   import type { Navigator } from '../../lib/nav.svelte';
 
   // What the World module shows before any entry is open: every category and its entries.
-  let { index, nav, worldName, onNewEntry }: { index: WikiIndex; nav: Navigator; worldName: string; onNewEntry: () => void } = $props();
+  // An empty category still shows, with a way to start it, so a new world is never blank.
+  let {
+    index,
+    nav,
+    worldName,
+    onNewEntry,
+  }: { index: WikiIndex; nav: Navigator; worldName: string; onNewEntry: (folder?: string) => void } = $props();
 
   function allIn(folder: import('../../lib/index/wiki').Folder): string[] {
     return [...folder.entries, ...folder.folders.flatMap(allIn)];
@@ -15,20 +21,23 @@
   <div class="top">
     <div>
       <h1>{worldName}</h1>
-      <p class="count">{index.entries.size} entries</p>
+      <p class="count">
+        {index.entries.size
+          ? `${index.entries.size} ${index.entries.size === 1 ? 'entry' : 'entries'}`
+          : 'An empty world. Start with a person or a place, and every name you write that matches an entry becomes a link.'}
+      </p>
     </div>
-    <button type="button" class="new" onclick={onNewEntry}>+ New entry</button>
+    <button type="button" class="new" onclick={() => onNewEntry()}>+ New entry</button>
   </div>
   {#each index.root.folders as folder}
     {@const ids = allIn(folder)}
-    {#if ids.length}
-      <h2 class="label">{folderLabel(folder.name)} <span>{ids.length}</span></h2>
-      <div class="chips">
-        {#each ids as id}
-          <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>
-        {/each}
-      </div>
-    {/if}
+    <h2 class="label">{folderLabel(folder.name)} {#if ids.length}<span>{ids.length}</span>{/if}</h2>
+    <div class="chips">
+      {#each ids as id}
+        <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>
+      {/each}
+      <button type="button" class="add" onclick={() => onNewEntry(folder.path)}>+ Add</button>
+    </div>
   {/each}
   {#if index.root.entries.length}
     <h2 class="label">Unfiled</h2>
@@ -94,5 +103,12 @@
   }
   .chips button:hover {
     border-color: var(--structure);
+  }
+  .chips .add {
+    color: var(--structure);
+    border-style: dashed;
+  }
+  .count {
+    max-width: 560px;
   }
 </style>

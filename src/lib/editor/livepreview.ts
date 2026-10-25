@@ -116,13 +116,30 @@ class OutlineWidget extends WidgetType {
   }
 }
 
+/** Header keys the app writes for itself, which the writer never needs to see. */
+const MACHINE_KEYS = new Set(['manuscript']);
+
+/** True when every key in the YAML header is one the app keeps for itself. */
+function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {
+  const lines = state.doc.sliceString(header.from, header.to).split('\n').slice(1, -1);
+  const keys = lines.map((l) => /^([\w-]+)\s*:/.exec(l)?.[1]).filter((k): k is string => !!k);
+  return keys.length > 0 && keys.every((k) => MACHINE_KEYS.has(k)) && lines.every((l) => l.trim() === '' || /^[\w-]+\s*:/.test(l));
+}
+
 /**
- * The zones around outline callouts: each callout with the blank lines on both sides,
- * from the end of the line before it to the start of the line after it.
+ * The zones the writing view protects: each outline callout, and a header the app
+ * hides, together with the blank lines after them, up to the start of the next line.
  */
 function outlineZones(state: EditorState): { from: number; to: number }[] {
   const zones: { from: number; to: number }[] = [];
   const doc = state.doc;
+  const header = headerRange(state);
+  if (header && machineOnly(state, header)) {
+    let after = doc.lineAt(header.to).number + 1;
+    while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
+    // Starting before the document means nothing can be typed in front of the header either.
+    zones.push({ from: -1, to: after <= doc.lines ? doc.line(after).from : doc.length });
+  }
   for (let n = 1; n <= doc.lines; n++) {
     if (!/^>\s*\[!outline\]/i.test(doc.line(n).text)) continue;
     let end = n;
@@ -191,9 +208,12 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   const lines: Range<Decoration>[] = [];
   const doc = state.doc;
 
-  // The YAML header shrinks to a single quiet line until the cursor enters it.
+  // The YAML header shrinks to a single quiet line until the cursor enters it. A header
+  // that holds only what the app keeps for itself, such as `manuscript: true`, is hidden.
   const header = headerRange(state);
-  if (header && !touched(state, header.from, header.to)) {
+  if (header && machineOnly(state, header)) {
+    marks.push(Decoration.replace({ block: true }).range(header.from, header.to));
+  } else if (header && !touched(state, header.from, header.to)) {
     marks.push(Decoration.replace({ widget: new PropertiesWidget(doc.line(2).from), block: true }).range(header.from, header.to));
   }
 

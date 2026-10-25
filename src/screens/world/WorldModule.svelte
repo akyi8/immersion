@@ -91,7 +91,7 @@
     </Panes>
   {:else}
     <main>
-      <WorldHome {index} {nav} {worldName} onNewEntry={() => (creating = { kind: 'entry', folder: index.root.path })} />
+      <WorldHome {index} {nav} {worldName} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
     </main>
   {/if}
 </div>

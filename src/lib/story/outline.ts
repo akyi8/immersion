@@ -159,3 +159,29 @@ export function fileTitle(text: string): { title: string; offset: number; outlin
     : '';
   return { title: lines[h].text.replace(/^#\s+/, '').trim(), offset: lines[h].from, outline };
 }
+
+/**
+ * Gives a manuscript its first chapter when it has none, so its prose belongs to a
+ * chapter and shows in outline view. The heading goes just after the title, or at the
+ * top of the text after any header. Returns the text and where the heading starts.
+ */
+export function withFirstChapter(text: string): { text: string; offset: number } {
+  const existing = readOutline(text);
+  if (existing.length) return { text, offset: existing[0].offset };
+  const lines = linesOf(text);
+  let start = 0;
+  if (lines[0]?.text.trim() === '---') {
+    const close = lines.findIndex((l, i) => i > 0 && l.text.trim() === '---');
+    if (close > 0) start = close + 1;
+  }
+  let i = start;
+  while (i < lines.length && lines[i].text.trim() === '') i++;
+  if (i < lines.length && /^#\s+/.test(lines[i].text)) i++;
+  while (i < lines.length && lines[i].text.trim() === '') i++;
+  if (i >= lines.length) {
+    const before = text.replace(/\s*$/, '');
+    return { text: `${before}\n\n## Chapter 1\n\n`, offset: before.length + 2 };
+  }
+  const at = lines[i].from;
+  return { text: `${text.slice(0, at)}## Chapter 1\n\n${text.slice(at)}`, offset: at };
+}
