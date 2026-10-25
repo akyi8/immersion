@@ -152,7 +152,7 @@
     {/if}
   {:else if nav.current.module === 'story'}
     {#if index}
-      <StoryModule {index} {fs} {nav} {storiesDir} />
+      <StoryModule {index} {fs} {nav} {storiesDir} {rebuild} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}

@@ -4,7 +4,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import type { View } from '../../lib/render';
-  import { slugify } from '../../lib/slug';
+  import { createCategory, createEntry, likelyCategory } from '../../lib/index/create';
   import Sidebar from './Sidebar.svelte';
   import Panes from '../Panes.svelte';
   import EntryView from './EntryView.svelte';
@@ -22,7 +22,8 @@
 
   // The entry just created, which opens with the cursor ready in it.
   let fresh = $state<string | null>(null);
-  let creating = $state<{ kind: 'entry' | 'folder'; folder: string } | null>(null);
+  /** The form for a new entry or category. `after` is the pane to open the new entry beside. */
+  let creating = $state<{ kind: 'entry' | 'folder'; folder: string; name?: string; after?: number } | null>(null);
 
   // Closing the new entry's pane, or moving elsewhere in history, ends its freshness.
   $effect(() => {
@@ -41,23 +42,19 @@
   }
 
   async function create(name: string, folder: string): Promise<string | null> {
-    const slug = slugify(name);
-    if (!slug) return 'That name has no letters or numbers to make a file name from.';
-    const path = `${folder}/${slug}${creating?.kind === 'entry' ? '.md' : ''}`;
-    if (await fs.exists(path)) return `Something called ${slug} already exists there.`;
     try {
       if (creating?.kind === 'entry') {
-        await fs.writeText(path, `# ${name}\n\n`);
+        const path = await createEntry(fs, name, folder);
         await rebuild();
         fresh = path;
-        // A new entry opens beside the ones already open, ready for typing.
-        nav.open(path);
+        // A new entry opens beside the one it was made from, or beside the last one, ready for typing.
+        nav.open(path, creating.after);
       } else {
-        await fs.createDir(path);
+        await createCategory(fs, name, folder);
         await rebuild();
       }
     } catch (e) {
-      return String(e);
+      return e instanceof Error ? e.message : String(e);
     }
     creating = null;
     return null;
@@ -74,7 +71,15 @@
   {#if entries.length}
     <Panes {nav} ids={entries} label={(id) => index.get(id)?.name ?? id}>
       {#snippet pane(id, i, next)}
-        <EntryView {index} {fs} {id} {view} {next} fresh={fresh === id} onOpen={(target) => nav.open(target, i)} />
+        <EntryView
+          {index}
+          {fs}
+          {id}
+          {view}
+          {next}
+          fresh={fresh === id}
+          onOpen={(target) => nav.open(target, i)}
+          onMakeEntry={(name) => (creating = { kind: 'entry', folder: likelyCategory(index), name, after: i })} />
       {/snippet}
     </Panes>
   {:else}
@@ -85,7 +90,7 @@
 </div>
 
 {#if creating}
-  <CreateDialog {index} kind={creating.kind} startFolder={creating.folder} onCreate={create} onCancel={() => (creating = null)} />
+  <CreateDialog {index} kind={creating.kind} startFolder={creating.folder} startName={creating.name} onCreate={create} onCancel={() => (creating = null)} />
 {/if}
 
 <style>

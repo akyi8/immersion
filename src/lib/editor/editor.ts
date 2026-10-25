@@ -11,6 +11,7 @@ import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirro
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
 import { livePreview } from './livepreview';
+import { selectionToolbar, type ToolbarOptions } from './toolbar';
 import { tags } from '@lezer/highlight';
 import type { MentionScanner } from '../index/scanner';
 
@@ -258,6 +259,8 @@ export function createEditor(options: {
   onCursor?: (pos: number) => void;
   /** Called when a chapter's folded outline is clicked, with where its outline starts. */
   onOutline?: (at: number) => void;
+  /** What the selection toolbar offers. */
+  toolbar?: ToolbarOptions;
 }): EditorView {
   return new EditorView({
     parent: options.parent,
@@ -275,6 +278,7 @@ export function createEditor(options: {
         paragraphStep,
         mentionPlugin(options.scanner, options.onMention),
         theme,
+        options.toolbar ? selectionToolbar(options.toolbar) : [],
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());
           if (u.selectionSet || u.docChanged) options.onCursor?.(u.state.selection.main.head);
