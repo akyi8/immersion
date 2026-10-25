@@ -15,6 +15,7 @@
     next,
     jump = null,
     onCursor,
+    onOutline,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -26,6 +27,7 @@
     /** A place in the file to move the cursor to, such as a chapter's heading. */
     jump?: { offset: number; at: number } | null;
     onCursor?: (pos: number) => void;
+    onOutline?: (at: number) => void;
   } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
@@ -87,6 +89,8 @@
       replaceDoc(view, text);
       pending = null;
       status = 'saved';
+      // A chapter added from the binder arrives this way, after the jump to it was asked for.
+      if (jump && Date.now() - jump.at < 5000) jumpTo(view, jump.offset);
     } else {
       conflict = text;
     }
@@ -126,6 +130,7 @@
       onChange: changed,
       onMention: (id) => onOpen(id),
       onCursor: (pos) => onCursor?.(pos),
+      onOutline: (at) => onOutline?.(at),
     });
     status = 'saved';
     ready = true;

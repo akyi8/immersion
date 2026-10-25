@@ -1,4 +1,4 @@
-import { StateEffect, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
+import { EditorState, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
 
@@ -79,6 +79,87 @@ class LabelWidget extends WidgetType {
   }
 }
 
+/**
+ * A chapter's outline, folded to one quiet line in the writing view (Mike, October 25).
+ * Clicking it opens outline view at that chapter. The outline itself is edited there,
+ * so the writing view never shows the callout's markup.
+ */
+class OutlineWidget extends WidgetType {
+  constructor(
+    private summary: string,
+    private at: number,
+    private onOutline: ((at: number) => void) | null,
+  ) {
+    super();
+  }
+  toDOM() {
+    const el = document.createElement('div');
+    el.className = 'cm-outline-fold';
+    const label = document.createElement('span');
+    label.className = 'cm-outline-label';
+    label.textContent = 'Outline';
+    const text = document.createElement('span');
+    text.className = 'cm-outline-text';
+    text.textContent = this.summary;
+    el.append(label, text);
+    el.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      this.onOutline?.(this.at);
+    });
+    return el;
+  }
+  eq(other: OutlineWidget) {
+    return other.summary === this.summary && other.at === this.at;
+  }
+  ignoreEvent() {
+    return true;
+  }
+}
+
+/**
+ * The zones around outline callouts: each callout with the blank lines on both sides,
+ * from the end of the line before it to the start of the line after it.
+ */
+function outlineZones(state: EditorState): { from: number; to: number }[] {
+  const zones: { from: number; to: number }[] = [];
+  const doc = state.doc;
+  for (let n = 1; n <= doc.lines; n++) {
+    if (!/^>\s*\[!outline\]/i.test(doc.line(n).text)) continue;
+    let end = n;
+    while (end + 1 <= doc.lines && /^>/.test(doc.line(end + 1).text)) end++;
+    let before = n - 1;
+    while (before >= 1 && doc.line(before).text.trim() === '') before--;
+    let after = end + 1;
+    while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
+    zones.push({
+      from: before >= 1 ? doc.line(before).to : 0,
+      to: after <= doc.lines ? doc.line(after).from : doc.length,
+    });
+    n = end;
+  }
+  return zones;
+}
+
+/**
+ * Typing and deleting in the writing view never touch an outline (Mike, October 25).
+ * A change that would cut into an outline or the blank lines around it is refused
+ * whole, because removing even one of those blank lines would pull the next paragraph
+ * into the outline. Typing at the end of the heading or the start of the paragraph
+ * still works, and outline view edits the outline itself.
+ */
+const protectOutlines = EditorState.transactionFilter.of((tr) => {
+  if (!tr.docChanged || (!tr.isUserEvent('input') && !tr.isUserEvent('delete') && !tr.isUserEvent('move'))) return tr;
+  const zones = outlineZones(tr.startState);
+  if (!zones.length) return tr;
+  let blocked = false;
+  tr.changes.iterChangedRanges((fromA, toA) => {
+    for (const z of zones) {
+      if (toA > fromA ? fromA < z.to && toA > z.from : fromA > z.from && fromA < z.to) blocked = true;
+    }
+  });
+  return blocked ? [] : tr;
+});
+
 /** Whether the editor has focus. An unfocused editor shows every phrase finished. */
 const setFocus = StateEffect.define<boolean>();
 const focused = StateField.define<boolean>({
@@ -105,7 +186,7 @@ function headerRange(state: EditorState): { from: number; to: number } | null {
   return null;
 }
 
-function build(state: EditorState, title: string): DecorationSet {
+function build(state: EditorState, title: string, onOutline: ((at: number) => void) | null): DecorationSet {
   const marks: Range<Decoration>[] = [];
   const lines: Range<Decoration>[] = [];
   const doc = state.doc;
@@ -171,6 +252,20 @@ function build(state: EditorState, title: string): DecorationSet {
         const last = doc.lineAt(node.to);
         const callout = /^\s*>\s*\[!(\w+)\]/.exec(first.text);
         const kind = callout?.[1].toLowerCase();
+        if (kind === 'outline') {
+          const summary = doc
+            .sliceString(doc.line(Math.min(first.number + 1, last.number)).from, last.to)
+            .replace(/^>\s?/gm, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          marks.push(
+            Decoration.replace({ widget: new OutlineWidget(first.number === last.number ? '' : summary, first.from, onOutline), block: true }).range(
+              first.from,
+              last.to,
+            ),
+          );
+          return false;
+        }
         const cls = kind ? `cm-quote cm-callout cm-callout-${kind}` : 'cm-quote';
         for (let n = first.number; n <= last.number; n++) {
           const line = doc.line(n);
@@ -195,14 +290,14 @@ function build(state: EditorState, title: string): DecorationSet {
 }
 
 /** Live preview for an editor whose entry is titled `title`. */
-export function livePreview(title: string): Extension {
+export function livePreview(title: string, onOutline: ((at: number) => void) | null = null): Extension {
   const field = StateField.define<DecorationSet>({
-    create: (state) => build(state, title),
+    create: (state) => build(state, title, onOutline),
     update(value, tr) {
-      if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setFocus))) return build(tr.state, title);
+      if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setFocus))) return build(tr.state, title, onOutline);
       return value;
     },
     provide: (f) => EditorView.decorations.from(f),
   });
-  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field];
+  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field, protectOutlines];
 }

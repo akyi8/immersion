@@ -2,7 +2,9 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { StoryIndex } from '../../lib/story/index';
+  import { fileSource, folderSource, type OutlineSource } from '../../lib/story/outlineSource';
   import EntryEditor from '../world/EntryEditor.svelte';
+  import OutlineView from './OutlineView.svelte';
 
   /**
    * A piece of writing open in the Story module: a manuscript, one chapter of a
@@ -22,6 +24,7 @@
     onCursor,
     onDraft,
     onDeclare,
+    onOpenPiece,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -36,7 +39,38 @@
     onDraft: () => void;
     /** Moves a piece into the binder, or back to the drawer. */
     onDeclare: (path: string, manuscript: boolean) => void;
+    /** Opens a piece of writing, at a chapter when `offset` is given. */
+    onOpenPiece: (path: string, offset: number | null) => void;
   } = $props();
+
+  // Writing and outline are two views of the same chapters (Mike, October 25).
+  let mode = $state<'write' | 'outline'>('write');
+  let outlineFocus = $state<number | null>(null);
+
+  /** The chapters behind outline view: this file's headings, or the files of its folder. */
+  const source = $derived.by((): OutlineSource | null => {
+    if (!story) return null;
+    if (story.manuscripts.some((m) => m.kind === 'file' && m.path === id)) return fileSource(fs, id);
+    const folder = story.manuscripts.find((m) => m.kind === 'folder' && m.sections.some((s) => s.path === id));
+    return folder ? folderSource(fs, folder) : null;
+  });
+
+  /** Opens outline view at the chapter whose folded outline was clicked. */
+  function showOutline(at: number) {
+    const m = story?.manuscripts.find((x) => x.path === id);
+    if (m?.kind === 'file') {
+      const chapters = m.sections.filter((s) => s.depth === 2);
+      let index = 0;
+      chapters.forEach((s, i) => {
+        if (s.offset !== null && s.offset <= at) index = i;
+      });
+      outlineFocus = index;
+    } else {
+      const folder = story?.manuscripts.find((x) => x.sections.some((s) => s.path === id));
+      outlineFocus = folder ? folder.sections.findIndex((s) => s.path === id) : null;
+    }
+    mode = 'outline';
+  }
 
   const about = $derived.by(() => {
     if (!story) return null;
@@ -69,8 +103,14 @@
         <div class="label">{about.label}</div>
         <h1>{about.title}</h1>
         <div class="row">
+          {#if source}
+            <div class="views" role="group" aria-label="View">
+              <button type="button" class:on={mode === 'write'} aria-pressed={mode === 'write'} onclick={() => (mode = 'write')}>Write</button>
+              <button type="button" class:on={mode === 'outline'} aria-pressed={mode === 'outline'} onclick={() => ((outlineFocus = null), (mode = 'outline'))}>Outline</button>
+            </div>
+          {/if}
           <span class="meta">{about.meta}</span>
-          <button type="button" class="action" onclick={onDraft}>Drafting mode</button>
+          {#if mode === 'write'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
           {#if about.kind === 'drawer'}
             <button type="button" class="action" onclick={() => onDeclare(id, true)}>Make this a manuscript</button>
           {:else if about.kind === 'manuscript'}
@@ -79,17 +119,48 @@
         </div>
       </header>
     {/if}
-    <div class="book">
-      {#key id}
-        <EntryEditor {fs} {index} {id} title={about.title} autofocus={fresh} {onOpen} {next} {jump} {onCursor} />
-      {/key}
-    </div>
+    {#if mode === 'outline' && source && !drafting}
+      <OutlineView
+        {fs}
+        {source}
+        focus={outlineFocus}
+        onWrite={(card) => {
+          mode = 'write';
+          onOpenPiece(card.path, card.offset);
+        }}
+        onAdded={() => {}} />
+    {:else}
+      <div class="book">
+        {#key id}
+          <EntryEditor {fs} {index} {id} title={about.title} autofocus={fresh} {onOpen} {next} {jump} {onCursor} onOutline={showOutline} />
+        {/key}
+      </div>
+    {/if}
   </article>
 {/if}
 
 <style>
   article {
     max-width: 720px;
+  }
+  article:has(:global(.grid)) {
+    max-width: none;
+  }
+  .views {
+    display: flex;
+    border: 1px solid var(--rule-strong);
+  }
+  .views button {
+    font-size: 13px;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    padding: 6px 12px;
+    min-height: 32px;
+  }
+  .views button.on {
+    color: var(--structure-soft);
+    background: var(--structure-deep);
   }
   article.drafting {
     margin: 0 auto;
