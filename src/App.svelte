@@ -12,8 +12,10 @@
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
   import ThemeEditor from './screens/ThemeEditor.svelte';
+  import Reader from './screens/Reader.svelte';
+  import { readerPage, setWindowWorld } from './lib/windows';
 
-  type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'error';
+  type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
   let phase = $state<Phase>('starting');
   let fs = $state<WorldFs | null>(null);
@@ -26,6 +28,7 @@
   // shows on the whole app until it is saved or cancelled.
   let previewTheme = $state<{ spec: ThemeSpec | null; side: Mode } | undefined>(undefined);
   $effect(() => {
+    if (phase === 'reader') return;
     if (previewTheme) applyTheme(previewTheme.spec, previewTheme.side);
     else applyTheme(phase === 'shelf' ? null : (world?.theme ?? null), mode.current);
   });
@@ -68,6 +71,7 @@
 
   async function open(path: string) {
     if (!library) return;
+    setWindowWorld(path);
     try {
       await enter(await library.open(path));
     } catch (e) {
@@ -96,7 +100,24 @@
   }
 
   // The app opens straight into the world used last, and otherwise shows the shelf.
+  // A reading window shows one page of the world the main window has open.
+  let readerId = $state('');
+
   onMount(async () => {
+    const page = readerPage();
+    if (page) {
+      readerId = page.id;
+      if (inDesktopApp) {
+        const { DiskFs } = await import('./lib/fs/disk');
+        fs = new DiskFs(page.world);
+      } else {
+        const [{ MemoryLibrary }, { sampleWorld }] = await Promise.all([import('./lib/library/memory'), import('./lib/sample')]);
+        const sample = new MemoryLibrary(sampleWorld());
+        fs = await sample.open((await sample.list())[0].path);
+      }
+      phase = 'reader';
+      return;
+    }
     if (inDesktopApp) {
       const { DiskLibrary } = await import('./lib/library/disk');
       library = new DiskLibrary();
@@ -107,6 +128,7 @@
     const last = await library.last();
     if (last) {
       try {
+        setWindowWorld(last);
         await enter(await library.open(last));
         return;
       } catch {
@@ -117,7 +139,9 @@
   });
 </script>
 
-{#if phase === 'shelf' && library}
+{#if phase === 'reader' && fs}
+  <Reader {fs} id={readerId} />
+{:else if phase === 'shelf' && library}
   <Shelf {library} onOpen={open} onPreviewTheme={(preview) => (previewTheme = preview)} />
 {:else if (phase === 'loading' || phase === 'inside') && world && fs}
   <!-- The main screen stays alive under the loading screen, so history survives a visit to it. -->

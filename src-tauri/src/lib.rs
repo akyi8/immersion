@@ -178,6 +178,7 @@ fn open_world(path: String, state: State<OpenWorld>, app: AppHandle) -> Result<(
     if !folder.join("world.md").is_file() {
         return Err(format!("{path} has no world.md, so it is not a world folder"));
     }
+    close_readers(&app);
     *state.0.lock().unwrap() = Some(folder.clone());
     watch(&app, folder);
     remember(&app, &path);
@@ -185,6 +186,16 @@ fn open_world(path: String, state: State<OpenWorld>, app: AppHandle) -> Result<(
     settings.world = Some(path);
     save_settings(&app, &settings);
     Ok(())
+}
+
+/// Closes every reading window. They show pages of the open world, so they close when
+/// the world does (Mike, October 25).
+fn close_readers(app: &AppHandle) {
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("reader-") {
+            let _ = window.close();
+        }
+    }
 }
 
 /// The world folder opened last time, if it still exists.
@@ -197,6 +208,7 @@ fn remembered_world(app: AppHandle) -> Option<String> {
 /// Closes the open world, so the next launch shows the shelf. The shelf keeps it.
 #[tauri::command]
 fn close_world(state: State<OpenWorld>, app: AppHandle) {
+    close_readers(&app);
     *state.0.lock().unwrap() = None;
     *app.state::<WorldWatcher>().0.lock().unwrap() = None;
     let mut settings = load_settings(&app);
@@ -561,6 +573,12 @@ fn serve_world_file(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Closing the main window closes the reading windows too, so the app quits.
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                close_readers(window.app_handle());
+            }
+        })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())

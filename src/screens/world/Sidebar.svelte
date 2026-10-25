@@ -8,6 +8,7 @@
   import CategoryActions from './CategoryActions.svelte';
   import EntryActions from './EntryActions.svelte';
   import { contextMenu } from '../../lib/contextMenu.svelte';
+  import { openInWindow } from '../../lib/windows';
 
   let {
     index,
@@ -51,6 +52,13 @@
   function entryMenu(event: MouseEvent, id: string) {
     contextMenu.show(event, [
       { label: 'Open', run: () => nav.open(id) },
+      {
+        label: 'Open in a new window',
+        run: () => {
+          openInWindow(id, index.get(id)?.name ?? id);
+          if (nav.panes.includes(id)) nav.close(id);
+        },
+      },
       'separator',
       { label: 'Rename', run: () => entryForm(id, 'rename') },
       { label: 'Other names', run: () => entryForm(id, 'names') },

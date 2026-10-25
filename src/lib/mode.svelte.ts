@@ -27,6 +27,10 @@ class ModeSetting {
     const query = window.matchMedia('(prefers-color-scheme: dark)');
     this.systemDark = query.matches;
     query.addEventListener('change', (e) => (this.systemDark = e.matches));
+    // A change made in another window, such as a reading window, reaches this one too.
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY) this.choice = saved();
+    });
   }
 
   /** The side on screen now. */

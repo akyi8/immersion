@@ -14,6 +14,7 @@
     ids,
     label,
     pane,
+    onWindow,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
@@ -21,6 +22,8 @@
     /** The name on a pane's spine and close button. */
     label: (id: string) => string;
     pane: Snippet<[id: string, i: number, next: string | null]>;
+    /** Moves a pane into a reading window of its own. */
+    onWindow?: (id: string) => void;
   } = $props();
 
   /** How much of a covered pane still shows: its spine. */
@@ -98,6 +101,11 @@
           </button>
         </div>
         <div class="body">
+          {#if onWindow}
+            <button type="button" class="window" aria-label="Open {name} in a new window" title="Open in a new window" onclick={() => onWindow(id)}>
+              <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M5 2 H11 V8 M11 2 L5.5 7.5 M9 9.5 V11 H2 V4 H3.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+            </button>
+          {/if}
           <button type="button" class="close" aria-label="Close {name}" title="Close" onclick={() => nav.close(id)}>
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
@@ -195,7 +203,8 @@
     text-overflow: ellipsis;
     max-height: 100%;
   }
-  .close {
+  .close,
+  .window {
     position: absolute;
     top: 14px;
     right: 14px;
@@ -208,7 +217,11 @@
     border: 0;
     z-index: 1;
   }
-  .close:hover {
+  .window {
+    right: 48px;
+  }
+  .close:hover,
+  .window:hover {
     color: var(--text);
     background: var(--surface);
   }

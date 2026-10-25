@@ -7,6 +7,7 @@
   import { fileSource, folderSource } from '../../lib/story/outlineSource';
   import { moveToPlace, newManuscript } from '../../lib/story/manage';
   import { saveAllUnder, saveNow } from '../../lib/saves';
+  import { openInWindow } from '../../lib/windows';
   import { splitHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
@@ -107,6 +108,13 @@
       if (s) return s.title;
     }
     return titleFromName(id.split('/').pop() ?? id);
+  }
+
+  /** Moves a page into a reading window of its own; its pane here closes (Mike, October 25). */
+  async function toWindow(id: string) {
+    await saveNow(id);
+    openInWindow(id, label(id));
+    if (nav.panes.includes(id)) nav.close(id);
   }
 
   /** Opens a piece, and moves to a chapter in it when `offset` is given. */
@@ -302,6 +310,7 @@
       onOpen={openPiece}
       onAddChapter={addChapter}
       onMoveTo={moveTo}
+      onWindow={toWindow}
       onMoveChapter={moveChapter}
       onRenameChapter={(m, s) => {
         renaming = { m, s };
@@ -314,7 +323,7 @@
         problem = '';
       }} />
     {#if row.length}
-      <Panes {nav} ids={row} {label}>
+      <Panes {nav} ids={row} {label} onWindow={toWindow}>
         {#snippet pane(id, i, next)}
           {#if index.get(id)}
             <EntryView

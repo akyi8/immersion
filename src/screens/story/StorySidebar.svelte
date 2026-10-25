@@ -23,6 +23,7 @@
     onNew,
     onAddChapter,
     onMoveTo,
+    onWindow,
     onMoveChapter,
     onRenameChapter,
     onMoved,
@@ -38,6 +39,8 @@
     onAddChapter: (m: Manuscript) => void;
     /** Moves a manuscript to the desk, the drawer, or the shelf. */
     onMoveTo: (m: Manuscript, place: Place) => void;
+    /** Opens a page in a reading window of its own. */
+    onWindow: (path: string) => void;
     /** Moves a chapter one place earlier (-1) or later (1) in its manuscript. */
     onMoveChapter: (m: Manuscript, s: Section, by: -1 | 1) => void;
     onRenameChapter: (m: Manuscript, s: Section) => void;
@@ -120,6 +123,7 @@
   function manuscriptMenu(event: MouseEvent, m: Manuscript) {
     const items: MenuEntry[] = [
       { label: 'Open', run: () => openManuscript(m) },
+      { label: 'Open in a new window', run: () => onWindow(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path)) },
       { label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) },
       { label: '+ Chapter', run: () => onAddChapter(m) },
       'separator',
@@ -140,6 +144,7 @@
     const chapter = at >= 0;
     contextMenu.show(event, [
       { label: 'Open', run: () => onOpen(s.path, s.offset, s.title) },
+      { label: 'Open in a new window', run: () => onWindow(s.path) },
       'separator',
       { label: 'Move earlier', run: () => onMoveChapter(m, s, -1), disabled: !chapter || at === 0 },
       { label: 'Move later', run: () => onMoveChapter(m, s, 1), disabled: !chapter || at === list.length - 1 },

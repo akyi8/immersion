@@ -10,6 +10,7 @@
   import EntryView from './EntryView.svelte';
   import WorldHome from './WorldHome.svelte';
   import CreateDialog from './CreateDialog.svelte';
+  import { openInWindow } from '../../lib/windows';
 
   let {
     index,
@@ -80,7 +81,14 @@
       nav.replacePrefix(from, to);
     }} />
   {#if entries.length}
-    <Panes {nav} ids={entries} label={(id) => index.get(id)?.name ?? id}>
+    <Panes
+      {nav}
+      ids={entries}
+      label={(id) => index.get(id)?.name ?? id}
+      onWindow={(id) => {
+        openInWindow(id, index.get(id)?.name ?? id);
+        nav.close(id);
+      }}>
       {#snippet pane(id, i, next)}
         <EntryView
           {index}
