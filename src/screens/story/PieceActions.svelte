@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { outside } from '../../lib/outside';
   import type { WorldFs } from '../../lib/fs/types';
   import { archivePiece, renamePiece } from '../../lib/story/manage';
   import { saveAllUnder, saveNow } from '../../lib/saves';
@@ -12,6 +13,8 @@
     title,
     root,
     onMoved,
+    onWindow,
+    windowOnly = false,
     button = true,
   }: {
     fs: WorldFs;
@@ -22,6 +25,10 @@
     root: string;
     /** Called after the piece moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Moves the page into a reading window of its own. */
+    onWindow?: () => void;
+    /** Offer only the window, for a chapter, which the binder renames instead. */
+    windowOnly?: boolean;
     /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
     button?: boolean;
   } = $props();
@@ -60,14 +67,19 @@
 </script>
 
 {#if button}
-<div class="actions">
+<div class="actions" use:outside={() => (open = false)}>
   <button type="button" class="more" aria-label="More for {title}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
   </button>
   {#if open}
     <div class="menu" role="menu">
-      <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
-      <button type="button" role="menuitem" onclick={() => start('archive')}>Archive</button>
+      {#if onWindow}
+        <button type="button" role="menuitem" onclick={() => ((open = false), onWindow())}>Open in a new window</button>
+      {/if}
+      {#if !windowOnly}
+        <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
+        <button type="button" role="menuitem" onclick={() => start('archive')}>Archive</button>
+      {/if}
     </div>
   {/if}
 </div>

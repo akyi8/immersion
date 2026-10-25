@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { outside } from '../../lib/outside';
   import type { Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -61,7 +62,7 @@
 </script>
 
 {#if button}
-<div class="actions">
+<div class="actions" use:outside={() => (open = false)}>
   <button type="button" class="more" aria-label="More for {label}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
   </button>

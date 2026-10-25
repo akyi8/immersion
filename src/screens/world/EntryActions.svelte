@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Entry, WikiIndex } from '../../lib/index/wiki';
+  import { outside } from '../../lib/outside';
+  import type { Entry, Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import { aliasesOf, archiveEntry, moveEntry, renameEntry, withAliases } from '../../lib/index/manage';
@@ -12,6 +13,7 @@
     index,
     entry,
     onMoved,
+    onWindow,
     button = true,
   }: {
     fs: WorldFs;
@@ -19,6 +21,8 @@
     entry: Entry;
     /** Called after the entry's file moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Moves the entry into a reading window of its own. */
+    onWindow?: () => void;
     /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
     button?: boolean;
   } = $props();
@@ -33,7 +37,16 @@
   let problem = $state('');
 
   const here = $derived(entry.id.slice(0, entry.id.lastIndexOf('/')));
-  const places = $derived([{ path: index.root.path, label: 'Uncategorized' }, ...index.root.folders.map((f) => ({ path: f.path, label: folderLabel(f.name) }))]);
+  /** Every category and every folder inside one, in tree order (Mike, October 25). */
+  const places = $derived.by(() => {
+    const out: { path: string; label: string; depth: number }[] = [{ path: index.root.path, label: 'Uncategorized', depth: 0 }];
+    const walk = (f: Folder, depth: number) => {
+      out.push({ path: f.path, label: folderLabel(f.name), depth });
+      for (const c of f.folders) walk(c, depth + 1);
+    };
+    for (const f of index.root.folders) walk(f, 0);
+    return out;
+  });
 
   export async function start(what: 'rename' | 'names' | 'move' | 'archive') {
     open = false;
@@ -79,12 +92,15 @@
 </script>
 
 {#if button}
-<div class="actions">
+<div class="actions" use:outside={() => (open = false)}>
   <button type="button" class="more" aria-label="More for {entry.name}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
   </button>
   {#if open}
     <div class="menu" role="menu">
+      {#if onWindow}
+        <button type="button" role="menuitem" onclick={() => ((open = false), onWindow())}>Open in a new window</button>
+      {/if}
       <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
       <button type="button" role="menuitem" onclick={() => start('names')}>Other names</button>
       <button type="button" role="menuitem" onclick={() => start('move')}>Move to another category</button>
@@ -134,10 +150,19 @@
   </Dialog>
 {:else if doing === 'move'}
   <Dialog title="Move" action="Move" ready={folder !== here} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>
-    <div class="label">Category</div>
-    <div class="chips" role="radiogroup" aria-label="Category">
+    <div class="label">Move {entry.name} to</div>
+    <div class="places" role="radiogroup" aria-label="Category">
       {#each places as p}
-        <button type="button" role="radio" aria-checked={folder === p.path} class:on={folder === p.path} onclick={() => (folder = p.path)}>{p.label}</button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={folder === p.path}
+          class:on={folder === p.path}
+          class:here={p.path === here}
+          style:padding-left="{12 + p.depth * 18}px"
+          onclick={() => (folder = p.path)}>
+          {p.label}{#if p.path === here}<span class="now">where it is now</span>{/if}
+        </button>
       {/each}
     </div>
   </Dialog>
@@ -230,9 +255,34 @@
   .name-chip button:hover {
     color: var(--text);
   }
-  .chips button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
-    border-color: var(--structure);
+  .places {
+    display: flex;
+    flex-direction: column;
+    max-height: 46vh;
+    overflow-y: auto;
+    border: 1px solid var(--rule);
+  }
+  .places button {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    font-size: 14px;
+    color: var(--text);
+    background: none;
+    border: 0;
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+  .places button:hover {
+    background: var(--surface);
+  }
+  .places button.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+  }
+  .now {
+    font-size: 12px;
+    color: var(--muted);
   }
 </style>

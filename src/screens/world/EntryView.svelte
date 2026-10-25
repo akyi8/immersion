@@ -21,6 +21,7 @@
     onOpen,
     onMakeEntry,
     onMoved,
+    onWindow,
   }: {
     index: WikiIndex;
     fs: WorldFs;
@@ -34,6 +35,8 @@
     onMakeEntry?: (name: string) => void;
     /** Called after the entry is renamed, moved, or archived (null). */
     onMoved?: (from: string, to: string | null) => void;
+    /** Moves the entry into a reading window of its own. */
+    onWindow?: () => void;
   } = $props();
 
   const entry = $derived(index.get(id)!);
@@ -94,7 +97,7 @@
     <div class="title">
       <div class="name">
         <h1>{entry.name}</h1>
-        {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} />{/if}
+        {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} {onWindow} />{/if}
       </div>
       <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
       {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}

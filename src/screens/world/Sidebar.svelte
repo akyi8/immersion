@@ -9,6 +9,8 @@
   import EntryActions from './EntryActions.svelte';
   import { contextMenu } from '../../lib/contextMenu.svelte';
   import { openInWindow } from '../../lib/windows';
+  import { moveEntry } from '../../lib/index/manage';
+  import { saveNow } from '../../lib/saves';
 
   let {
     index,
@@ -18,6 +20,7 @@
     onNewFolder,
     onCategoryMoved,
     onEntryMoved,
+    onEntriesMoved,
   }: {
     index: WikiIndex;
     fs: WorldFs;
@@ -28,7 +31,103 @@
     onNewFolder: (folder?: string) => void;
     onCategoryMoved: (from: string, to: string | null) => void;
     onEntryMoved: (from: string, to: string | null) => void;
+    /** Called after several entries moved at once, with each one's old and new path. */
+    onEntriesMoved: (moves: [string, string][]) => void;
   } = $props();
+
+  // Selecting and dragging entries in the tree (Mike, October 25). Cmd-click or Ctrl-click
+  // adds an entry to the selection, Shift-click selects a run, and dragging any selected
+  // entry onto a folder moves them all. The drag is drawn by hand from pointer events,
+  // so it works the same in every desktop webview.
+  let selected = $state<string[]>([]);
+  let anchor: string | null = null;
+
+  /** The entries the tree shows, top to bottom, for selecting a run. */
+  function visibleEntries(folder: Folder): string[] {
+    return [...folder.folders.flatMap((f) => (isOpen(f) ? visibleEntries(f) : [])), ...folder.entries];
+  }
+
+  function clickEntry(event: MouseEvent, id: string) {
+    if (dragged) {
+      dragged = false;
+      return;
+    }
+    if (event.metaKey || event.ctrlKey) {
+      selected = selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id];
+      anchor = id;
+      return;
+    }
+    if (event.shiftKey && anchor) {
+      const order = visibleEntries(index.root);
+      const [a, b] = [order.indexOf(anchor), order.indexOf(id)].sort((x, y) => x - y);
+      if (a >= 0) {
+        selected = order.slice(a, b + 1);
+        return;
+      }
+    }
+    selected = [];
+    anchor = id;
+    nav.open(id);
+  }
+
+  let drag = $state<{ ids: string[]; x: number; y: number; over: string | null } | null>(null);
+  let pressed: { id: string; x: number; y: number } | null = null;
+  let dragged = false;
+  let opening: ReturnType<typeof setTimeout> | null = null;
+
+  function pressEntry(event: PointerEvent, id: string) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    pressed = { id, x: event.clientX, y: event.clientY };
+  }
+
+  function dropTarget(x: number, y: number): string | null {
+    const el = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop]');
+    return el?.dataset.drop ?? null;
+  }
+
+  function onPointerMove(event: PointerEvent) {
+    if (!pressed) return;
+    if (!drag) {
+      if (Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) < 6) return;
+      const ids = selected.includes(pressed.id) ? selected : [pressed.id];
+      drag = { ids, x: event.clientX, y: event.clientY, over: null };
+    }
+    const over = dropTarget(event.clientX, event.clientY);
+    if (over !== drag.over) {
+      // Hovering on a closed folder for a moment opens it, so a drag can reach inside.
+      if (opening) clearTimeout(opening);
+      opening = over
+        ? setTimeout(() => {
+            if (over && !(over in open && open[over])) open = { ...open, [over]: true };
+          }, 700)
+        : null;
+    }
+    drag = { ...drag, x: event.clientX, y: event.clientY, over };
+  }
+
+  async function onPointerUp() {
+    const done = drag;
+    pressed = null;
+    drag = null;
+    if (opening) clearTimeout(opening);
+    if (!done) return;
+    dragged = true;
+    setTimeout(() => (dragged = false), 0);
+    if (!done.over) return;
+    const moves: [string, string][] = [];
+    try {
+      for (const id of done.ids) {
+        const entry = index.get(id);
+        if (!entry || id.slice(0, id.lastIndexOf('/')) === done.over) continue;
+        await saveNow(id);
+        moves.push([id, await moveEntry(fs, entry, done.over)]);
+      }
+    } finally {
+      selected = [];
+      if (moves.length) onEntriesMoved(moves);
+    }
+  }
+
 
   // Right-click menus (Mike, October 25). One set of entry forms and one set of category
   // forms, each aimed at whatever was right-clicked.
@@ -128,10 +227,21 @@
   const people = $derived(index.all());
 </script>
 
+<svelte:window
+  onpointermove={onPointerMove}
+  onpointerup={onPointerUp}
+  onkeydown={(e) => {
+    if (e.key === 'Escape') {
+      selected = [];
+      pressed = null;
+      drag = null;
+    }
+  }} />
+
 <nav class="sidebar" aria-label="Wiki">
   {#snippet folderView(folder: Folder, depth: number)}
     {#each folder.folders as child}
-      <div class="folder-row" oncontextmenu={(e) => categoryMenu(e, child)} role="presentation">
+      <div class="folder-row" class:drop={drag?.over === child.path} data-drop={child.path} oncontextmenu={(e) => categoryMenu(e, child)} role="presentation">
         <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
           {folderLabel(child.name)}
@@ -149,8 +259,11 @@
         type="button"
         class="item"
         class:current={id === current}
+        class:selected={selected.includes(id)}
+        class:dragging={drag?.ids.includes(id)}
         style:padding-left="{32 + depth * 14}px"
-        onclick={() => nav.open(id)}
+        onpointerdown={(event) => pressEntry(event, id)}
+        onclick={(event) => clickEntry(event, id)}
         oncontextmenu={(event) => entryMenu(event, id)}>{e.name}</button>
     {/each}
   {/snippet}
@@ -202,6 +315,12 @@
     </div>
   {/if}
 </nav>
+
+{#if drag}
+  <div class="ghost" style:left="{drag.x + 14}px" style:top="{drag.y + 10}px" aria-hidden="true">
+    {drag.ids.length === 1 ? (index.get(drag.ids[0])?.name ?? '') : `${drag.ids.length} entries`}{#if drag.over}<span> into {folderLabel(drag.over.split('/').pop() ?? '')}</span>{/if}
+  </div>
+{/if}
 
 {#if entryTarget && index.get(entryTarget)}
   <EntryActions bind:this={entryActions} {fs} {index} entry={index.get(entryTarget)!} button={false} onMoved={onEntryMoved} />
@@ -260,6 +379,8 @@
   .folder-row .folder {
     flex: 1;
     min-width: 0;
+    /* Room for the ⋯ button, so it never sits on the count. */
+    padding-right: 48px;
   }
   .row-actions {
     position: absolute;
@@ -287,6 +408,34 @@
   .item:hover,
   .folder:hover {
     background: var(--surface);
+  }
+  .item.selected {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    box-shadow: inset 2px 0 0 var(--selected-border);
+  }
+  .item.dragging {
+    opacity: 0.45;
+  }
+  .folder-row.drop {
+    background: var(--selected-bg);
+    box-shadow: inset 0 0 0 1px var(--selected-border);
+  }
+  .ghost {
+    position: fixed;
+    z-index: 40;
+    pointer-events: none;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--selected-border);
+    box-shadow: 0 6px 18px var(--shadow);
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+  .ghost span {
+    margin-left: 0.3em;
+    color: var(--muted);
   }
   .item.current {
     color: var(--selected-fg);

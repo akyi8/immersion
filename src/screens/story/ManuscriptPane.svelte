@@ -31,6 +31,7 @@
     onOpenPiece,
     onMakeEntry,
     onMoved,
+    onWindow,
     defaults = { author: '', copyright: '' },
     onDefaults = () => {},
   }: {
@@ -53,6 +54,8 @@
     onMakeEntry?: (name: string) => void;
     /** Called after the piece is renamed or archived (null). */
     onMoved?: (from: string, to: string | null) => void;
+    /** Moves the page into a reading window of its own. */
+    onWindow?: () => void;
     /** The world's author and copyright holder for new manuscripts. */
     defaults?: { author: string; copyright: string };
     onDefaults?: () => void;
@@ -156,8 +159,15 @@
           {#if owner?.place === 'drawer' && (about.kind === 'manuscript' || about.kind === 'book')}
             <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
           {/if}
-          {#if (about.kind === 'manuscript' || about.kind === 'book') && onMoved && story && owner}
-            <PieceActions {fs} path={owner.path} title={about.title} root={story.root} {onMoved} />
+          {#if onMoved && story && owner}
+            <PieceActions
+              {fs}
+              path={owner.path}
+              title={about.title}
+              root={story.root}
+              {onMoved}
+              {onWindow}
+              windowOnly={about.kind === 'chapter' || about.kind === 'matter'} />
           {/if}
         </div>
       </header>
@@ -207,6 +217,9 @@
         {#if aside && source}
           <OutlineAside
             view={editor}
+            {index}
+            {fs}
+            onOpen={onOpen}
             {cursor}
             wholeBook={about.kind === 'manuscript'}
             onOpenOutline={(i) => {

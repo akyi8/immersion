@@ -76,6 +76,10 @@
     onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? currentFolder() })}
     onNewFolder={(folder) => (creating = { kind: 'folder', folder: folder ?? currentFolder() })}
     onEntryMoved={moved}
+    onEntriesMoved={async (moves) => {
+      await rebuild();
+      for (const [from, to] of moves) nav.replace(from, to);
+    }}
     onCategoryMoved={async (from, to) => {
       await rebuild();
       nav.replacePrefix(from, to);
@@ -99,7 +103,11 @@
           fresh={fresh === id}
           onOpen={(target) => nav.open(target, i)}
           onMakeEntry={(name) => (creating = { kind: 'entry', folder: likelyCategory(index), name, after: i })}
-          onMoved={moved} />
+          onMoved={moved}
+          onWindow={() => {
+            openInWindow(id, index.get(id)?.name ?? id);
+            nav.close(id);
+          }} />
       {/snippet}
     </Panes>
   {:else}

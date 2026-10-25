@@ -338,7 +338,8 @@
               onMoved={async (from, to) => {
                 await rebuild();
                 nav.replace(from, to);
-              }} />
+              }}
+              onWindow={() => toWindow(id)} />
           {:else}
             <ManuscriptPane
               {fs}
@@ -355,6 +356,7 @@
               onOpenPiece={openPiece}
               onMakeEntry={(name) => (makingEntry = { name, after: i })}
               onMoved={followed}
+              onWindow={() => toWindow(id)}
               {defaults}
               onDefaults={readDefaults} />
           {/if}

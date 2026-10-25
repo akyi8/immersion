@@ -1,24 +1,53 @@
 <script lang="ts">
   import type { EditorView } from '@codemirror/view';
   import { chapterAt, chaptersIn, setOutlineInView } from '../../lib/story/outlineEdit';
+  import type { WikiIndex } from '../../lib/index/wiki';
+  import type { WorldFs } from '../../lib/fs/types';
+  import Portrait from '../world/Portrait.svelte';
 
   /**
    * The outline beside the writing (Mike, October 23 and 25): the outline of the chapter
    * the cursor is in, which follows the cursor from chapter to chapter and can be edited
-   * right here.
+   * right here. Below it are the faces of everyone and everything the chapter names
+   * (Mike, October 25), and clicking one opens its entry beside the writing.
    */
   let {
     view,
     cursor,
     wholeBook,
     onOpenOutline,
+    index,
+    fs,
+    onOpen,
   }: {
     view: EditorView | null;
     cursor: number;
     /** True for a manuscript kept as one file, false for one chapter file of a folder. */
     wholeBook: boolean;
     onOpenOutline: (index: number) => void;
+    index: WikiIndex;
+    fs: WorldFs;
+    /** Opens a wiki entry beside the writing. */
+    onOpen: (id: string) => void;
   } = $props();
+
+  // The names in the chapter under the cursor. Typing moves the cursor too, so this
+  // follows the writing; it waits for a pause so it never slows typing down.
+  let named = $state<string[]>([]);
+  let scan: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => {
+    const v = view;
+    const at = here;
+    void cursor;
+    if (scan) clearTimeout(scan);
+    scan = setTimeout(() => {
+      if (!v) return;
+      const chapters = chaptersIn(v, wholeBook);
+      const from = at ? at.chapter.offset : 0;
+      const to = at ? (chapters[at.index + 1]?.offset ?? v.state.doc.length) : v.state.doc.length;
+      named = index.scanner.idsIn(v.state.doc.sliceString(from, to));
+    }, 400);
+  });
 
   const SAVE_DELAY_MS = 500;
 
@@ -61,6 +90,20 @@
   {:else}
     <div class="label">Outline</div>
     <p class="hint">Put the cursor in a chapter to see its outline here.</p>
+  {/if}
+  {#if named.length}
+    <div class="label named-label">In this chapter</div>
+    <div class="faces">
+      {#each named as id (id)}
+        {@const e = index.get(id)}
+        {#if e}
+          <button type="button" class="face" title="Open {e.name}" onclick={() => onOpen(id)}>
+            <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
+            <span>{e.name}</span>
+          </button>
+        {/if}
+      {/each}
+    </div>
   {/if}
 </aside>
 
@@ -111,5 +154,31 @@
     margin: 0;
     font-size: 13px;
     color: var(--muted);
+  }
+  .named-label {
+    margin-top: 18px;
+  }
+  .faces {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .face {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    color: var(--text-soft);
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .face:hover {
+    color: var(--name);
+  }
+  .face :global(.portrait span) {
+    font-size: 15px;
   }
 </style>
