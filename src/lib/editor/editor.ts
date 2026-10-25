@@ -295,15 +295,23 @@ export function jumpTo(view: EditorView, pos: number) {
   let cursor = at;
   let line = doc.lineAt(at);
   if (/^#{1,6}\s/.test(line.text)) {
-    // Past blank lines and the chapter's folded outline, to the first line of prose.
+    // Past blank lines and the chapter's folded outline, to the first line of prose. A
+    // chapter with no prose yet gets the cursor on an empty line of its own instead, so
+    // typing never lands in the next chapter's heading.
     let inOutline = false;
+    let blanks: number[] = [];
     while (line.number < doc.lines) {
       line = doc.line(line.number + 1);
       if (/^>\s*\[!outline\]/i.test(line.text)) inOutline = true;
       else if (inOutline && !/^>/.test(line.text)) inOutline = false;
-      if (line.text.trim() !== '' && !inOutline) break;
+      if (inOutline) blanks = [];
+      else if (line.text.trim() === '') blanks.push(line.from);
+      else break;
     }
-    cursor = line.from;
+    const prose = line.text.trim() !== '' && !/^#{1,6}\s/.test(line.text) && !inOutline;
+    if (prose) cursor = line.from;
+    else if (line.text.trim() === '') cursor = line.from;
+    else cursor = blanks[1] ?? blanks[0] ?? line.from;
   }
   view.dispatch({ selection: { anchor: cursor }, effects: EditorView.scrollIntoView(at, { y: 'start', yMargin: 24 }) });
   view.focus();

@@ -61,7 +61,7 @@ test('a new chapter goes after the last numbered one, before back matter', () =>
     readOutline(text).map((c) => c.title),
     ['Chapter 1', 'Chapter 2', 'Chapter 3', 'About the Author'],
   );
-  assert.equal(text.slice(offset).startsWith('## Chapter 3\n'), true);
+  assert.equal(text.slice(offset).startsWith('## Chapter 3\n\n\n\n## About the Author'), true);
   const fresh = addChapter('# Salt Ghosts\n\nA seed.\n', 'Opening');
   assert.equal(fresh.text, '# Salt Ghosts\n\nA seed.\n\n## Opening\n\n');
 });
