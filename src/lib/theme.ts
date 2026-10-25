@@ -21,7 +21,7 @@ export interface ThemeSpec {
 
 export interface FontChoice {
   name: string;
-  kind: 'Sans' | 'Serif' | 'Mono';
+  kind: 'Sans' | 'Serif' | 'Mono' | 'Display';
   stack: string;
 }
 
@@ -30,22 +30,47 @@ export const HEADING_FONTS: FontChoice[] = [
   { name: 'Bebas Neue', kind: 'Sans', stack: "'Bebas Neue', sans-serif" },
   { name: 'Oxanium', kind: 'Sans', stack: "'Oxanium', sans-serif" },
   { name: 'Rajdhani', kind: 'Sans', stack: "'Rajdhani', sans-serif" },
+  { name: 'Oswald', kind: 'Sans', stack: "'Oswald', sans-serif" },
+  { name: 'Alata', kind: 'Sans', stack: "'Alata', sans-serif" },
   { name: 'Cinzel', kind: 'Serif', stack: "'Cinzel', serif" },
   { name: 'Playfair Display', kind: 'Serif', stack: "'Playfair Display', serif" },
+  { name: 'Josefin Slab', kind: 'Serif', stack: "'Josefin Slab', serif" },
+  { name: 'Vollkorn SC', kind: 'Serif', stack: "'Vollkorn SC', serif" },
+  { name: 'IM Fell English SC', kind: 'Serif', stack: "'IM Fell English SC', serif" },
   { name: 'Space Mono', kind: 'Mono', stack: "'Space Mono', monospace" },
   { name: 'IBM Plex Mono', kind: 'Mono', stack: "'IBM Plex Mono', monospace" },
+  { name: 'Special Elite', kind: 'Mono', stack: "'Special Elite', monospace" },
+  { name: 'Averia Libre', kind: 'Display', stack: "'Averia Libre', sans-serif" },
+  { name: 'Pirata One', kind: 'Display', stack: "'Pirata One', serif" },
+  { name: 'Henny Penny', kind: 'Display', stack: "'Henny Penny', serif" },
+  { name: 'Comforter Brush', kind: 'Display', stack: "'Comforter Brush', cursive" },
 ];
 
-/** Prose faces, for reading and writing. Each is bundled with italic and bold. */
+/**
+ * Prose faces, for reading and writing. Each is bundled with whatever italic and bold
+ * it has. Alata, Special Elite, Baloo 2, Dosis, and Quattrocento have no italic, and
+ * Alata, Special Elite, and IM Fell English have no bold, so the browser slants or
+ * thickens them itself.
+ */
 export const PROSE_FONTS: FontChoice[] = [
   { name: 'Atkinson Hyperlegible', kind: 'Sans', stack: "'Atkinson Hyperlegible', sans-serif" },
   { name: 'Inter', kind: 'Sans', stack: "'Inter', sans-serif" },
   { name: 'Source Sans 3', kind: 'Sans', stack: "'Source Sans 3', sans-serif" },
+  { name: 'Alata', kind: 'Sans', stack: "'Alata', sans-serif" },
+  { name: 'Josefin Sans', kind: 'Sans', stack: "'Josefin Sans', sans-serif" },
+  { name: 'Baloo 2', kind: 'Sans', stack: "'Baloo 2', sans-serif" },
+  { name: 'Dosis', kind: 'Sans', stack: "'Dosis', sans-serif" },
+  { name: 'Ubuntu', kind: 'Sans', stack: "'Ubuntu', sans-serif" },
   { name: 'Literata', kind: 'Serif', stack: "'Literata', serif" },
   { name: 'EB Garamond', kind: 'Serif', stack: "'EB Garamond', serif" },
   { name: 'Source Serif 4', kind: 'Serif', stack: "'Source Serif 4', serif" },
+  { name: 'Vollkorn', kind: 'Serif', stack: "'Vollkorn', serif" },
+  { name: 'Quattrocento', kind: 'Serif', stack: "'Quattrocento', serif" },
+  { name: 'IM Fell English', kind: 'Serif', stack: "'IM Fell English', serif" },
   { name: 'IBM Plex Mono', kind: 'Mono', stack: "'IBM Plex Mono', monospace" },
   { name: 'JetBrains Mono', kind: 'Mono', stack: "'JetBrains Mono', monospace" },
+  { name: 'Special Elite', kind: 'Mono', stack: "'Special Elite', monospace" },
+  { name: 'Averia Libre', kind: 'Display', stack: "'Averia Libre', sans-serif" },
 ];
 
 export const NIGHT: Required<Pick<ThemeSpec, 'base' | 'highlight' | 'headings' | 'prose'>> = {
