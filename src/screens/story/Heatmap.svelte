@@ -77,15 +77,15 @@
     outline-color: transparent;
   }
   .level-1 {
-    background: rgb(241 158 43 / 0.25);
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
     outline: 0;
   }
   .level-2 {
-    background: rgb(241 158 43 / 0.5);
+    background: color-mix(in srgb, var(--accent) 50%, transparent);
     outline: 0;
   }
   .level-3 {
-    background: rgb(241 158 43 / 0.75);
+    background: color-mix(in srgb, var(--accent) 75%, transparent);
     outline: 0;
   }
   .level-4 {

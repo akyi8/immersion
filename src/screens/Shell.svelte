@@ -7,6 +7,7 @@
   import WorldModule from './world/WorldModule.svelte';
   import StoryModule from './story/StoryModule.svelte';
   import { ui } from '../lib/ui.svelte';
+  import { contextMenu } from '../lib/contextMenu.svelte';
   import { findUpdate, installUpdate } from '../lib/updates';
   import type { Update } from '@tauri-apps/plugin-updater';
 
@@ -18,6 +19,7 @@
     storiesDir,
     onShowLoading,
     onShowShelf,
+    onTheme,
   }: {
     index: WikiIndex | null;
     fs: WorldFs;
@@ -26,6 +28,8 @@
     storiesDir: string;
     onShowLoading: () => void;
     onShowShelf: () => void;
+    /** Opens the theme panel for this world. */
+    onTheme: () => void;
   } = $props();
 
   const nav = new Navigator();
@@ -120,7 +124,18 @@
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3 L11 8 L6 13" fill="none" stroke="currentColor" stroke-width="1.8" /></svg>
         </button>
       </div>
-      <button type="button" class="world-name" title="Show the loading screen" onclick={onShowLoading}>{worldName}</button>
+      <button
+        type="button"
+        class="world-name"
+        title="Show the loading screen. Right-click for the theme."
+        onclick={onShowLoading}
+        oncontextmenu={(e) =>
+          contextMenu.show(e, [
+            { label: 'Show the loading screen', run: onShowLoading },
+            { label: 'Theme', run: onTheme },
+            'separator',
+            { label: 'All worlds', run: onShowShelf },
+          ])}>{worldName}</button>
       <nav aria-label="Modules">
         {#each TABS as [module, label]}
           <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => nav.show(module)}>{label}</button>

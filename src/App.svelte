@@ -4,11 +4,13 @@
   import type { WorldFs } from './lib/fs/types';
   import type { Library } from './lib/library/types';
   import { loadWorld, type World } from './lib/world';
+  import { applyTheme, type ThemeSpec } from './lib/theme';
   import { buildWikiIndex, type WikiIndex } from './lib/index/wiki';
   import Shelf from './screens/shelf/Shelf.svelte';
   import ContextMenu from './screens/ContextMenu.svelte';
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
+  import ThemeEditor from './screens/ThemeEditor.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'error';
 
@@ -18,6 +20,13 @@
   let index = $state<WikiIndex | null>(null);
   let problem = $state('');
   let library = $state.raw<Library | null>(null);
+
+  // The open world wears its own theme, and the shelf wears Night. A theme being edited
+  // shows on the whole app until it is saved or cancelled.
+  let previewTheme = $state<ThemeSpec | null | undefined>(undefined);
+  $effect(() => {
+    applyTheme(previewTheme !== undefined ? previewTheme : phase === 'shelf' ? null : (world?.theme ?? null));
+  });
 
   async function enter(source: WorldFs) {
     try {
@@ -73,6 +82,17 @@
     phase = 'shelf';
   }
 
+  // The theme panel for the open world, with the text of its world.md.
+  let themeFor = $state<string | null>(null);
+  async function editTheme() {
+    if (!fs) return;
+    themeFor = await fs.readText('world.md');
+  }
+  function closeTheme() {
+    themeFor = null;
+    previewTheme = undefined;
+  }
+
   // The app opens straight into the world used last, and otherwise shows the shelf.
   onMount(async () => {
     if (inDesktopApp) {
@@ -96,7 +116,7 @@
 </script>
 
 {#if phase === 'shelf' && library}
-  <Shelf {library} onOpen={open} />
+  <Shelf {library} onOpen={open} onPreviewTheme={(spec) => (previewTheme = spec)} />
 {:else if (phase === 'loading' || phase === 'inside') && world && fs}
   <!-- The main screen stays alive under the loading screen, so history survives a visit to it. -->
   <Shell
@@ -107,7 +127,20 @@
     storiesDir={world.storiesDir}
     onShowLoading={() => (phase = 'loading')}
     onShowShelf={showShelf}
+    onTheme={editTheme}
   />
+  {#if themeFor !== null}
+    <ThemeEditor
+      worldMd={themeFor}
+      worldName={world.name}
+      onPreview={(spec) => (previewTheme = spec)}
+      onSave={async (text) => {
+        await fs!.writeText('world.md', text);
+        world = await loadWorld(fs!);
+        closeTheme();
+      }}
+      onCancel={closeTheme} />
+  {/if}
   {#if phase === 'loading'}
     <div class="overlay">
       <Loading
@@ -139,6 +172,6 @@
     align-items: center;
     justify-content: center;
     padding: 0 24px;
-    color: #ff9a9a;
+    color: var(--danger);
   }
 </style>

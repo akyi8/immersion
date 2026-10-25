@@ -92,7 +92,7 @@
   .backdrop {
     position: fixed;
     inset: 0;
-    background: rgb(0 0 0 / 0.5);
+    background: var(--shadow);
     z-index: 20;
   }
   .dialog {
@@ -150,7 +150,7 @@
   }
   .problem {
     margin: 4px 0 0;
-    color: #ff9a9a;
+    color: var(--danger);
     font-size: 14px;
   }
   .actions {

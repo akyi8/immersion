@@ -66,7 +66,7 @@
     padding: 4px;
     background: var(--surface);
     border: 1px solid var(--rule-strong);
-    box-shadow: 0 10px 28px rgb(0 0 0 / 0.55);
+    box-shadow: 0 10px 28px var(--scrim);
   }
   button {
     text-align: left;

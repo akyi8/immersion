@@ -344,6 +344,6 @@
     color: var(--accent);
   }
   .problem {
-    color: #ff9a9a;
+    color: var(--danger);
   }
 </style>

@@ -127,7 +127,7 @@
   }
   :global(.invite.drop-over) {
     border-color: var(--structure);
-    background: rgb(11 52 51 / 0.5);
+    background: color-mix(in srgb, var(--structure-deep) 50%, transparent);
   }
   .invite p {
     margin: 0;
@@ -143,7 +143,7 @@
     min-height: 40px;
   }
   .invite .problem {
-    color: #ff9a9a;
+    color: var(--danger);
   }
   .corner {
     position: absolute;

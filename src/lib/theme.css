@@ -1,5 +1,6 @@
 /* The Night theme. Every color and font in the app comes from these tokens
-   (architecture decision 10), so a new theme is a new set of values here.
+   (architecture decision 10). A world's own theme replaces the color tokens and the
+   display and body fonts while the world is open (src/lib/theme.ts).
    The colors come from the Absent Gods brand guide (Mike, October 24): amber marks
    names and primary actions, and teal carries structure, such as rules, labels,
    focus, selected states, and links. */
@@ -29,8 +30,16 @@
   --structure-soft: #a3cfcb;
   --structure-deep: #0b3433;
 
+  /* Colors every theme shares: problems, shadows, and the dimming behind dialogs. */
+  --danger: #ff9a9a;
+  --shadow: rgb(0 0 0 / 0.5);
+  --scrim: rgb(0 0 0 / 0.55);
+
+  /* Headings and prose belong to the world's theme. The interface and its small
+     labels belong to the app. */
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'Atkinson Hyperlegible', sans-serif;
+  --font-ui: 'Atkinson Hyperlegible', sans-serif;
   --font-label: 'IBM Plex Mono', monospace;
 
   --prose-size: 18px;
@@ -46,7 +55,7 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -74,6 +83,7 @@ button {
 
 /* Rendered markdown: entry bodies and, later, manuscripts. */
 .prose {
+  font-family: var(--font-body);
   font-size: var(--prose-size);
   line-height: var(--prose-leading);
 }

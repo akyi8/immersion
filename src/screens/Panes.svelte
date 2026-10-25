@@ -129,7 +129,7 @@
     box-sizing: border-box;
     background: var(--bg);
     border-left: 1px solid var(--rule);
-    box-shadow: -10px 0 18px -14px rgba(0, 0, 0, 0.9);
+    box-shadow: -10px 0 18px -14px var(--shadow);
   }
   .pane:first-child {
     border-left: 0;

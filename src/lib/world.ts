@@ -1,5 +1,6 @@
 import { Document, parse, parseDocument, stringify } from 'yaml';
 import type { WorldFs } from './fs/types';
+import { themeFrom, type ThemeSpec } from './theme.ts';
 
 /** What `world.md` says about a world, with defaults for anything it leaves out. */
 export interface World {
@@ -7,6 +8,8 @@ export interface World {
   tagline: string;
   wikiDir: string;
   storiesDir: string;
+  /** The world's own colors and fonts, or null for the app's Night theme. */
+  theme: ThemeSpec | null;
   /** Path of the loading-screen image, relative to the world folder, if there is one. */
   imagePath: string | null;
 }
@@ -40,6 +43,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     tagline: text(header.tagline, ''),
     wikiDir: text(header.wiki, 'wiki'),
     storiesDir: text(header.stories, 'stories'),
+    theme: themeFrom(header),
   };
 }
 

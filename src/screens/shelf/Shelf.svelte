@@ -8,13 +8,30 @@
   import NewWorld from './NewWorld.svelte';
   import AddWorld from './AddWorld.svelte';
   import WorldDetails from './WorldDetails.svelte';
+  import ThemeEditor from '../ThemeEditor.svelte';
+  import type { ThemeSpec } from '../../lib/theme';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
    * with a card for making a new world and one for adding a folder that already holds
    * writing. Choosing a cover opens that world.
    */
-  let { library, onOpen }: { library: Library; onOpen: (path: string) => void } = $props();
+  let {
+    library,
+    onOpen,
+    onPreviewTheme,
+  }: {
+    library: Library;
+    onOpen: (path: string) => void;
+    /** Shows a theme on the app while it is chosen; undefined returns to the shelf's own. */
+    onPreviewTheme: (spec: ThemeSpec | null | undefined) => void;
+  } = $props();
+
+  let theming = $state<ShelfWorld | null>(null);
+  function closeTheme() {
+    theming = null;
+    onPreviewTheme(undefined);
+  }
 
   let worlds = $state<ShelfWorld[] | null>(null);
   let version = $state('');
@@ -70,6 +87,7 @@
       { label: 'Open', run: () => onOpen(world.path), disabled: world.missing },
       { label: 'Edit details', run: () => (editing = world), disabled: world.missing },
       { label: 'Change cover', run: async () => setCover(world, await library.pickImage()), disabled: world.missing },
+      { label: 'Theme', run: () => (theming = world), disabled: world.missing },
       'separator',
       { label: 'Remove from the shelf', run: () => forget(world) },
     ]);
@@ -103,6 +121,7 @@
             {#if !world.missing}
               <button type="button" onclick={() => (editing = world)}>Edit details</button>
               <button type="button" onclick={async () => setCover(world, await library.pickImage())}>Change cover</button>
+              <button type="button" onclick={() => (theming = world)}>Theme</button>
             {/if}
             <button type="button" onclick={() => forget(world)} title="Takes the world off this shelf. Its files stay where they are.">Remove</button>
           </div>
@@ -122,6 +141,18 @@
         <span class="hint">Bring in a folder you already write in</span>
       </button>
     </div>
+  {/if}
+  {#if theming && theming.worldMd !== null}
+    <ThemeEditor
+      worldMd={theming.worldMd}
+      worldName={theming.name}
+      onPreview={onPreviewTheme}
+      onSave={async (text) => {
+        await library.writeWorldMd(theming!.path, text);
+        closeTheme();
+        await refresh();
+      }}
+      onCancel={closeTheme} />
   {/if}
 </main>
 
@@ -164,7 +195,7 @@
     line-height: 1;
   }
   .problem {
-    color: #ff9a9a;
+    color: var(--danger);
     margin: 0 0 20px;
   }
   .grid {
@@ -213,7 +244,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: linear-gradient(transparent, rgb(7 9 11 / 0.92));
+    background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 92%, transparent));
   }
   .tagline {
     font-family: var(--font-label);
@@ -249,7 +280,7 @@
   .tools button {
     font-size: 13px;
     color: var(--text);
-    background: rgb(7 9 11 / 0.75);
+    background: color-mix(in srgb, var(--bg) 75%, transparent);
     border: 1px solid var(--rule-strong);
     padding: 6px 10px;
     min-height: 32px;
@@ -263,7 +294,7 @@
     inset: 0;
     align-items: center;
     justify-content: center;
-    background: rgb(11 52 51 / 0.85);
+    background: color-mix(in srgb, var(--structure-deep) 85%, transparent);
     color: var(--structure-soft);
     font-family: var(--font-label);
     font-size: 13px;

@@ -438,7 +438,7 @@
     padding-bottom: 4px;
   }
   .problem {
-    color: #ff9a9a !important;
+    color: var(--danger) !important;
   }
   .make {
     font-size: 14px;

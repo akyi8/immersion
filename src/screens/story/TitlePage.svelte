@@ -257,7 +257,7 @@
     color: var(--text-soft);
   }
   .problem {
-    color: #ff9a9a;
+    color: var(--danger);
     font-size: 14px;
   }
   .actions {

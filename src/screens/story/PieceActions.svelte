@@ -116,7 +116,7 @@
     min-width: 200px;
     background: var(--surface);
     border: 1px solid var(--rule-strong);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+    box-shadow: 0 8px 24px var(--shadow);
     padding: 4px;
   }
   .menu button {

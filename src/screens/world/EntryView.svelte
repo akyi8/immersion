@@ -147,7 +147,7 @@
     position: absolute;
     inset: auto 0 0 0;
     display: flex;
-    background: rgb(7 9 11 / 0.8);
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
     border-top: 1px solid var(--rule-strong);
     opacity: 0;
     transition: opacity 150ms;
@@ -177,7 +177,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: rgb(11 52 51 / 0.88);
+    background: color-mix(in srgb, var(--structure-deep) 88%, transparent);
     border: 1px solid var(--structure);
     color: var(--structure-soft);
     font-family: var(--font-label);
@@ -191,7 +191,7 @@
   .problem {
     margin-top: 8px;
     font-size: 13px;
-    color: #ff9a9a;
+    color: var(--danger);
   }
   .meta {
     margin-top: 8px;
