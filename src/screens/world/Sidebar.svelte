@@ -244,7 +244,6 @@
     padding: 16px 18px 6px;
     font-size: 11px;
   }
-  .item,
   .folder-row {
     position: relative;
     display: flex;
@@ -263,6 +262,7 @@
   .row-actions:focus-within {
     opacity: 1;
   }
+  .item,
   .folder {
     text-align: left;
     font-size: 14px;
