@@ -59,6 +59,41 @@
   color-scheme: dark;
 }
 
+/* Ink and Paper, Night's light side (Mike, October 25): a warm page, near-black ink,
+   oxblood for names and what is selected, and deep ink teal for structure, with
+   Playfair Display headings and Literata prose. */
+:root[data-mode='light'] {
+  --bg: #f4efe6;
+  --bg-deep: #ede6da;
+  --surface: #fbf8f2;
+  --surface-alt: #f8f3ea;
+  --text: #1f1b16;
+  --text-soft: #4c4339;
+  --muted: #6b6257;
+  --rule: #ddd3c2;
+  --rule-strong: #c4b59c;
+  --accent: #8a2b1f;
+  --accent-deep: #6f2117;
+  --accent-ink: #fbf8f2;
+  --accent-wash: rgba(138, 43, 31, 0.12);
+  --structure: #1f5f5b;
+  --structure-soft: #2f5754;
+  --structure-deep: #dfe9e6;
+
+  --danger: #a3271f;
+  --shadow: rgb(40 30 20 / 0.18);
+  --scrim: rgb(40 30 20 / 0.35);
+
+  /* On a pale page, names sit a little darker than the highlight instead of paler. */
+  --name: color-mix(in oklab, var(--accent) 85%, black);
+  --selected-bg: color-mix(in srgb, var(--accent) 10%, var(--bg));
+
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Literata', serif;
+
+  color-scheme: light;
+}
+
 html,
 body {
   margin: 0;

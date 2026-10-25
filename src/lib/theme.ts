@@ -17,7 +17,22 @@ export interface ThemeSpec {
   /** Names from HEADING_FONTS and PROSE_FONTS. */
   headings?: string;
   prose?: string;
+  /**
+   * Overrides for the light side. Without them, the light side is worked out from the
+   * same two colors: a pale background, dark text, and a highlight deep enough to read.
+   */
+  light?: SideOverrides;
 }
+
+export interface SideOverrides {
+  base?: string;
+  highlight?: string;
+  background?: string;
+  text?: string;
+}
+
+/** Each theme has a dark side and a light side, and one switch picks between them (Mike, October 25). */
+export type Mode = 'dark' | 'light';
 
 export interface FontChoice {
   name: string;
@@ -153,10 +168,57 @@ function readable(color: Oklch, against: string, ratio: number): Oklch {
   return c;
 }
 
+/** Darkens a color until it reaches `ratio` against `against`, for the light side. */
+function inked(color: Oklch, against: string, ratio: number): Oklch {
+  let c = { ...color };
+  while (c.l > 0.05 && contrast(hex(c), against) < ratio) c = { ...c, l: c.l - 0.01 };
+  return c;
+}
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Every color token the app uses, worked out from a theme's colors. */
-export function palette(spec: ThemeSpec): Record<string, string> {
+/** Every color token the app uses, worked out from a theme's colors for one side. */
+export function palette(spec: ThemeSpec, mode: Mode = 'dark'): Record<string, string> {
+  return mode === 'light' ? lightPalette(spec) : darkPalette(spec);
+}
+
+function lightPalette(spec: ThemeSpec): Record<string, string> {
+  const own = spec.light ?? {};
+  const base = rgbToOklch(hexToRgb(isHex(own.base) ? own.base : isHex(spec.base) ? spec.base : NIGHT.base));
+  const high = rgbToOklch(hexToRgb(isHex(own.highlight) ? own.highlight : isHex(spec.highlight) ? spec.highlight : NIGHT.highlight));
+  const tint = Math.min(base.c, 0.16);
+  const bgSeed = isHex(own.background) ? rgbToOklch(hexToRgb(own.background)) : { l: 0.965, c: tint * 0.12, h: base.h };
+  const bg = hex(bgSeed);
+  const at = (dl: number, chroma = bgSeed.c) => hex({ l: clamp(bgSeed.l + dl, 0, 1), c: chroma, h: bgSeed.h });
+
+  // A highlight chosen by hand is kept as chosen. A worked-out one deepens until it reads on the pale page.
+  const accent = isHex(own.highlight) ? high : inked({ l: clamp(high.l, 0.35, 0.6), c: high.c, h: high.h }, bg, 4.6);
+  const structure = isHex(own.base) ? base : inked({ l: clamp(base.l, 0.35, 0.55), c: base.c, h: base.h }, bg, 4.6);
+  const text = isHex(own.text) ? own.text : hex(inked({ l: 0.24, c: Math.min(high.c, 0.08) * 0.2, h: high.h }, bg, 12));
+  const soft = hex(inked({ l: 0.4, c: tint * 0.45, h: base.h }, bg, 7));
+  const deep = { l: clamp(bgSeed.l - 0.07, 0.6, 0.93), c: tint * 0.3, h: base.h };
+
+  return {
+    '--bg': bg,
+    '--bg-deep': at(-0.025),
+    '--surface': at(0.025, bgSeed.c * 0.5),
+    '--surface-alt': at(0.012),
+    '--text': text,
+    '--text-soft': soft,
+    '--muted': hex(inked({ l: 0.5, c: tint * 0.1, h: base.h }, bg, 4.6)),
+    '--rule': hex(deep),
+    '--rule-strong': hex({ ...deep, l: deep.l - 0.12, c: tint * 0.4 }),
+    '--accent': hex(accent),
+    '--accent-deep': hex({ ...accent, l: accent.l - 0.08 }),
+    '--accent-ink': contrast(hex(accent), bg) >= contrast(hex(accent), '#000000') ? bg : '#000000',
+    '--accent-wash': `color-mix(in srgb, ${hex(accent)} 14%, transparent)`,
+    '--structure': hex(structure),
+    '--structure-soft': soft,
+    '--structure-deep': hex(deep),
+  };
+}
+
+function darkPalette(spec: ThemeSpec): Record<string, string> {
   const base = rgbToOklch(hexToRgb(isHex(spec.base) ? spec.base : NIGHT.base));
   const high = rgbToOklch(hexToRgb(isHex(spec.highlight) ? spec.highlight : NIGHT.highlight));
   // A grey base has no hue to carry, so its tints stay grey.
@@ -209,25 +271,43 @@ export function themeFrom(header: Record<string, unknown>): ThemeSpec | null {
     text: isHex(o.text) ? o.text.trim() : undefined,
     headings: name(o.headings),
     prose: name(o.prose),
+    light: sideFrom(o.light),
   };
 }
 
+function sideFrom(v: unknown): SideOverrides | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const side: SideOverrides = {};
+  for (const key of ['base', 'highlight', 'background', 'text'] as const) {
+    const value = o[key];
+    if (isHex(value)) side[key] = value.trim();
+  }
+  return Object.keys(side).length ? side : undefined;
+}
+
 /** The theme as it is written into `world.md`, leaving out what is not set. */
-export function themeHeader(spec: ThemeSpec): Record<string, string> {
-  const out: Record<string, string> = { base: spec.base, highlight: spec.highlight };
+export function themeHeader(spec: ThemeSpec): Record<string, unknown> {
+  const out: Record<string, unknown> = { base: spec.base, highlight: spec.highlight };
   if (spec.background) out.background = spec.background;
   if (spec.text) out.text = spec.text;
   if (spec.headings && spec.headings !== NIGHT.headings) out.headings = spec.headings;
   if (spec.prose && spec.prose !== NIGHT.prose) out.prose = spec.prose;
+  const light = sideFrom(spec.light);
+  if (light) out.light = light;
   return out;
 }
 
-/** Puts a theme on the page, or returns the page to Night when `spec` is null. */
-export function applyTheme(spec: ThemeSpec | null, root: HTMLElement = document.documentElement) {
+/**
+ * Puts a theme on the page, on its dark or light side. Without a theme the page wears
+ * Night, or Ink and Paper on the light side, both hand-tuned in `theme.css`.
+ */
+export function applyTheme(spec: ThemeSpec | null, mode: Mode = 'dark', root: HTMLElement = document.documentElement) {
+  root.dataset.mode = mode;
   const names = [...Object.keys(palette(NIGHT)), '--font-display', '--font-body'];
   for (const n of names) root.style.removeProperty(n);
   if (!spec) return;
-  for (const [n, v] of Object.entries(palette(spec))) root.style.setProperty(n, v);
+  for (const [n, v] of Object.entries(palette(spec, mode))) root.style.setProperty(n, v);
   root.style.setProperty('--font-display', fontStack(HEADING_FONTS, spec.headings, NIGHT.headings));
   root.style.setProperty('--font-body', fontStack(PROSE_FONTS, spec.prose, NIGHT.prose));
 }

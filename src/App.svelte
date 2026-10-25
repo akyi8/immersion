@@ -4,7 +4,8 @@
   import type { WorldFs } from './lib/fs/types';
   import type { Library } from './lib/library/types';
   import { loadWorld, type World } from './lib/world';
-  import { applyTheme, type ThemeSpec } from './lib/theme';
+  import { applyTheme, type Mode, type ThemeSpec } from './lib/theme';
+  import { mode } from './lib/mode.svelte';
   import { buildWikiIndex, type WikiIndex } from './lib/index/wiki';
   import Shelf from './screens/shelf/Shelf.svelte';
   import ContextMenu from './screens/ContextMenu.svelte';
@@ -23,9 +24,10 @@
 
   // The open world wears its own theme, and the shelf wears Night. A theme being edited
   // shows on the whole app until it is saved or cancelled.
-  let previewTheme = $state<ThemeSpec | null | undefined>(undefined);
+  let previewTheme = $state<{ spec: ThemeSpec | null; side: Mode } | undefined>(undefined);
   $effect(() => {
-    applyTheme(previewTheme !== undefined ? previewTheme : phase === 'shelf' ? null : (world?.theme ?? null));
+    if (previewTheme) applyTheme(previewTheme.spec, previewTheme.side);
+    else applyTheme(phase === 'shelf' ? null : (world?.theme ?? null), mode.current);
   });
 
   async function enter(source: WorldFs) {
@@ -116,7 +118,7 @@
 </script>
 
 {#if phase === 'shelf' && library}
-  <Shelf {library} onOpen={open} onPreviewTheme={(spec) => (previewTheme = spec)} />
+  <Shelf {library} onOpen={open} onPreviewTheme={(preview) => (previewTheme = preview)} />
 {:else if (phase === 'loading' || phase === 'inside') && world && fs}
   <!-- The main screen stays alive under the loading screen, so history survives a visit to it. -->
   <Shell
@@ -133,7 +135,7 @@
     <ThemeEditor
       worldMd={themeFor}
       worldName={world.name}
-      onPreview={(spec) => (previewTheme = spec)}
+      onPreview={(spec, side) => (previewTheme = { spec, side })}
       onSave={async (text) => {
         await fs!.writeText('world.md', text);
         world = await loadWorld(fs!);

@@ -9,7 +9,8 @@
   import AddWorld from './AddWorld.svelte';
   import WorldDetails from './WorldDetails.svelte';
   import ThemeEditor from '../ThemeEditor.svelte';
-  import type { ThemeSpec } from '../../lib/theme';
+  import type { Mode, ThemeSpec } from '../../lib/theme';
+  import ModeToggle from '../ModeToggle.svelte';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -24,7 +25,7 @@
     library: Library;
     onOpen: (path: string) => void;
     /** Shows a theme on the app while it is chosen; undefined returns to the shelf's own. */
-    onPreviewTheme: (spec: ThemeSpec | null | undefined) => void;
+    onPreviewTheme: (preview: { spec: ThemeSpec | null; side: Mode } | undefined) => void;
   } = $props();
 
   let theming = $state<ShelfWorld | null>(null);
@@ -97,7 +98,10 @@
 <main>
   <header>
     <h1>Worlds</h1>
-    {#if version}<div class="label">Immersion {version}</div>{/if}
+    <div class="corner">
+      {#if version}<div class="label">Immersion {version}</div>{/if}
+      <ModeToggle />
+    </div>
   </header>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
@@ -146,7 +150,7 @@
     <ThemeEditor
       worldMd={theming.worldMd}
       worldName={theming.name}
-      onPreview={onPreviewTheme}
+      onPreview={(spec, side) => onPreviewTheme({ spec, side })}
       onSave={async (text) => {
         await library.writeWorldMd(theming!.path, text);
         closeTheme();
@@ -174,6 +178,12 @@
 {/if}
 
 <style>
+  .corner {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
   main {
     height: 100%;
     overflow-y: auto;
@@ -244,7 +254,12 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 92%, transparent));
+    /* The words sit on the cover picture, so they stay light on dark in either mode. */
+    background: linear-gradient(transparent, rgb(6 7 9 / 0.9));
+    color: #f1ece6;
+  }
+  .words .tagline {
+    color: #d8d2cb;
   }
   .tagline {
     font-family: var(--font-label);

@@ -22,3 +22,18 @@ test('a chosen background and text color are kept as chosen', () => {
   assert.equal(p['--bg'], '#101820');
   assert.equal(p['--text'], '#fafafa');
 });
+
+test('the light side worked out from the same two colors stays readable', () => {
+  for (const spec of [
+    { base: '#1d3f8f', highlight: '#f2c12e' },
+    { base: '#2aa3a6', highlight: '#f19e2b' },
+    { base: '#e0d8ff', highlight: '#ffe0e0' },
+  ]) {
+    const p = palette(spec, 'light');
+    assert.ok(contrast(p['--text'], p['--bg']) >= 12, `text on ${spec.base}`);
+    assert.ok(contrast(p['--accent'], p['--bg']) >= 4.5, `names on ${spec.base}`);
+    assert.ok(contrast(p['--structure'], p['--bg']) >= 4.5, `labels on ${spec.base}`);
+  }
+  // A light-side color chosen by hand is kept as chosen.
+  assert.equal(palette({ base: '#1d3f8f', highlight: '#f2c12e', light: { highlight: '#9a6b00' } }, 'light')['--accent'], '#9a6b00');
+});

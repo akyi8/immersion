@@ -8,6 +8,7 @@
   import StoryModule from './story/StoryModule.svelte';
   import { ui } from '../lib/ui.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
+  import ModeToggle from './ModeToggle.svelte';
   import { findUpdate, installUpdate } from '../lib/updates';
   import type { Update } from '@tauri-apps/plugin-updater';
 
@@ -154,6 +155,7 @@
           <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
         </div>
       {/if}
+      <ModeToggle />
       <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
   </header>

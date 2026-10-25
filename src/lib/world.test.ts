@@ -43,6 +43,6 @@ test('a theme is read from and written to the header of world.md', async () => {
   const { withHeader } = await import('./world.ts');
   const text = withHeader('---\nname: Nyx\n---\n\n# Nyx\n', { theme: themeHeader({ base: '#1d3f8f', highlight: '#f5c518', headings: 'Oxanium', prose: 'Atkinson Hyperlegible' }) });
   assert.match(text, /theme:\n  base: "#1d3f8f"\n  highlight: "#f5c518"\n  headings: Oxanium\n/);
-  assert.deepEqual(describeWorld(text).theme, { base: '#1d3f8f', highlight: '#f5c518', background: undefined, text: undefined, headings: 'Oxanium', prose: undefined });
+  assert.deepEqual(describeWorld(text).theme, { base: '#1d3f8f', highlight: '#f5c518', background: undefined, text: undefined, headings: 'Oxanium', prose: undefined, light: undefined });
   assert.equal(describeWorld(withHeader(text, { theme: undefined })).theme, null);
 });

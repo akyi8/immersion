@@ -1,12 +1,14 @@
 <script lang="ts">
   import { splitHeader, withHeader } from '../lib/world';
-  import { contrast, HEADING_FONTS, isHex, NIGHT, palette, PROSE_FONTS, themeFrom, themeHeader, type FontChoice, type ThemeSpec } from '../lib/theme';
+  import { contrast, HEADING_FONTS, isHex, NIGHT, palette, PROSE_FONTS, themeFrom, themeHeader, type FontChoice, type Mode, type SideOverrides, type ThemeSpec } from '../lib/theme';
+  import { mode } from '../lib/mode.svelte';
 
   /**
    * The theme panel (Mike, October 25). It sits at the side of the window, so the whole
    * app behind it shows the theme while it is being chosen. A theme is two colors and
    * two fonts, with optional overrides for the background and the text, and it is
-   * saved in the world's `world.md`.
+   * saved in the world's `world.md`. Its light side is worked out from the same colors,
+   * and any of the light side's colors can be chosen by hand.
    */
   let {
     worldMd,
@@ -17,8 +19,8 @@
   }: {
     worldMd: string;
     worldName: string;
-    /** Shows a theme on the whole app while it is being chosen; null shows Night. */
-    onPreview: (spec: ThemeSpec | null) => void;
+    /** Shows a theme on the whole app, on one side, while it is being chosen; null shows Night. */
+    onPreview: (spec: ThemeSpec | null, side: Mode) => void;
     /** Saves the new text of `world.md`. */
     onSave: (text: string) => Promise<void>;
     onCancel: () => void;
@@ -33,6 +35,23 @@
   let background = $state(start?.background ?? '#0b0b10');
   let pickText = $state(!!start?.text);
   let text = $state(start?.text ?? '#ece6e3');
+  // The side being looked at, which the whole app shows while the panel is open.
+  let side = $state<Mode>(mode.current);
+  // Light-side colors chosen by hand. Each starts from what would be worked out.
+  type Pick = { on: boolean; value: string };
+  const pick = (v: string | undefined): Pick => ({ on: !!v, value: v ?? '' });
+  let lightPicks = $state<Record<keyof SideOverrides, Pick>>({
+    base: pick(start?.light?.base),
+    highlight: pick(start?.light?.highlight),
+    background: pick(start?.light?.background),
+    text: pick(start?.light?.text),
+  });
+  const LIGHT_ROWS: [keyof SideOverrides, string, string][] = [
+    ['base', 'Base', '--structure'],
+    ['highlight', 'Highlight', '--accent'],
+    ['background', 'Background', '--bg'],
+    ['text', 'Text', '--text'],
+  ];
   let headings = $state(start?.headings ?? NIGHT.headings);
   let prose = $state(start?.prose ?? NIGHT.prose);
   let busy = $state(false);
@@ -47,18 +66,33 @@
           text: pickText && isHex(text) ? text : undefined,
           headings,
           prose,
+          light: lightSide(),
         }
       : null,
   );
 
-  $effect(() => onPreview(spec));
+  function lightSide(): SideOverrides | undefined {
+    const out: SideOverrides = {};
+    for (const [key] of LIGHT_ROWS) if (lightPicks[key].on && isHex(lightPicks[key].value)) out[key] = lightPicks[key].value;
+    return Object.keys(out).length ? out : undefined;
+  }
 
-  const colors = $derived(palette(spec ?? NIGHT));
+  /** The light side's colors as they would be worked out, without any chosen by hand. */
+  const workedOut = $derived(palette({ ...(spec ?? NIGHT), light: undefined }, 'light'));
+
+  function choose(key: keyof SideOverrides, on: boolean) {
+    const tokens = Object.fromEntries(LIGHT_ROWS.map(([k, , t]) => [k, t]));
+    lightPicks[key] = { on, value: lightPicks[key].value || workedOut[tokens[key]] };
+  }
+
+  $effect(() => onPreview(spec, side));
+
+  const colors = $derived(palette(spec ?? NIGHT, side));
   const warning = $derived.by(() => {
     if (!spec) return '';
     const ratio = contrast(colors['--text'], colors['--bg']);
     if (ratio < 7) return `The text and the background are close in brightness (contrast ${ratio.toFixed(1)} to 1), so long reading will tire the eyes. A darker background or a lighter text helps.`;
-    const apart = Math.abs(hue(spec.base) - hue(spec.highlight)) % 360;
+    const apart = Math.abs(hue(colors['--structure']) - hue(colors['--accent'])) % 360;
     if (Math.min(apart, 360 - apart) < 25)
       return 'The base and the highlight are close in hue, so names and structure will be hard to tell apart.';
     return '';
@@ -96,7 +130,7 @@
   <p class="for">for {worldName}</p>
 
   <div class="choice" role="radiogroup" aria-label="Theme">
-    <button type="button" role="radio" aria-checked={!own} class:on={!own} onclick={() => (own = false)}>Night</button>
+    <button type="button" role="radio" aria-checked={!own} class:on={!own} onclick={() => (own = false)}>Night and Ink and Paper</button>
     <button type="button" role="radio" aria-checked={own} class:on={own} onclick={() => (own = true)}>Its own theme</button>
   </div>
 
@@ -106,7 +140,7 @@
       <input type="color" bind:value={base} aria-label="Base color" />
       <div>
         <div class="name">Base</div>
-        <div class="about">Lines, labels, and what is selected</div>
+        <div class="about">Lines, labels, and quiet buttons</div>
       </div>
       <input type="text" class="hex" bind:value={base} aria-label="Base color as hex" spellcheck="false" />
     </div>
@@ -114,10 +148,19 @@
       <input type="color" bind:value={highlight} aria-label="Highlight color" />
       <div>
         <div class="name">Highlight</div>
-        <div class="about">Names and buttons</div>
+        <div class="about">Titles, names, and what is selected</div>
       </div>
       <input type="text" class="hex" bind:value={highlight} aria-label="Highlight color as hex" spellcheck="false" />
     </div>
+  {/if}
+
+  <h3 class="label">{own ? 'Each side' : 'Sides'}</h3>
+  <div class="choice" role="radiogroup" aria-label="Side">
+    <button type="button" role="radio" aria-checked={side === 'dark'} class:on={side === 'dark'} onclick={() => (side = 'dark')}>Dark side</button>
+    <button type="button" role="radio" aria-checked={side === 'light'} class:on={side === 'light'} onclick={() => (side = 'light')}>Light side</button>
+  </div>
+
+  {#if own && side === 'dark'}
     <label class="check"><input type="checkbox" bind:checked={pickBackground} /> Choose the background myself</label>
     {#if pickBackground}
       <div class="color">
@@ -135,7 +178,22 @@
       </div>
     {/if}
     {#if warning}<p class="warning">{warning}</p>{/if}
+  {:else if own}
+    <p class="about">The light side is worked out from the same two colors, so that everything stays readable on a pale page. Any of its colors can be chosen by hand.</p>
+    {#each LIGHT_ROWS as [key, label, token]}
+      <label class="check"><input type="checkbox" checked={lightPicks[key].on} onchange={(e) => choose(key, (e.currentTarget as HTMLInputElement).checked)} /> Choose the light {label.toLowerCase()} myself</label>
+      {#if lightPicks[key].on}
+        <div class="color">
+          <input type="color" bind:value={lightPicks[key].value} aria-label="Light {label.toLowerCase()} color" />
+          <div><div class="name">{label}</div><div class="about">Worked out: {workedOut[token]}</div></div>
+          <input type="text" class="hex" bind:value={lightPicks[key].value} aria-label="Light {label.toLowerCase()} color as hex" spellcheck="false" />
+        </div>
+      {/if}
+    {/each}
+    {#if warning}<p class="warning">{warning}</p>{/if}
+  {/if}
 
+  {#if own}
     <h3 class="label">Headings</h3>
     {#each groups(HEADING_FONTS) as [kind, fonts]}
       <div class="kind">{kind}</div>
@@ -160,7 +218,11 @@
       </div>
     {/each}
   {:else}
-    <p class="about night">Night is the app's own theme: teal structure, amber names, Bebas Neue headings, and Atkinson Hyperlegible prose.</p>
+    <p class="about night">
+      {side === 'dark'
+        ? "Night is the app's own dark theme: teal structure, amber names, Bebas Neue headings, and Atkinson Hyperlegible prose."
+        : "Ink and Paper is the app's own light theme: a warm page, oxblood names, Playfair Display headings, and Literata prose."}
+    </p>
   {/if}
 
   <div class="sample" aria-hidden="true">
