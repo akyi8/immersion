@@ -16,6 +16,8 @@
     jump = null,
     onCursor,
     onOutline,
+    narratorTool = false,
+    onMakeEntry,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -28,6 +30,9 @@
     jump?: { offset: number; at: number } | null;
     onCursor?: (pos: number) => void;
     onOutline?: (at: number) => void;
+    /** Offer "Narrator only" on selected text, which only means something in the wiki. */
+    narratorTool?: boolean;
+    onMakeEntry?: (name: string) => void;
   } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
@@ -131,6 +136,7 @@
       onMention: (id) => onOpen(id),
       onCursor: (pos) => onCursor?.(pos),
       onOutline: (at) => onOutline?.(at),
+      toolbar: { narrator: narratorTool, onMakeEntry: (name) => onMakeEntry?.(name) },
     });
     status = 'saved';
     ready = true;

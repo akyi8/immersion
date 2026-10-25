@@ -17,6 +17,7 @@
     next,
     fresh,
     onOpen,
+    onMakeEntry,
   }: {
     index: WikiIndex;
     fs: WorldFs;
@@ -26,6 +27,8 @@
     next: string | null;
     fresh: boolean;
     onOpen: (id: string) => void;
+    /** Starts a new entry for a name selected in this one. */
+    onMakeEntry?: (name: string) => void;
   } = $props();
 
   const entry = $derived(index.get(id)!);
@@ -80,7 +83,7 @@
        because narrator-only text is hidden there and typing near it could damage it. -->
   {#if view === 'narrator'}
     {#key id}
-      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} />
+      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} narratorTool {onMakeEntry} />
     {/key}
   {:else}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->

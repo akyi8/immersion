@@ -113,7 +113,7 @@
       {@render folderView(index.root, 0)}
       <div class="create">
         <button type="button" onclick={onNewEntry}>+ New entry</button>
-        <button type="button" onclick={onNewFolder}>+ New folder</button>
+        <button type="button" onclick={onNewFolder}>+ New category</button>
       </div>
     </div>
   {:else}

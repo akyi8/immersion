@@ -25,6 +25,7 @@
     onDraft,
     onDeclare,
     onOpenPiece,
+    onMakeEntry,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -41,6 +42,8 @@
     onDeclare: (path: string, manuscript: boolean) => void;
     /** Opens a piece of writing, at a chapter when `offset` is given. */
     onOpenPiece: (path: string, offset: number | null) => void;
+    /** Starts a wiki entry for a name selected in the writing. */
+    onMakeEntry?: (name: string) => void;
   } = $props();
 
   // Writing and outline are two views of the same chapters (Mike, October 25).
@@ -132,7 +135,7 @@
     {:else}
       <div class="book">
         {#key id}
-          <EntryEditor {fs} {index} {id} title={about.title} autofocus={fresh} {onOpen} {next} {jump} {onCursor} onOutline={showOutline} />
+          <EntryEditor {fs} {index} {id} title={about.title} autofocus={fresh} {onOpen} {next} {jump} {onCursor} onOutline={showOutline} {onMakeEntry} />
         {/key}
       </div>
     {/if}

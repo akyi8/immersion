@@ -2,32 +2,46 @@
   import type { Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
 
-  // One small form for both a new entry and a new folder.
+  // One small form for a new entry or a new category. Categories are chosen as chips,
+  // so nobody has to think about folders (Mike, October 25).
   let {
     index,
     kind,
     startFolder,
+    startName = '',
     onCreate,
     onCancel,
   }: {
     index: WikiIndex;
     kind: 'entry' | 'folder';
     startFolder: string;
+    startName?: string;
     onCreate: (name: string, folder: string) => Promise<string | null>;
     onCancel: () => void;
   } = $props();
 
+  const root = $derived(index.root);
+  const categories = $derived(root.folders);
+
+  /** The top-level category that holds a folder, or the wiki itself. */
+  function categoryOf(path: string): Folder | null {
+    return categories.find((c) => path === c.path || path.startsWith(c.path + '/')) ?? null;
+  }
+
   function flatten(folder: Folder, depth: number): { path: string; label: string }[] {
-    const here = { path: folder.path, label: depth === 0 ? 'Top of the wiki' : `${'  '.repeat(depth - 1)}${folderLabel(folder.name)}` };
+    const here = { path: folder.path, label: `${'  '.repeat(depth)}${folderLabel(folder.name)}` };
     return [here, ...folder.folders.flatMap((f) => flatten(f, depth + 1))];
   }
-  const folders = $derived(flatten(index.root, 0));
 
   // svelte-ignore state_referenced_locally
   let folder = $state(startFolder);
-  let name = $state('');
+  // svelte-ignore state_referenced_locally
+  let name = $state(startName);
   let problem = $state('');
   let busy = $state(false);
+
+  const category = $derived(categoryOf(folder));
+  const inside = $derived(category && category.folders.length ? flatten(category, 0) : []);
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -38,18 +52,35 @@
   }
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
+
 <div class="backdrop" role="presentation" onclick={onCancel}></div>
-<form class="dialog" aria-label={kind === 'entry' ? 'New entry' : 'New folder'} onsubmit={submit}>
-  <h2>{kind === 'entry' ? 'New entry' : 'New folder'}</h2>
+<form class="dialog" aria-label={kind === 'entry' ? 'New entry' : 'New category'} onsubmit={submit}>
+  <h2>{kind === 'entry' ? 'New entry' : 'New category'}</h2>
   <label for="create-name" class="label">Name</label>
   <!-- svelte-ignore a11y_autofocus -->
-  <input id="create-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={kind === 'entry' ? 'Tomas Reyes' : 'Minor characters'} />
-  <label for="create-folder" class="label">{kind === 'entry' ? 'In folder' : 'Inside'}</label>
-  <select id="create-folder" bind:value={folder}>
-    {#each folders as f}
-      <option value={f.path}>{f.label}</option>
+  <input id="create-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={kind === 'entry' ? 'Tomas Reyes' : 'Factions'} />
+  <div class="label">{kind === 'entry' ? 'Category' : 'Inside'}</div>
+  <div class="chips" role="radiogroup" aria-label={kind === 'entry' ? 'Category' : 'Inside'}>
+    {#if kind === 'folder' || !categories.length}
+      <button type="button" role="radio" aria-checked={folder === root.path} class:on={folder === root.path} onclick={() => (folder = root.path)}>
+        {kind === 'folder' ? 'Top level' : 'Uncategorized'}
+      </button>
+    {/if}
+    {#each categories as c}
+      <button type="button" role="radio" aria-checked={category?.path === c.path} class:on={category?.path === c.path} onclick={() => (folder = c.path)}>
+        {folderLabel(c.name)}
+      </button>
     {/each}
-  </select>
+  </div>
+  {#if inside.length > 1}
+    <label for="create-folder" class="label">Within {category ? folderLabel(category.name) : ''}</label>
+    <select id="create-folder" bind:value={folder}>
+      {#each inside as f}
+        <option value={f.path}>{f.label}</option>
+      {/each}
+    </select>
+  {/if}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   <div class="actions">
     <button type="button" class="cancel" onclick={onCancel}>Cancel</button>
@@ -69,7 +100,7 @@
     top: 18vh;
     left: 50%;
     transform: translateX(-50%);
-    width: min(440px, calc(100vw - 32px));
+    width: min(480px, calc(100vw - 32px));
     box-sizing: border-box;
     background: var(--surface);
     border: 1px solid var(--rule-strong);
@@ -98,6 +129,24 @@
     background: var(--bg);
     border: 1px solid var(--rule-strong);
     padding: 10px 12px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chips button {
+    font-size: 14px;
+    color: var(--text-soft);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+  .chips button.on {
+    color: var(--structure-soft);
+    background: var(--structure-deep);
+    border-color: var(--structure);
   }
   .problem {
     margin: 4px 0 0;

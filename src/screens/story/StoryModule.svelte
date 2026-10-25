@@ -13,6 +13,8 @@
   import StorySidebar from './StorySidebar.svelte';
   import ManuscriptPane from './ManuscriptPane.svelte';
   import Dialog from '../shelf/Dialog.svelte';
+  import CreateDialog from '../world/CreateDialog.svelte';
+  import { createEntry, likelyCategory } from '../../lib/index/create';
   import Heatmap from './Heatmap.svelte';
   import type { Activity } from '../../lib/story/activity';
 
@@ -21,7 +23,13 @@
    * writing in sliding panes. Names in a manuscript open their wiki entries beside it,
    * as in the World module (Mike, October 24).
    */
-  let { index, fs, nav, storiesDir }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string } = $props();
+  let {
+    index,
+    fs,
+    nav,
+    storiesDir,
+    rebuild,
+  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void> } = $props();
 
   let story = $state.raw<StoryIndex | null>(null);
   let jump = $state<{ path: string; offset: number; at: number } | null>(null);
@@ -121,6 +129,23 @@
     }
   }
 
+  // A wiki entry started from a name selected in the writing (Mike, October 25). It
+  // opens beside the pane the name was selected in.
+  let makingEntry = $state<{ name: string; after: number } | null>(null);
+  let freshEntry = $state<string | null>(null);
+  async function makeEntry(name: string, folder: string): Promise<string | null> {
+    try {
+      const path = await createEntry(fs, name, folder);
+      await rebuild();
+      freshEntry = path;
+      nav.open(path, makingEntry?.after);
+      makingEntry = null;
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+
   function draft(path: string) {
     // Drafting picks up where the cursor was.
     if (cursor?.path === path) jump = { path, offset: cursor.pos, at: Date.now() };
@@ -192,7 +217,15 @@
       <Panes {nav} ids={row} {label}>
         {#snippet pane(id, i, next)}
           {#if index.get(id)}
-            <EntryView {index} {fs} {id} view="narrator" {next} fresh={false} onOpen={(target) => nav.open(target, i)} />
+            <EntryView
+              {index}
+              {fs}
+              {id}
+              view="narrator"
+              {next}
+              fresh={freshEntry === id}
+              onOpen={(target) => nav.open(target, i)}
+              onMakeEntry={(name) => (makingEntry = { name, after: i })} />
           {:else}
             <ManuscriptPane
               {fs}
@@ -206,7 +239,8 @@
               onCursor={(pos) => (cursor = { path: id, pos })}
               onDraft={() => draft(id)}
               onDeclare={declare}
-              onOpenPiece={openPiece} />
+              onOpenPiece={openPiece}
+              onMakeEntry={(name) => (makingEntry = { name, after: i })} />
           {/if}
         {/snippet}
       </Panes>
@@ -222,6 +256,10 @@
       </main>
     {/if}
   </div>
+{/if}
+
+{#if makingEntry}
+  <CreateDialog {index} kind="entry" startFolder={likelyCategory(index)} startName={makingEntry.name} onCreate={makeEntry} onCancel={() => (makingEntry = null)} />
 {/if}
 
 {#if creating}
