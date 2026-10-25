@@ -4,7 +4,18 @@
  * The outline and the manuscript are therefore one list of chapters, and an outline can
  * never point at a chapter that is gone. Obsidian shows the callout folded shut, the
  * writing view hides it, and outline view shows each chapter as a card.
+ *
+ * A chapter can hold one outline beat per thread (Mike, October 25), such as the main
+ * plot and a character's arc. Each beat is its own callout under the heading, labelled
+ * with its thread: `> [!outline]- Cerys's arc`. A callout with no label belongs to the
+ * main thread, so an outline written before threads existed is the main plot's beat.
  */
+
+/** One thread's beat in a chapter. The main thread's key is ''. */
+export interface Beat {
+  thread: string;
+  text: string;
+}
 
 /** A chapter as outline view sees it. Offsets are into the text it was read from. */
 export interface OutlineChapter {
@@ -13,10 +24,13 @@ export interface OutlineChapter {
   offset: number;
   /** The heading's level: 2 for chapters under a title, 1 when chapters are top headings. */
   level: number;
+  /** The main thread's beat. */
   outline: string;
+  /** Every thread's beat, in the order they appear. */
+  beats: Beat[];
 }
 
-const OUTLINE_START = /^>\s*\[!outline\][-+]?.*$/i;
+const OUTLINE_START = /^>\s*\[!outline\][-+]?[ \t]*(.*?)\s*$/i;
 
 interface Line {
   text: string;
@@ -34,14 +48,37 @@ function linesOf(text: string): Line[] {
   return out;
 }
 
-/** The outline callout under the heading on line `h`, as line numbers, or null. */
-function outlineBlock(lines: Line[], h: number): { start: number; end: number } | null {
+interface Block {
+  start: number;
+  end: number;
+  thread: string;
+}
+
+/** The outline callouts under the heading on line `h`, one per thread, as line numbers. */
+function outlineBlocks(lines: Line[], h: number): Block[] {
+  const out: Block[] = [];
   let i = h + 1;
-  while (i < lines.length && lines[i].text.trim() === '') i++;
-  if (i >= lines.length || !OUTLINE_START.test(lines[i].text)) return null;
-  let end = i;
-  while (end + 1 < lines.length && /^>/.test(lines[end + 1].text)) end++;
-  return { start: i, end };
+  for (;;) {
+    while (i < lines.length && lines[i].text.trim() === '') i++;
+    const m = i < lines.length ? OUTLINE_START.exec(lines[i].text) : null;
+    if (!m) return out;
+    let end = i;
+    while (end + 1 < lines.length && /^>/.test(lines[end + 1].text)) end++;
+    out.push({ start: i, end, thread: m[1].trim() });
+    i = end + 1;
+  }
+}
+
+function blockText(lines: Line[], block: Block): string {
+  return lines
+    .slice(block.start + 1, block.end + 1)
+    .map((l) => l.text.replace(/^>\s?/, ''))
+    .join('\n')
+    .trim();
+}
+
+function beatsAt(lines: Line[], h: number): Beat[] {
+  return outlineBlocks(lines, h).map((b) => ({ thread: b.thread, text: blockText(lines, b) }));
 }
 
 function chapterLevel(lines: Line[]): number {
@@ -59,15 +96,8 @@ export function readOutline(text: string): OutlineChapter[] {
     if (/^\s*(```|~~~)/.test(line.text)) fenced = !fenced;
     const m = !fenced && /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line.text);
     if (!m || m[1].length !== level) return;
-    const block = outlineBlock(lines, n);
-    const outline = block
-      ? lines
-          .slice(block.start + 1, block.end + 1)
-          .map((l) => l.text.replace(/^>\s?/, ''))
-          .join('\n')
-          .trim()
-      : '';
-    out.push({ title: m[2].trim(), offset: line.from, level, outline });
+    const beats = beatsAt(lines, n);
+    out.push({ title: m[2].trim(), offset: line.from, level, outline: beats.find((b) => b.thread === '')?.text ?? '', beats });
   });
   return out;
 }
@@ -78,22 +108,56 @@ function headingLine(lines: Line[], offset: number): number {
   return n;
 }
 
-/** Sets the outline under the chapter heading at `offset`. Empty text removes the callout. */
+/** Sets the main thread's outline under the chapter heading at `offset`. */
 export function setOutline(text: string, offset: number, outline: string): string {
+  return setBeat(text, offset, '', outline);
+}
+
+/** Sets one thread's beat under the chapter heading at `offset`. Empty text removes it. */
+export function setBeat(text: string, offset: number, thread: string, beat: string): string {
   const lines = linesOf(text);
   const h = headingLine(lines, offset);
-  const block = outlineBlock(lines, h);
-  const body = outline.trim();
-  const callout = body ? ['> [!outline]-', ...body.split('\n').map((l) => (l.trim() ? `> ${l}` : '>'))].join('\n') : '';
-  if (block) {
-    // Replace the old callout, and the blank line after it when the callout is removed.
-    const from = callout ? lines[block.start].from : lines[h].to;
-    const to = lines[block.end].to;
-    return text.slice(0, from) + (callout ? callout : '') + text.slice(to);
+  const blocks = outlineBlocks(lines, h);
+  const k = blocks.findIndex((b) => b.thread === thread);
+  const body = beat.trim();
+  const callout = body ? [`> [!outline]-${thread ? ` ${thread}` : ''}`, ...body.split('\n').map((l) => (l.trim() ? `> ${l}` : '>'))].join('\n') : '';
+  if (k >= 0) {
+    const block = blocks[k];
+    // Replace the old callout, or remove it with the blank lines before it.
+    const from = callout ? lines[block.start].from : k === 0 ? lines[h].to : lines[blocks[k - 1].end].to;
+    return text.slice(0, from) + callout + text.slice(lines[block.end].to);
   }
   if (!callout) return text;
-  const at = lines[h].to;
+  const at = blocks.length ? lines[blocks[blocks.length - 1].end].to : lines[h].to;
   return `${text.slice(0, at)}\n\n${callout}${text.slice(at).startsWith('\n\n') ? '' : '\n'}${text.slice(at)}`;
+}
+
+/** Renames a thread in every chapter of a text. */
+export function renameThreadIn(text: string, from: string, to: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      const m = OUTLINE_START.exec(line);
+      return m && m[1].trim() === from ? `> [!outline]-${to ? ` ${to}` : ''}` : line;
+    })
+    .join('\n');
+}
+
+/** Removes a thread's beats from every chapter of a text. */
+export function removeThreadIn(text: string, thread: string): string {
+  let out = text;
+  for (;;) {
+    const lines = linesOf(out);
+    let changed = false;
+    for (let n = 0; n < lines.length && !changed; n++) {
+      if (!/^#{1,6}\s/.test(lines[n].text)) continue;
+      if (outlineBlocks(lines, n).some((b) => b.thread === thread)) {
+        out = setBeat(out, lines[n].from, thread, '');
+        changed = true;
+      }
+    }
+    if (!changed) return out;
+  }
 }
 
 /** Renames the chapter heading at `offset`, keeping its level. */
@@ -145,19 +209,12 @@ export function withoutOutlines(text: string): string {
  * The title heading of a one-chapter file, as in a manuscript kept as a folder, where
  * each file is a chapter whose first top heading is its title.
  */
-export function fileTitle(text: string): { title: string; offset: number; outline: string } | null {
+export function fileTitle(text: string): { title: string; offset: number; outline: string; beats: Beat[] } | null {
   const lines = linesOf(text);
   const h = lines.findIndex((l) => /^#\s+/.test(l.text));
   if (h < 0) return null;
-  const block = outlineBlock(lines, h);
-  const outline = block
-    ? lines
-        .slice(block.start + 1, block.end + 1)
-        .map((l) => l.text.replace(/^>\s?/, ''))
-        .join('\n')
-        .trim()
-    : '';
-  return { title: lines[h].text.replace(/^#\s+/, '').trim(), offset: lines[h].from, outline };
+  const beats = beatsAt(lines, h);
+  return { title: lines[h].text.replace(/^#\s+/, '').trim(), offset: lines[h].from, outline: beats.find((b) => b.thread === '')?.text ?? '', beats };
 }
 
 /**

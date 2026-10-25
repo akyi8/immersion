@@ -1,12 +1,16 @@
 import type { WorldFs } from '../fs/types';
-import { slugify } from '../slug';
-import { countWords, type Manuscript } from './index';
-import { addChapter, fileTitle, moveChapter, nextChapterTitle, readOutline, renameChapter, setOutline } from './outline';
+import { slugify } from '../slug.ts';
+import { countWords, type Manuscript } from './index.ts';
+import { addChapter, fileTitle, moveChapter, nextChapterTitle, readOutline, removeThreadIn, renameChapter, renameThreadIn, setBeat, setOutline, type Beat } from './outline.ts';
+import { threadsFrom, withThreads, type Thread } from './threads.ts';
 
 /** One card in outline view: a chapter, its outline, and where it is written. */
 export interface Card {
   title: string;
+  /** The main thread's beat. */
   outline: string;
+  /** Each thread's beat, by thread key; the main thread's key is ''. */
+  beats: Record<string, string>;
   words: number;
   /** The file that holds the chapter. */
   path: string;
@@ -26,6 +30,74 @@ export interface OutlineSource {
   add(): Promise<{ path: string; offset: number | null }>;
   /** Moves the chapter at `from` to position `to`, with everything in it. */
   move(from: number, to: number): Promise<void>;
+  /** The manuscript's threads, main thread first. */
+  threads(): Promise<Thread[]>;
+  setBeat(i: number, thread: string, text: string): Promise<void>;
+  addThread(name: string): Promise<void>;
+  renameThread(key: string, name: string): Promise<void>;
+  /** Moves a thread one place earlier (-1) or later (1). The main thread stays first. */
+  moveThread(key: string, by: -1 | 1): Promise<void>;
+  /** Removes a thread and every beat on it. The main thread cannot be removed. */
+  removeThread(key: string): Promise<void>;
+}
+
+const beatMap = (beats: Beat[]) => Object.fromEntries(beats.map((b) => [b.thread, b.text]));
+
+/**
+ * The thread operations every manuscript shares. `header` is the file whose header keeps
+ * the thread list, `texts` lists the files that hold chapters, and `found` reads the
+ * thread keys used in those files.
+ */
+function threadOps(fs: WorldFs, header: () => Promise<{ path: string; text: string }>, texts: () => string[], found: () => Promise<string[]>) {
+  async function list(): Promise<Thread[]> {
+    return threadsFrom((await header()).text, await found());
+  }
+  async function save(threads: Thread[]) {
+    const h = await header();
+    await fs.writeText(h.path, withThreads(h.text, threads));
+  }
+  function clean(name: string): string {
+    const n = name.replace(/\s+/g, ' ').trim();
+    if (!n) throw new Error('A thread needs a name.');
+    return n;
+  }
+  async function rewrite(change: (text: string) => string) {
+    for (const path of texts()) {
+      const text = await fs.readText(path);
+      const next = change(text);
+      if (next !== text) await fs.writeText(path, next);
+    }
+  }
+  return {
+    threads: list,
+    async addThread(name: string) {
+      const n = clean(name);
+      const threads = await list();
+      if (threads.some((t) => t.name.toLowerCase() === n.toLowerCase())) throw new Error(`There is already a thread called ${n}.`);
+      await save([...threads, { key: n, name: n }]);
+    },
+    async renameThread(key: string, name: string) {
+      const n = clean(name);
+      const threads = await list();
+      if (threads.some((t) => t.key !== key && t.name.toLowerCase() === n.toLowerCase())) throw new Error(`There is already a thread called ${n}.`);
+      // The main thread's beats carry no label, so renaming it changes only the list.
+      if (key) await rewrite((text) => renameThreadIn(text, key, n));
+      await save(threads.map((t) => (t.key === key ? { key: key ? n : '', name: n } : t)));
+    },
+    async moveThread(key: string, by: -1 | 1) {
+      const threads = await list();
+      const i = threads.findIndex((t) => t.key === key);
+      if (i <= 0 || i + by <= 0 || i + by >= threads.length) return;
+      const [t] = threads.splice(i, 1);
+      threads.splice(i + by, 0, t);
+      await save(threads);
+    },
+    async removeThread(key: string) {
+      if (!key) throw new Error('The main thread stays.');
+      await rewrite((text) => removeThreadIn(text, key));
+      await save((await list()).filter((t) => t.key !== key));
+    },
+  };
 }
 
 /** A manuscript kept as one file, whose chapters are headings. */
@@ -39,7 +111,7 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
       const { text, chapters: list } = await chapters();
       return list.map((c, i) => {
         const end = list[i + 1]?.offset ?? text.length;
-        return { title: c.title, outline: c.outline, words: countWords(text.slice(c.offset, end)) - countWords(c.title), path, offset: c.offset };
+        return { title: c.title, outline: c.outline, beats: beatMap(c.beats), words: countWords(text.slice(c.offset, end)) - countWords(c.title), path, offset: c.offset };
       });
     },
     async setOutline(i, outline) {
@@ -62,6 +134,17 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
       const text = await fs.readText(path);
       await fs.writeText(path, moveChapter(text, from, to));
     },
+    async setBeat(i, thread, beat) {
+      const { text, chapters: list } = await chapters();
+      if (!list[i]) throw new Error('That chapter is gone. The outline has been reloaded.');
+      await fs.writeText(path, setBeat(text, list[i].offset, thread, beat));
+    },
+    ...threadOps(
+      fs,
+      async () => ({ path, text: await fs.readText(path) }),
+      () => [path],
+      async () => readOutline(await fs.readText(path)).flatMap((c) => c.beats.map((b) => b.thread)),
+    ),
   };
 }
 
@@ -103,7 +186,14 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       for (let i = 0; i < files.length; i++) {
         const text = await fs.readText(files[i]);
         const head = fileTitle(text);
-        cards.push({ title: head?.title ?? manuscript.sections[i].title, outline: head?.outline ?? '', words: countWords(text) - countWords(head?.title ?? ''), path: files[i], offset: null });
+        cards.push({
+          title: head?.title ?? manuscript.sections[i].title,
+          outline: head?.outline ?? '',
+          beats: beatMap(head?.beats ?? []),
+          words: countWords(text) - countWords(head?.title ?? ''),
+          path: files[i],
+          offset: null,
+        });
       }
       return cards;
     },
@@ -136,5 +226,22 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       order.splice(to, 0, moved);
       await renumber(order);
     },
+    async setBeat(i, thread, beat) {
+      const { path, text, head } = await chapter(i);
+      await fs.writeText(path, setBeat(text, head.offset, thread, beat));
+    },
+    ...threadOps(
+      fs,
+      async () => {
+        const path = `${manuscript.path}/book.md`;
+        return { path, text: (await fs.exists(path)) ? await fs.readText(path) : `# ${manuscript.title}\n` };
+      },
+      () => files,
+      async () => {
+        const keys: string[] = [];
+        for (const f of files) keys.push(...(fileTitle(await fs.readText(f))?.beats.map((b) => b.thread) ?? []));
+        return keys;
+      },
+    ),
   };
 }

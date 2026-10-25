@@ -1,6 +1,6 @@
 import type { EditorView } from '@codemirror/view';
 import type { Text } from '@codemirror/state';
-import { fileTitle, readOutline, setOutline, type OutlineChapter } from './outline';
+import { fileTitle, readOutline, type OutlineChapter, setBeat } from './outline';
 
 /**
  * Reading and changing chapter outlines through an open editor, for the outline panel
@@ -42,8 +42,13 @@ export function chapterAt(chapters: OutlineChapter[], pos: number): { chapter: O
 
 /** Replaces the outline under the heading at `offset`, changing only the text that differs. */
 export function setOutlineInView(view: EditorView, offset: number, outline: string) {
+  setBeatInView(view, offset, '', outline);
+}
+
+/** Replaces one thread's beat under the heading at `offset`, changing only the text that differs. */
+export function setBeatInView(view: EditorView, offset: number, thread: string, beat: string) {
   const before = view.state.doc.toString();
-  const after = setOutline(before, offset, outline);
+  const after = setBeat(before, offset, thread, beat);
   if (after === before) return;
   let start = 0;
   while (start < before.length && start < after.length && before[start] === after[start]) start++;

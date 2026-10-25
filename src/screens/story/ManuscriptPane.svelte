@@ -8,6 +8,8 @@
   import PieceActions from './PieceActions.svelte';
   import OutlineAside from './OutlineAside.svelte';
   import TitlePage from './TitlePage.svelte';
+  import { onMount } from 'svelte';
+  import type { Thread } from '../../lib/story/threads';
   import type { EditorView } from '@codemirror/view';
 
   /**
@@ -97,6 +99,24 @@
     if (!owner) return null;
     if (owner.kind === 'file') return fileSource(fs, owner.path);
     return id === owner.book || owner.sections.some((s) => s.path === id) ? folderSource(fs, owner) : null;
+  });
+
+  // The manuscript's threads, for the outline beside the writing. They are read again
+  // when outline view closes and when files change.
+  let threads = $state<Thread[]>([{ key: '', name: 'Main plot' }]);
+  function readThreads() {
+    source?.threads().then((t) => (threads = t)).catch(() => {});
+  }
+  $effect(() => {
+    void mode;
+    readThreads();
+  });
+  onMount(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    return fs.onChange(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(readThreads, 400);
+    });
   });
 
   /** Opens outline view at the chapter whose folded outline was clicked. */
@@ -218,6 +238,7 @@
           <OutlineAside
             view={editor}
             {index}
+            {threads}
             {fs}
             onOpen={onOpen}
             {cursor}

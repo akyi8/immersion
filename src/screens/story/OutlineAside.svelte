@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { EditorView } from '@codemirror/view';
-  import { chapterAt, chaptersIn, setOutlineInView } from '../../lib/story/outlineEdit';
+  import { chapterAt, chaptersIn, setBeatInView } from '../../lib/story/outlineEdit';
+  import type { Thread } from '../../lib/story/threads';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import Portrait from '../world/Portrait.svelte';
@@ -19,6 +20,7 @@
     index,
     fs,
     onOpen,
+    threads = [{ key: '', name: 'Main plot' }],
   }: {
     view: EditorView | null;
     cursor: number;
@@ -29,6 +31,8 @@
     fs: WorldFs;
     /** Opens a wiki entry beside the writing. */
     onOpen: (id: string) => void;
+    /** The manuscript's threads; the chapter shows one beat for each. */
+    threads?: Thread[];
   } = $props();
 
   // The names in the chapter under the cursor. Typing moves the cursor too, so this
@@ -53,17 +57,20 @@
 
   // Recomputed when the cursor moves; the chapter list itself is cached per document.
   const here = $derived(view ? chapterAt(chaptersIn(view, wholeBook), cursor) : null);
-  let text = $state('');
-  let field: HTMLTextAreaElement | undefined = $state();
+  // Each thread's beat in the chapter under the cursor, by thread key.
+  let texts = $state<Record<string, string>>({});
+  let panel: HTMLElement | undefined = $state();
   let shownFor = '';
+  const pending = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | null = null;
 
-  // A new chapter under the cursor brings its outline, unless the writer is typing here.
+  // A new chapter under the cursor brings its beats, unless the writer is typing here.
   $effect(() => {
-    const key = here ? `${here.index}:${here.chapter.title}` : '';
-    if (key !== shownFor && document.activeElement !== field) {
+    // The beats are part of the key, so text that arrives after the panel first showed still appears.
+    const key = here ? `${here.index}:${here.chapter.title}:${threads.map((t) => t.key).join('|')}:${JSON.stringify(here.chapter.beats)}` : '';
+    if (key !== shownFor && !panel?.contains(document.activeElement)) {
       shownFor = key;
-      text = here?.chapter.outline ?? '';
+      texts = Object.fromEntries(threads.map((t) => [t.key, here?.chapter.beats.find((b) => b.thread === t.key)?.text ?? '']));
     }
   });
 
@@ -71,21 +78,39 @@
     if (timer) clearTimeout(timer);
     timer = null;
     if (!view || !here) return;
-    // The heading may have moved since this chapter was shown, so it is found again.
-    const now = chapterAt(chaptersIn(view, wholeBook), cursor);
-    if (now && now.index === here.index) setOutlineInView(view, now.chapter.offset, text);
+    for (const key of pending) {
+      // The heading may have moved since this chapter was shown, so it is found again.
+      const now = chapterAt(chaptersIn(view, wholeBook), cursor);
+      if (now && now.index === here.index) setBeatInView(view, now.chapter.offset, key, texts[key] ?? '');
+    }
+    pending.clear();
   }
 
-  function typed() {
+  function typed(key: string) {
+    pending.add(key);
     if (timer) clearTimeout(timer);
     timer = setTimeout(save, SAVE_DELAY_MS);
   }
 </script>
 
-<aside class="outline-aside" aria-label="Outline of this chapter">
+<aside class="outline-aside" aria-label="Outline of this chapter" bind:this={panel}>
   {#if here}
-    <div class="label">Outline · {here.chapter.title}</div>
-    <textarea bind:this={field} bind:value={text} oninput={typed} onblur={save} placeholder="What happens in this chapter?"></textarea>
+    {#if threads.length === 1}
+      <div class="label">Outline · {here.chapter.title}</div>
+      <textarea bind:value={texts['']} oninput={() => typed('')} onblur={save} placeholder="What happens in this chapter?"></textarea>
+    {:else}
+      <div class="label">{here.chapter.title}</div>
+      {#each threads as t (t.key)}
+        <label class="thread" for="beat-{t.key || 'main'}">{t.name}</label>
+        <textarea
+          id="beat-{t.key || 'main'}"
+          class="beat"
+          bind:value={texts[t.key]}
+          oninput={() => typed(t.key)}
+          onblur={save}
+          placeholder="What happens on this thread?"></textarea>
+      {/each}
+    {/if}
     <button type="button" class="all" onclick={() => onOpenOutline(here.index)}>All chapters</button>
   {:else}
     <div class="label">Outline</div>
@@ -122,6 +147,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .thread {
+    margin-top: 6px;
+    font-family: var(--font-label);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  textarea.beat {
+    min-height: 90px;
   }
   textarea {
     min-height: 260px;

@@ -89,6 +89,7 @@ class OutlineWidget extends WidgetType {
     private summary: string,
     private at: number,
     private onOutline: ((at: number) => void) | null,
+    private thread = '',
   ) {
     super();
   }
@@ -97,7 +98,7 @@ class OutlineWidget extends WidgetType {
     el.className = 'cm-outline-fold';
     const label = document.createElement('span');
     label.className = 'cm-outline-label';
-    label.textContent = 'Outline';
+    label.textContent = this.thread || 'Outline';
     const text = document.createElement('span');
     text.className = 'cm-outline-text';
     text.textContent = this.summary;
@@ -109,7 +110,7 @@ class OutlineWidget extends WidgetType {
     return el;
   }
   eq(other: OutlineWidget) {
-    return other.summary === this.summary && other.at === this.at;
+    return other.summary === this.summary && other.at === this.at && other.thread === this.thread;
   }
   ignoreEvent() {
     return true;
@@ -117,7 +118,7 @@ class OutlineWidget extends WidgetType {
 }
 
 /** Header keys the app writes for itself, which the writer never needs to see. */
-const MACHINE_KEYS = new Set(['manuscript', 'shelved']);
+const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads']);
 
 /** True when every key in the YAML header is one the app keeps for itself. */
 function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {
@@ -312,7 +313,10 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
             .replace(/\s+/g, ' ')
             .trim();
           marks.push(
-            Decoration.replace({ widget: new OutlineWidget(first.number === last.number ? '' : summary, first.from, onOutline), block: true }).range(
+            Decoration.replace({
+              widget: new OutlineWidget(first.number === last.number ? '' : summary, first.from, onOutline, /^>\s*\[!outline\][-+]?[ \t]*(.*)$/i.exec(first.text)?.[1].trim() ?? ''),
+              block: true,
+            }).range(
               first.from,
               last.to,
             ),
