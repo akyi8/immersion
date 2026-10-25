@@ -3,9 +3,10 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import { buildStoryIndex, titleFromName, type Manuscript, type StoryIndex } from '../../lib/story/index';
+  import { buildStoryIndex, titleFromName, type Manuscript, type Section, type StoryIndex } from '../../lib/story/index';
   import { fileSource, folderSource } from '../../lib/story/outlineSource';
   import { withFirstChapter } from '../../lib/story/outline';
+  import { saveNow } from '../../lib/saves';
   import { withHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
@@ -122,12 +123,83 @@
   async function addChapter(m: Manuscript) {
     problem = '';
     try {
-      const source = m.kind === 'file' ? fileSource(fs, m.path) : folderSource(fs, m);
+      const source = sourceOf(m);
       const at = await source.add();
       await refresh();
       openPiece(at.path, at.offset);
     } catch (e) {
       problem = String(e);
+    }
+  }
+
+  /** Puts a manuscript away on the binder's shelf, or takes it back out. */
+  async function shelve(m: Manuscript, shelved: boolean) {
+    problem = '';
+    const path = m.kind === 'file' ? m.path : `${m.path}/book.md`;
+    try {
+      await saveNow(path);
+      await fs.writeText(path, withHeader(await fs.readText(path), { shelved: shelved ? true : undefined }));
+      await refresh();
+    } catch (e) {
+      problem = String(e);
+    }
+  }
+
+  function sourceOf(m: Manuscript) {
+    return m.kind === 'file' ? fileSource(fs, m.path) : folderSource(fs, m);
+  }
+
+  /** The place in outline view of the chapter a binder section stands for. */
+  async function cardOf(m: Manuscript, s: Section) {
+    const source = sourceOf(m);
+    const cards = await source.load();
+    const i = cards.findIndex((c) => (m.kind === 'file' ? c.offset === s.offset : c.path === s.path));
+    if (i < 0) throw new Error('That chapter has changed. Try again in a moment.');
+    return { source, cards, i };
+  }
+
+  /** Moves a chapter from the binder, with its outline and prose. */
+  async function moveChapter(m: Manuscript, s: Section, by: -1 | 1) {
+    problem = '';
+    try {
+      // Whatever is waiting to be saved goes into the files before they change.
+      for (const p of m.kind === 'file' ? [m.path] : m.sections.map((x) => x.path)) await saveNow(p);
+      const { source, cards, i } = await cardOf(m, s);
+      if (i + by < 0 || i + by >= cards.length) return;
+      await source.move(i, i + by);
+      if (m.kind === 'folder') {
+        // The chapter files were renumbered, so open panes follow them to their new names.
+        await refresh();
+        const now = story?.manuscripts.find((x) => x.path === m.path);
+        const renamed = new Map<string, string>();
+        const order = [...m.sections.map((x) => x.path)];
+        const [moved] = order.splice(i, 1);
+        order.splice(i + by, 0, moved);
+        order.forEach((old, k) => now?.sections[k] && old !== now.sections[k].path && renamed.set(old, now.sections[k].path));
+        for (const [from, to] of renamed) if (nav.panes.includes(from)) nav.replace(from, to);
+      } else await refresh();
+    } catch (e) {
+      problem = String(e);
+    }
+  }
+
+  let renaming = $state<{ m: Manuscript; s: Section } | null>(null);
+  let chapterName = $state('');
+  async function renameChapter() {
+    if (!renaming || !chapterName.trim()) return;
+    busy = true;
+    problem = '';
+    try {
+      const { m, s } = renaming;
+      await saveNow(s.path);
+      const { source, i } = await cardOf(m, s);
+      await source.rename(i, chapterName.trim().replace(/\s+/g, ' '));
+      await refresh();
+      renaming = null;
+    } catch (e) {
+      problem = String(e);
+    } finally {
+      busy = false;
     }
   }
 
@@ -207,6 +279,7 @@
 {:else}
   <div class="story">
     <StorySidebar
+      {fs}
       {story}
       {activity}
       open={row}
@@ -214,6 +287,17 @@
       onOpen={openPiece}
       onDeclare={declare}
       onAddChapter={addChapter}
+      onShelve={shelve}
+      onMoveChapter={moveChapter}
+      onRenameChapter={(m, s) => {
+        renaming = { m, s };
+        chapterName = s.title;
+        problem = '';
+      }}
+      onMoved={async (from, to) => {
+        await refresh();
+        nav.replace(from, to);
+      }}
       onNew={(kind) => {
         creating = kind;
         problem = '';
@@ -273,6 +357,14 @@
 
 {#if makingEntry}
   <CreateDialog {index} kind="entry" startFolder={likelyCategory(index)} startName={makingEntry.name} onCreate={makeEntry} onCancel={() => (makingEntry = null)} />
+{/if}
+
+{#if renaming}
+  <Dialog title="Rename chapter" action="Rename" ready={!!chapterName.trim()} {busy} {problem} onSubmit={renameChapter} onCancel={() => (renaming = null)}>
+    <label for="story-chapter-name" class="label">Chapter title</label>
+    <!-- svelte-ignore a11y_autofocus -->
+    <input id="story-chapter-name" type="text" bind:value={chapterName} autofocus autocomplete="off" />
+  </Dialog>
 {/if}
 
 {#if creating}

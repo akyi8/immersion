@@ -12,12 +12,15 @@
     index,
     entry,
     onMoved,
+    button = true,
   }: {
     fs: WorldFs;
     index: WikiIndex;
     entry: Entry;
     /** Called after the entry's file moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
+    button?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -32,7 +35,7 @@
   const here = $derived(entry.id.slice(0, entry.id.lastIndexOf('/')));
   const places = $derived([{ path: index.root.path, label: 'Uncategorized' }, ...index.root.folders.map((f) => ({ path: f.path, label: folderLabel(f.name) }))]);
 
-  async function start(what: 'rename' | 'names' | 'move' | 'archive') {
+  export async function start(what: 'rename' | 'names' | 'move' | 'archive') {
     open = false;
     problem = '';
     name = entry.name;
@@ -75,6 +78,7 @@
   }
 </script>
 
+{#if button}
 <div class="actions">
   <button type="button" class="more" aria-label="More for {entry.name}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
@@ -88,6 +92,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 {#if doing === 'rename'}
   <Dialog title="Rename" action="Rename" ready={!!name.trim() && name.trim() !== entry.name} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>

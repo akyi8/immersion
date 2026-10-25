@@ -14,6 +14,7 @@
     manuscript,
     onDeclare,
     onMoved,
+    button = true,
   }: {
     fs: WorldFs;
     path: string;
@@ -24,6 +25,8 @@
     onDeclare: (path: string, manuscript: boolean) => void;
     /** Called after the piece's file moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
+    button?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -32,7 +35,7 @@
   let busy = $state(false);
   let problem = $state('');
 
-  function start(what: 'rename' | 'archive') {
+  export function start(what: 'rename' | 'archive') {
     open = false;
     problem = '';
     name = title;
@@ -58,6 +61,7 @@
   }
 </script>
 
+{#if button}
 <div class="actions">
   <button type="button" class="more" aria-label="More for {title}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
@@ -72,6 +76,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 {#if doing === 'rename'}
   <Dialog title="Rename" action="Rename" ready={!!name.trim() && name.trim() !== title} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>

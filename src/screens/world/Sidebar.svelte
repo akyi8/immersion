@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { WikiIndex, Folder } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import Portrait from './Portrait.svelte';
   import CategoryActions from './CategoryActions.svelte';
+  import EntryActions from './EntryActions.svelte';
+  import { contextMenu } from '../../lib/contextMenu.svelte';
 
   let {
     index,
@@ -13,14 +16,58 @@
     onNewEntry,
     onNewFolder,
     onCategoryMoved,
+    onEntryMoved,
   }: {
     index: WikiIndex;
     fs: WorldFs;
     nav: Navigator;
-    onNewEntry: () => void;
-    onNewFolder: () => void;
+    /** Starts a new entry, in `folder` when one is given. */
+    onNewEntry: (folder?: string) => void;
+    /** Starts a new category, inside `folder` when one is given. */
+    onNewFolder: (folder?: string) => void;
     onCategoryMoved: (from: string, to: string | null) => void;
+    onEntryMoved: (from: string, to: string | null) => void;
   } = $props();
+
+  // Right-click menus (Mike, October 25). One set of entry forms and one set of category
+  // forms, each aimed at whatever was right-clicked.
+  let entryActions: EntryActions | undefined = $state();
+  let entryTarget = $state<string | null>(null);
+  let categoryActions: CategoryActions | undefined = $state();
+  let categoryTarget = $state<Folder | null>(null);
+
+  async function entryForm(id: string, what: 'rename' | 'names' | 'move' | 'archive') {
+    entryTarget = id;
+    await tick();
+    entryActions?.start(what);
+  }
+
+  async function categoryForm(folder: Folder, what: 'rename' | 'archive') {
+    categoryTarget = folder;
+    await tick();
+    categoryActions?.start(what);
+  }
+
+  function entryMenu(event: MouseEvent, id: string) {
+    contextMenu.show(event, [
+      { label: 'Open', run: () => nav.open(id) },
+      'separator',
+      { label: 'Rename', run: () => entryForm(id, 'rename') },
+      { label: 'Other names', run: () => entryForm(id, 'names') },
+      { label: 'Move to another category', run: () => entryForm(id, 'move') },
+      { label: 'Archive', run: () => entryForm(id, 'archive') },
+    ]);
+  }
+
+  function categoryMenu(event: MouseEvent, folder: Folder) {
+    contextMenu.show(event, [
+      { label: 'New entry here', run: () => onNewEntry(folder.path) },
+      { label: 'New category inside', run: () => onNewFolder(folder.path) },
+      'separator',
+      { label: 'Rename category', run: () => categoryForm(folder, 'rename') },
+      { label: 'Archive category', run: () => categoryForm(folder, 'archive') },
+    ]);
+  }
 
   type Mode = 'working' | 'tree' | 'faces';
   const MODES: [Mode, string][] = [
@@ -76,7 +123,7 @@
 <nav class="sidebar" aria-label="Wiki">
   {#snippet folderView(folder: Folder, depth: number)}
     {#each folder.folders as child}
-      <div class="folder-row">
+      <div class="folder-row" oncontextmenu={(e) => categoryMenu(e, child)} role="presentation">
         <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
           {folderLabel(child.name)}
@@ -95,7 +142,8 @@
         class="item"
         class:current={id === current}
         style:padding-left="{32 + depth * 14}px"
-        onclick={() => nav.open(id)}>{e.name}</button>
+        onclick={() => nav.open(id)}
+        oncontextmenu={(event) => entryMenu(event, id)}>{e.name}</button>
     {/each}
   {/snippet}
 
@@ -112,7 +160,7 @@
         {#each group.ids as id}
           {@const e = index.get(id)}
           {#if e}
-            <button type="button" class="item" onclick={() => nav.open(id)}>
+            <button type="button" class="item" onclick={() => nav.open(id)} oncontextmenu={(event) => entryMenu(event, id)}>
               <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
             </button>
           {/if}
@@ -122,8 +170,8 @@
         <p class="hint">Open an entry, and the people and places around it gather here.</p>
         {@render folderView(index.root, 0)}
         <div class="create">
-          <button type="button" onclick={onNewEntry}>+ New entry</button>
-          <button type="button" onclick={onNewFolder}>+ New category</button>
+          <button type="button" onclick={() => onNewEntry()}>+ New entry</button>
+          <button type="button" onclick={() => onNewFolder()}>+ New category</button>
         </div>
       {/each}
     </div>
@@ -131,14 +179,14 @@
     <div class="list">
       {@render folderView(index.root, 0)}
       <div class="create">
-        <button type="button" onclick={onNewEntry}>+ New entry</button>
-        <button type="button" onclick={onNewFolder}>+ New category</button>
+        <button type="button" onclick={() => onNewEntry()}>+ New entry</button>
+        <button type="button" onclick={() => onNewFolder()}>+ New category</button>
       </div>
     </div>
   {:else}
     <div class="faces">
       {#each people as e (e.id)}
-        <button type="button" class="face" class:current={e.id === current} onclick={() => nav.open(e.id)}>
+        <button type="button" class="face" class:current={e.id === current} onclick={() => nav.open(e.id)} oncontextmenu={(event) => entryMenu(event, e.id)}>
           <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
           <span>{e.name}</span>
         </button>
@@ -146,6 +194,13 @@
     </div>
   {/if}
 </nav>
+
+{#if entryTarget && index.get(entryTarget)}
+  <EntryActions bind:this={entryActions} {fs} {index} entry={index.get(entryTarget)!} button={false} onMoved={onEntryMoved} />
+{/if}
+{#if categoryTarget}
+  <CategoryActions bind:this={categoryActions} {fs} {index} folder={categoryTarget} button={false} onMoved={onCategoryMoved} />
+{/if}
 
 <style>
   .sidebar {

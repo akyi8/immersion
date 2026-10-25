@@ -12,12 +12,15 @@
     index,
     folder,
     onMoved,
+    button = true,
   }: {
     fs: WorldFs;
     index: WikiIndex;
     folder: Folder;
     /** Called after the category's folder moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
+    button?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -31,7 +34,7 @@
     return f.entries.length + f.folders.reduce((n, c) => n + count(c), 0);
   }
 
-  function start(what: 'rename' | 'archive') {
+  export function start(what: 'rename' | 'archive') {
     open = false;
     problem = '';
     name = label;
@@ -57,6 +60,7 @@
   }
 </script>
 
+{#if button}
 <div class="actions">
   <button type="button" class="more" aria-label="More for {label}" aria-expanded={open} onclick={() => (open = !open)}>
     <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
@@ -68,6 +72,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 {#if doing === 'rename'}
   <Dialog title="Rename category" action="Rename" ready={!!name.trim() && name.trim() !== label} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>

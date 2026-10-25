@@ -1,4 +1,4 @@
-import { EditorState, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
+import { EditorState, RangeSet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
 
@@ -117,7 +117,7 @@ class OutlineWidget extends WidgetType {
 }
 
 /** Header keys the app writes for itself, which the writer never needs to see. */
-const MACHINE_KEYS = new Set(['manuscript']);
+const MACHINE_KEYS = new Set(['manuscript', 'shelved']);
 
 /** True when every key in the YAML header is one the app keeps for itself. */
 function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {
@@ -158,15 +158,40 @@ function outlineZones(state: EditorState): { from: number; to: number }[] {
 }
 
 /**
+ * The top of a file whose title heading is hidden: any hidden header, the title, and the
+ * blank lines after them, up to the first line of text. The title already shows above
+ * the editor and has its own Rename, so the cursor steps past this zone and typing
+ * cannot reach it (Mike, October 25: the title flashed as the cursor passed through).
+ */
+function titleZone(state: EditorState, title: string): { from: number; to: number } | null {
+  const doc = state.doc;
+  const header = headerRange(state);
+  let n = header ? doc.lineAt(header.to).number + 1 : 1;
+  while (n <= doc.lines && doc.line(n).text.trim() === '') n++;
+  if (n > doc.lines || doc.line(n).text.replace(/^#\s+/, '').trim() !== title || !/^#\s/.test(doc.line(n).text)) return null;
+  let after = n + 1;
+  while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
+  const visibleHeader = header && !machineOnly(state, header);
+  return {
+    // A header that shows stays editable, so the zone starts below it.
+    from: visibleHeader ? header.to : -1,
+    to: after <= doc.lines ? doc.line(after).from : doc.length,
+  };
+}
+
+/**
  * Typing and deleting in the writing view never touch an outline (Mike, October 25).
  * A change that would cut into an outline or the blank lines around it is refused
  * whole, because removing even one of those blank lines would pull the next paragraph
  * into the outline. Typing at the end of the heading or the start of the paragraph
  * still works, and outline view edits the outline itself.
  */
-const protectOutlines = EditorState.transactionFilter.of((tr) => {
+const protectZones = (title: string) =>
+  EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged || (!tr.isUserEvent('input') && !tr.isUserEvent('delete') && !tr.isUserEvent('move'))) return tr;
   const zones = outlineZones(tr.startState);
+  const top = titleZone(tr.startState, title);
+  if (top) zones.push(top);
   if (!zones.length) return tr;
   let blocked = false;
   tr.changes.iterChangedRanges((fromA, toA) => {
@@ -175,7 +200,15 @@ const protectOutlines = EditorState.transactionFilter.of((tr) => {
     }
   });
   return blocked ? [] : tr;
-});
+  });
+
+/** The cursor steps over the top zone instead of landing inside the hidden title. */
+const skipTitle = (title: string) =>
+  EditorView.atomicRanges.of((view) => {
+    const zone = titleZone(view.state, title);
+    if (!zone || zone.to <= Math.max(0, zone.from)) return RangeSet.empty;
+    return RangeSet.of([Decoration.mark({}).range(Math.max(0, zone.from), zone.to)]);
+  });
 
 /** Whether the editor has focus. An unfocused editor shows every phrase finished. */
 const setFocus = StateEffect.define<boolean>();
@@ -243,7 +276,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
         const level = Number(name.slice(-1));
         const text = line.text.replace(/^#+\s*/, '').trim();
         // The entry's own title is already shown above the editor, so its heading hides.
-        if (level === 1 && text === title && !touched(state, line.from, line.to)) {
+        if (level === 1 && text === title) {
           marks.push(Decoration.replace({ block: true }).range(line.from, line.to));
           return false;
         }
@@ -319,5 +352,5 @@ export function livePreview(title: string, onOutline: ((at: number) => void) | n
     },
     provide: (f) => EditorView.decorations.from(f),
   });
-  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field, protectOutlines];
+  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field, protectZones(title), skipTitle(title)];
 }

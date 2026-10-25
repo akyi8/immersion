@@ -72,8 +72,9 @@
     {index}
     {fs}
     {nav}
-    onNewEntry={() => (creating = { kind: 'entry', folder: currentFolder() })}
-    onNewFolder={() => (creating = { kind: 'folder', folder: currentFolder() })}
+    onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? currentFolder() })}
+    onNewFolder={(folder) => (creating = { kind: 'folder', folder: folder ?? currentFolder() })}
+    onEntryMoved={moved}
     onCategoryMoved={async (from, to) => {
       await rebuild();
       nav.replacePrefix(from, to);

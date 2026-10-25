@@ -4,6 +4,7 @@
   import type { ImageSource } from '../../lib/fs/types';
   import { dropImage } from '../../lib/drop';
   import { appVersion } from '../../lib/version';
+  import { contextMenu } from '../../lib/contextMenu.svelte';
   import NewWorld from './NewWorld.svelte';
   import AddWorld from './AddWorld.svelte';
   import WorldDetails from './WorldDetails.svelte';
@@ -63,6 +64,16 @@
     await library.forget(world.path);
     await refresh();
   }
+
+  function worldMenu(event: MouseEvent, world: ShelfWorld) {
+    contextMenu.show(event, [
+      { label: 'Open', run: () => onOpen(world.path), disabled: world.missing },
+      { label: 'Edit details', run: () => (editing = world), disabled: world.missing },
+      { label: 'Change cover', run: async () => setCover(world, await library.pickImage()), disabled: world.missing },
+      'separator',
+      { label: 'Remove from the shelf', run: () => forget(world) },
+    ]);
+  }
 </script>
 
 <main>
@@ -75,7 +86,7 @@
   {#if worlds}
     <div class="grid">
       {#each worlds as world (world.path)}
-        <div class="card" class:missing={world.missing} use:dropImage={(image) => !world.missing && setCover(world, image)}>
+        <div class="card" class:missing={world.missing} oncontextmenu={(e) => worldMenu(e, world)} role="presentation" use:dropImage={(image) => !world.missing && setCover(world, image)}>
           <button type="button" class="cover" disabled={world.missing} onclick={() => onOpen(world.path)} title={world.path}>
             {#if world.cover}<img src={world.cover} alt="" />{/if}
             <span class="words">

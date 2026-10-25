@@ -6,6 +6,7 @@
   import { loadWorld, type World } from './lib/world';
   import { buildWikiIndex, type WikiIndex } from './lib/index/wiki';
   import Shelf from './screens/shelf/Shelf.svelte';
+  import ContextMenu from './screens/ContextMenu.svelte';
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
 
@@ -123,6 +124,8 @@
 {:else if phase === 'error'}
   <main class="problem" role="alert">{problem}</main>
 {/if}
+
+<ContextMenu />
 
 <style>
   .overlay {

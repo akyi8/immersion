@@ -31,6 +31,8 @@ export interface Manuscript {
   words: number;
   modified: number | null;
   sections: Section[];
+  /** Put away on the binder's shelf, out of the way until it is taken out again. */
+  shelved: boolean;
 }
 
 export interface DrawerItem {
@@ -160,7 +162,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
     }
     await walk(dir, null);
     const name = dir.split('/').pop()!;
-    return { kind: 'folder', path: dir, title: titleOf(bookText, name), words, modified, sections };
+    return { kind: 'folder', path: dir, title: titleOf(bookText, name), words, modified, sections, shelved: splitHeader(bookText).header.shelved === true };
   }
 
   async function walk(dir: string, group: string) {
@@ -185,6 +187,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
             words: countWords(text),
             modified: e.modified ?? null,
             sections: sectionsOfFile(text, path),
+            shelved: splitHeader(text).header.shelved === true,
           });
         } else {
           index.drawer.push({ path, title: titleOf(text, e.name), words: countWords(text), modified: e.modified ?? null, group });
