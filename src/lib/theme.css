@@ -36,7 +36,9 @@
   /* Where the highlight falls (Mike, October 25): the names of things, both page
      titles and names in the prose, and whatever is selected or active. */
   --title: var(--accent);
-  --name: var(--accent);
+  /* Names in the prose sit a little paler than the highlight, so a paragraph full of
+     them stays calm (Mike, October 25). */
+  --name: color-mix(in oklab, var(--accent) 85%, white);
   --selected-fg: var(--accent);
   --selected-bg: color-mix(in srgb, var(--accent) 14%, var(--bg));
   --selected-border: var(--accent);
