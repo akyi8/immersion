@@ -8,6 +8,7 @@
   import { pickImage } from '../../lib/pickImage';
   import Portrait from './Portrait.svelte';
   import EntryEditor from './EntryEditor.svelte';
+  import EntryActions from './EntryActions.svelte';
 
   let {
     index,
@@ -18,6 +19,7 @@
     fresh,
     onOpen,
     onMakeEntry,
+    onMoved,
   }: {
     index: WikiIndex;
     fs: WorldFs;
@@ -29,6 +31,8 @@
     onOpen: (id: string) => void;
     /** Starts a new entry for a name selected in this one. */
     onMakeEntry?: (name: string) => void;
+    /** Called after the entry is renamed, moved, or archived (null). */
+    onMoved?: (from: string, to: string | null) => void;
   } = $props();
 
   const entry = $derived(index.get(id)!);
@@ -74,7 +78,10 @@
       <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
     {/if}
     <div class="title">
-      <h1>{entry.name}</h1>
+      <div class="name">
+        <h1>{entry.name}</h1>
+        {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} />{/if}
+      </div>
       <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
       {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
     </div>
@@ -105,6 +112,11 @@
   .title {
     flex: 1;
     min-width: 0;
+  }
+  .name {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
   }
   h1 {
     margin: 0;

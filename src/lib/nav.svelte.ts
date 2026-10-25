@@ -69,6 +69,18 @@ export class Navigator {
     this.setRow([...panes.slice(0, after + 1), id, ...panes.slice(after + 1)]);
   }
 
+  /**
+   * Follows something that moved, such as a renamed entry, in every open row: `to`
+   * takes its place, or it closes when `to` is null.
+   */
+  replace(from: string, to: string | null) {
+    const rows: Location['rows'] = {};
+    for (const [module, row] of Object.entries(this.current.rows) as [Module, string[]][]) {
+      rows[module] = row.flatMap((id) => (id === from ? (to ? [to] : []) : [id]));
+    }
+    this.push({ ...this.current, rows });
+  }
+
   close(id: string) {
     this.setRow(this.panes.filter((p) => p !== id));
   }

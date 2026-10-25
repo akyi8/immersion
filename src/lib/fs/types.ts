@@ -37,6 +37,8 @@ export interface WorldFs {
   writeText(path: string, content: string): Promise<void>;
   /** Creates a folder, and any missing folders above it. */
   createDir(path: string): Promise<void>;
+  /** Moves or renames a file or folder. Refuses to replace anything already there. */
+  move(from: string, to: string): Promise<void>;
   /**
    * Copies a picture in as the image for `stem`, a file's path without its extension,
    * replacing any earlier picture for that stem. Returns the picture's new path.

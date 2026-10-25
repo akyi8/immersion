@@ -105,7 +105,8 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
       if (item.name.startsWith('.')) continue;
       const childPath = `${path}/${item.name}`;
       if (item.isDir) {
-        folder.folders.push(await walk(childPath, item.name, category ?? item.name));
+        // Archived entries stay on disk but out of the app, as the repository's archive convention asks.
+        if (!/^archive$/i.test(item.name)) folder.folders.push(await walk(childPath, item.name, category ?? item.name));
         continue;
       }
       if (!/\.md$/i.test(item.name) || SIDECAR.test(item.name) || /^readme\.md$/i.test(item.name)) continue;
