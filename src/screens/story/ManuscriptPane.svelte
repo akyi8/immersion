@@ -1,18 +1,19 @@
 <script lang="ts">
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
-  import type { StoryIndex } from '../../lib/story/index';
+  import type { Manuscript, Place, StoryIndex } from '../../lib/story/index';
   import { fileSource, folderSource, type OutlineSource } from '../../lib/story/outlineSource';
   import EntryEditor from '../world/EntryEditor.svelte';
   import OutlineView from './OutlineView.svelte';
   import PieceActions from './PieceActions.svelte';
   import OutlineAside from './OutlineAside.svelte';
+  import TitlePage from './TitlePage.svelte';
   import type { EditorView } from '@codemirror/view';
 
   /**
-   * A piece of writing open in the Story module: a manuscript, one chapter of a
-   * manuscript kept as a folder, or something from the drawer. It uses the same editor
-   * as wiki entries, so names link and open beside it.
+   * A piece of writing open in the Story module: a manuscript's title page, one of its
+   * chapters or front and back pages, or a manuscript kept as one file. It uses the same
+   * editor as wiki entries, so names link and open beside it.
    */
   let {
     fs,
@@ -26,10 +27,12 @@
     onOpen,
     onCursor,
     onDraft,
-    onDeclare,
+    onMoveTo,
     onOpenPiece,
     onMakeEntry,
     onMoved,
+    defaults = { author: '', copyright: '' },
+    onDefaults = () => {},
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -42,15 +45,25 @@
     onOpen: (id: string) => void;
     onCursor: (pos: number) => void;
     onDraft: () => void;
-    /** Moves a piece into the binder, or back to the drawer. */
-    onDeclare: (path: string, manuscript: boolean) => void;
+    /** Moves a manuscript to the desk, the drawer, or the shelf. */
+    onMoveTo: (m: Manuscript, place: Place) => void;
     /** Opens a piece of writing, at a chapter when `offset` is given. */
     onOpenPiece: (path: string, offset: number | null, title?: string) => void;
     /** Starts a wiki entry for a name selected in the writing. */
     onMakeEntry?: (name: string) => void;
     /** Called after the piece is renamed or archived (null). */
     onMoved?: (from: string, to: string | null) => void;
+    /** The world's author and copyright holder for new manuscripts. */
+    defaults?: { author: string; copyright: string };
+    onDefaults?: () => void;
   } = $props();
+
+  const PLACE_LABELS: Record<Place, string> = { desk: 'On the desk', drawer: 'In the drawer', shelf: 'On the shelf' };
+
+  /** The manuscript this pane's file belongs to. */
+  const owner = $derived(
+    story?.manuscripts.find((m) => m.path === id || m.book === id || [...m.sections, ...m.front, ...m.back].some((s) => s.path === id)) ?? null,
+  );
 
   // Writing and outline are two views of the same chapters (Mike, October 25).
   let mode = $state<'write' | 'outline'>('write');
@@ -78,46 +91,41 @@
 
   /** The chapters behind outline view: this file's headings, or the files of its folder. */
   const source = $derived.by((): OutlineSource | null => {
-    if (!story) return null;
-    if (story.manuscripts.some((m) => m.kind === 'file' && m.path === id)) return fileSource(fs, id);
-    const folder = story.manuscripts.find((m) => m.kind === 'folder' && m.sections.some((s) => s.path === id));
-    return folder ? folderSource(fs, folder) : null;
+    if (!owner) return null;
+    if (owner.kind === 'file') return fileSource(fs, owner.path);
+    return id === owner.book || owner.sections.some((s) => s.path === id) ? folderSource(fs, owner) : null;
   });
 
   /** Opens outline view at the chapter whose folded outline was clicked. */
   function showOutline(at: number) {
-    const m = story?.manuscripts.find((x) => x.path === id);
-    if (m?.kind === 'file') {
-      const chapters = m.sections.filter((s) => s.depth === 2);
+    if (owner?.kind === 'file') {
+      const chapters = owner.sections.filter((s) => s.depth === 2);
       let index = 0;
       chapters.forEach((s, i) => {
         if (s.offset !== null && s.offset <= at) index = i;
       });
       outlineFocus = index;
     } else {
-      const folder = story?.manuscripts.find((x) => x.sections.some((s) => s.path === id));
-      outlineFocus = folder ? folder.sections.findIndex((s) => s.path === id) : null;
+      outlineFocus = owner ? owner.sections.findIndex((s) => s.path === id) : null;
     }
     mode = 'outline';
   }
 
   const about = $derived.by(() => {
-    if (!story) return null;
-    const whole = story.manuscripts.find((m) => m.kind === 'file' && m.path === id);
-    if (whole) {
-      const chapters = whole.sections.filter((s) => s.depth === 2).length;
-      return { kind: 'manuscript' as const, title: whole.title, label: 'Manuscript', meta: `${words(whole.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}` : ''}` };
+    const m = owner;
+    if (!m) return null;
+    const where = PLACE_LABELS[m.place];
+    const chapters = m.kind === 'file' ? m.sections.filter((s) => s.depth === 2).length : m.sections.length;
+    const summary = `${words(m.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}` : ''}`;
+    if (m.kind === 'file') return { kind: 'manuscript' as const, title: m.title, label: where, meta: summary };
+    if (id === m.book) return { kind: 'book' as const, title: m.title, label: `${where} · Title page`, meta: summary };
+    const i = m.sections.findIndex((s) => s.path === id);
+    if (i >= 0) {
+      const s = m.sections[i];
+      return { kind: 'chapter' as const, title: s.title, label: `${m.title}${s.part ? ` · ${s.part}` : ''} · ${i + 1} of ${m.sections.length}`, meta: words(s.words) };
     }
-    for (const m of story.manuscripts) {
-      const i = m.sections.findIndex((s) => s.path === id);
-      if (i >= 0) {
-        const s = m.sections[i];
-        return { kind: 'chapter' as const, title: s.title, label: `${m.title}${s.part ? ` · ${s.part}` : ''} · chapter ${i + 1}`, meta: words(s.words) };
-      }
-    }
-    const piece = story.drawer.find((d) => d.path === id);
-    if (piece) return { kind: 'drawer' as const, title: piece.title, label: `In the drawer${piece.group ? ` · ${piece.group}` : ''}`, meta: words(piece.words) };
-    return null;
+    const matter = [...m.front, ...m.back].find((s) => s.path === id)!;
+    return { kind: 'matter' as const, title: matter.title, label: `${m.title} · ${m.front.includes(matter) ? 'Before the story' : 'After the story'}`, meta: words(matter.words) };
   });
 
   function words(n: number): string {
@@ -130,7 +138,7 @@
     {#if !drafting}
       <header>
         <div class="label">{about.label}</div>
-        <h1>{about.title}</h1>
+        {#if about.kind !== 'book' || mode === 'outline'}<h1>{about.title}</h1>{/if}
         <div class="row">
           {#if source}
             <div class="views" role="group" aria-label="View">
@@ -139,17 +147,17 @@
             </div>
           {/if}
           <span class="meta">{about.meta}</span>
-          {#if mode === 'write'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
-          {#if mode === 'write' && source}
+          {#if mode === 'write' && about.kind !== 'book'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
+          {#if mode === 'write' && source && about.kind !== 'book'}
             <button type="button" class="action" class:on={aside} aria-pressed={aside} onclick={() => setAside(!aside)} title="The outline of the chapter you are in, beside the writing">
               {aside ? 'Hide outline' : 'Show outline'}
             </button>
           {/if}
-          {#if about.kind === 'drawer'}
-            <button type="button" class="action" onclick={() => onDeclare(id, true)}>Make this a manuscript</button>
+          {#if owner?.place === 'drawer' && (about.kind === 'manuscript' || about.kind === 'book')}
+            <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
           {/if}
-          {#if about.kind !== 'chapter' && onMoved && story}
-            <PieceActions {fs} path={id} title={about.title} root={story.root} manuscript={about.kind === 'manuscript'} {onDeclare} {onMoved} />
+          {#if (about.kind === 'manuscript' || about.kind === 'book') && onMoved && story && owner}
+            <PieceActions {fs} path={owner.path} title={about.title} root={story.root} {onMoved} />
           {/if}
         </div>
       </header>
@@ -164,6 +172,15 @@
           onOpenPiece(card.path, card.offset, card.title);
         }}
         onAdded={() => {}} />
+    {:else if about.kind === 'book' && owner}
+      <TitlePage {fs} book={id} folder={owner.path} {defaults} {onDefaults} onMoved={(from, to) => onMoved?.(from, to)} />
+      <nav class="contents" aria-label="Contents">
+        {#each [...owner.front, ...owner.sections, ...owner.back] as s}
+          <button type="button" class:matter={!owner.sections.includes(s)} onclick={() => onOpenPiece(s.path, null, s.title)}>
+            <span>{s.title}</span><span class="n">{s.words.toLocaleString()}</span>
+          </button>
+        {/each}
+      </nav>
     {:else}
       <div class="room">
       <div class="writing" class:with-aside={aside && !!source}>
@@ -193,7 +210,7 @@
             {cursor}
             wholeBook={about.kind === 'manuscript'}
             onOpenOutline={(i) => {
-              outlineFocus = about.kind === 'manuscript' ? i : (story?.manuscripts.find((m) => m.sections.some((s) => s.path === id))?.sections.findIndex((s) => s.path === id) ?? null);
+              outlineFocus = about.kind === 'manuscript' ? i : (owner?.sections.findIndex((s) => s.path === id) ?? null);
               mode = 'outline';
             }} />
         {/if}
@@ -301,6 +318,36 @@
   }
   .action {
     color: var(--structure);
+  }
+  .contents {
+    display: flex;
+    flex-direction: column;
+    margin-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .contents button {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    font-size: 16px;
+    color: var(--text);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    padding: 10px 4px;
+  }
+  .contents button:hover {
+    background: var(--surface);
+  }
+  .contents .matter {
+    font-style: italic;
+    color: var(--text-soft);
+  }
+  .contents .n {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--muted);
   }
   .action.on {
     color: var(--structure-soft);

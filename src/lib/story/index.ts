@@ -3,11 +3,33 @@ import { splitHeader } from '../world.ts';
 import { withoutOutlines } from './outline.ts';
 
 /**
- * The Story module's view of a world's stories folder (design: the binder and the
- * drawer). Manuscripts are the pieces the writer declared, with `manuscript: true` in a
- * file's header, or in a folder's `book.md`. Every other markdown file is in the drawer.
- * Like the wiki index, this can be thrown away and rebuilt from the files at any time.
+ * The Story module's view of a world's stories folder (Mike, October 25). Where a piece
+ * sits says what it is, so the folders are the whole of the bookkeeping:
+ *
+ * - the desk is the stories folder itself, and holds the manuscripts being worked on;
+ * - the drawer is `ideas/`, and holds what might be worked on later;
+ * - the shelf is `finished/`, and holds what is finished or published.
+ *
+ * A manuscript is a folder. Its `book.md` holds the title page, its files are its
+ * chapters in name order, and its `front/` and `back/` folders hold the pages before
+ * and after the story, such as a dedication. A folder inside it is a part. A loose file
+ * is also read as a manuscript, with its headings as chapters, until it becomes a folder.
+ * `export/` and `archive/` are kept out of the app. Like the wiki index, this can be
+ * thrown away and rebuilt from the files at any time.
  */
+
+export type Place = 'desk' | 'drawer' | 'shelf';
+
+/** The folder inside the stories folder that holds each place, '' for the stories folder itself. */
+export const PLACE_FOLDERS: Record<Place, string> = { desk: '', drawer: 'ideas', shelf: 'finished' };
+
+/** Folders inside the stories folder that are not manuscripts. */
+const RESERVED = /^(ideas|finished|export|archive|old)$/i;
+
+/** The folder inside the stories folder that holds a place. */
+export function placeFolder(root: string, place: Place): string {
+  return PLACE_FOLDERS[place] ? `${root}/${PLACE_FOLDERS[place]}` : root;
+}
 
 /** A chapter or scene. In a one-file manuscript it is a heading; in a folder, a file. */
 export interface Section {
@@ -28,31 +50,39 @@ export interface Manuscript {
   /** The manuscript's file, or its folder. */
   path: string;
   title: string;
+  /** The words of the story itself, without front and back matter. */
   words: number;
   modified: number | null;
+  place: Place;
+  /** The chapters, including a prologue and an epilogue. */
   sections: Section[];
-  /** Put away on the binder's shelf, out of the way until it is taken out again. */
-  shelved: boolean;
-}
-
-export interface DrawerItem {
-  path: string;
-  title: string;
-  words: number;
-  modified: number | null;
-  /** The folder it sits in, relative to the stories folder, or '' at the top. */
-  group: string;
+  /** The pages before the story, from `front/`. */
+  front: Section[];
+  /** The pages after the story, from `back/`. */
+  back: Section[];
+  /** The title page, `book.md`, for a folder that has one. */
+  book: string | null;
 }
 
 export interface StoryIndex {
   root: string;
+  /** True when the stories folder the world names is not there. */
+  missing: boolean;
+  /** Every manuscript in every place, by title. */
   manuscripts: Manuscript[];
-  drawer: DrawerItem[];
 }
 
 /** Sidecar files belong to another file and never appear on their own. */
 const SIDECAR = /\.(outline|notes|summary)\.md$/i;
 const ARCHIVE = /^(archive|old)$/i;
+
+/** Every file a manuscript is made of, which panes may show. */
+export function filesOf(m: Manuscript): string[] {
+  const files = [...m.front, ...m.sections, ...m.back].map((s) => s.path);
+  if (m.book) files.unshift(m.book);
+  if (m.kind === 'file') files.unshift(m.path);
+  return [...new Set(files)];
+}
 
 /** Counts the words a reader would see, leaving out markdown marks, headers, and link addresses. */
 export function countWords(markdown: string): number {
@@ -104,10 +134,6 @@ export function titleOf(text: string, fileName: string): string {
   return first?.title ?? titleFromName(fileName);
 }
 
-export function isManuscript(text: string): boolean {
-  return splitHeader(text).header.manuscript === true;
-}
-
 /**
  * The chapters and scenes of a one-file manuscript. A single top heading is the title,
  * so its second-level headings are chapters and third-level headings are scenes. When
@@ -138,67 +164,68 @@ export function byName(a: string, b: string): number {
 }
 
 export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryIndex> {
-  const index: StoryIndex = { root, manuscripts: [], drawer: [] };
-  if (!(await fs.exists(root))) return index;
+  const index: StoryIndex = { root, missing: false, manuscripts: [] };
+  if (!(await fs.exists(root))) return { ...index, missing: true };
 
-  async function folderManuscript(dir: string, bookText: string): Promise<Manuscript> {
-    const sections: Section[] = [];
-    let words = 0;
-    let modified: number | null = null;
-    async function walk(folder: string, part: string | null) {
-      const entries = (await fs.readDir(folder)).filter((e) => !e.name.startsWith('.')).sort((a, b) => byName(a.name, b.name));
-      for (const e of entries) {
+  const list = async (dir: string) => (await fs.readDir(dir)).filter((e) => !e.name.startsWith('.')).sort((a, b) => byName(a.name, b.name));
+  const isPiece = (name: string) => /\.md$/i.test(name) && !SIDECAR.test(name);
+
+  async function folderManuscript(dir: string, place: Place): Promise<Manuscript> {
+    const m: Manuscript = { kind: 'folder', path: dir, title: titleFromName(dir.split('/').pop()!), words: 0, modified: null, place, sections: [], front: [], back: [], book: null };
+    async function read(path: string, name: string, modified: number | null | undefined, part: string | null, into: Section[], counts: boolean) {
+      const text = await fs.readText(path);
+      const words = countWords(text);
+      if (counts) m.words += words;
+      m.modified = Math.max(m.modified ?? 0, modified ?? 0) || m.modified;
+      into.push({ title: titleOf(text, name), path, offset: null, depth: 2, words, part });
+    }
+    async function walk(folder: string, part: string | null, into: Section[], counts: boolean) {
+      for (const e of await list(folder)) {
         const path = `${folder}/${e.name}`;
         if (e.isDir) {
-          if (!ARCHIVE.test(e.name)) await walk(path, titleFromName(e.name));
-        } else if (/\.md$/i.test(e.name) && !SIDECAR.test(e.name) && !(folder === dir && /^book\.md$/i.test(e.name))) {
-          const text = await fs.readText(path);
-          const count = countWords(text);
-          words += count;
-          modified = Math.max(modified ?? 0, e.modified ?? 0) || modified;
-          sections.push({ title: titleOf(text, e.name), path, offset: null, depth: 2, words: count, part });
+          if (ARCHIVE.test(e.name)) continue;
+          if (folder === dir && /^front$/i.test(e.name)) await walk(path, null, m.front, false);
+          else if (folder === dir && /^back$/i.test(e.name)) await walk(path, null, m.back, false);
+          else await walk(path, titleFromName(e.name), into, counts);
+        } else if (folder === dir && /^book\.md$/i.test(e.name)) {
+          m.book = path;
+          m.title = titleOf(await fs.readText(path), dir.split('/').pop()!);
+          m.modified = Math.max(m.modified ?? 0, e.modified ?? 0) || m.modified;
+        } else if (isPiece(e.name)) {
+          await read(path, e.name, e.modified, part, into, counts);
         }
       }
     }
-    await walk(dir, null);
-    const name = dir.split('/').pop()!;
-    return { kind: 'folder', path: dir, title: titleOf(bookText, name), words, modified, sections, shelved: splitHeader(bookText).header.shelved === true };
+    await walk(dir, null, m.sections, true);
+    return m;
   }
 
-  async function walk(dir: string, group: string) {
-    const entries = (await fs.readDir(dir)).filter((e) => !e.name.startsWith('.')).sort((a, b) => byName(a.name, b.name));
-    for (const e of entries) {
+  async function place(dir: string, where: Place) {
+    if (!(await fs.exists(dir))) return;
+    for (const e of await list(dir)) {
       const path = `${dir}/${e.name}`;
       if (e.isDir) {
-        if (ARCHIVE.test(e.name)) continue;
-        const book = `${path}/book.md`;
-        if ((await fs.exists(book)) && isManuscript(await fs.readText(book))) {
-          index.manuscripts.push(await folderManuscript(path, await fs.readText(book)));
-        } else {
-          await walk(path, group ? `${group}/${e.name}` : e.name);
-        }
-      } else if (/\.md$/i.test(e.name) && !SIDECAR.test(e.name)) {
+        if (where === 'desk' ? RESERVED.test(e.name) : ARCHIVE.test(e.name)) continue;
+        index.manuscripts.push(await folderManuscript(path, where));
+      } else if (isPiece(e.name)) {
         const text = await fs.readText(path);
-        if (isManuscript(text)) {
-          index.manuscripts.push({
-            kind: 'file',
-            path,
-            title: titleOf(text, e.name),
-            words: countWords(text),
-            modified: e.modified ?? null,
-            sections: sectionsOfFile(text, path),
-            shelved: splitHeader(text).header.shelved === true,
-          });
-        } else {
-          index.drawer.push({ path, title: titleOf(text, e.name), words: countWords(text), modified: e.modified ?? null, group });
-        }
+        index.manuscripts.push({
+          kind: 'file',
+          path,
+          title: titleOf(text, e.name),
+          words: countWords(text),
+          modified: e.modified ?? null,
+          place: where,
+          sections: sectionsOfFile(text, path),
+          front: [],
+          back: [],
+          book: null,
+        });
       }
     }
   }
 
-  await walk(root, '');
+  for (const where of ['desk', 'drawer', 'shelf'] as Place[]) await place(placeFolder(root, where), where);
   index.manuscripts.sort((a, b) => byName(a.title, b.title));
-  // The drawer shows what was touched most recently first.
-  index.drawer.sort((a, b) => (b.modified ?? 0) - (a.modified ?? 0) || byName(a.title, b.title));
   return index;
 }

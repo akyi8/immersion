@@ -65,9 +65,26 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
   };
 }
 
+const EPILOGUE = /^epilogue\b/i;
+
 /** A manuscript kept as a folder, whose chapters are its files in name order. */
 export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource {
   const files = manuscript.sections.map((s) => s.path);
+
+  /**
+   * Renumbers chapter files in the given order. Each moves to a temporary name first, so
+   * no two files ever want the same name at once. Returns where each file went.
+   */
+  async function renumber(order: string[]): Promise<Map<string, string>> {
+    const named = order.map((path, i) => {
+      const folder = path.slice(0, path.lastIndexOf('/'));
+      const name = path.slice(path.lastIndexOf('/') + 1).replace(/^\d+[-_ ]*/, '');
+      return { path, temp: `${path}.reordering`, target: `${folder}/${String(i + 1).padStart(2, '0')}-${name}` };
+    });
+    for (const f of named) if (f.path !== f.target) await fs.move(f.path, f.temp);
+    for (const f of named) if (f.path !== f.target) await fs.move(f.temp, f.target);
+    return new Map(named.map((f) => [f.path, f.target]));
+  }
   async function chapter(i: number) {
     const path = files[i];
     if (!path) throw new Error('That chapter is gone. The outline has been reloaded.');
@@ -104,6 +121,12 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       let path = `${manuscript.path}/${n}-${slugify(title)}.md`;
       for (let k = 2; await fs.exists(path); k++) path = `${manuscript.path}/${n}-${slugify(title)}-${k}.md`;
       await fs.writeText(path, `# ${title}\n\n`);
+      // A new chapter goes before an epilogue, which stays last (Mike, October 25).
+      if (files.length && EPILOGUE.test(manuscript.sections[files.length - 1].title)) {
+        const order = [...files.slice(0, -1), path, files[files.length - 1]];
+        const moved = await renumber(order);
+        return { path: moved.get(path) ?? path, offset: null };
+      }
       return { path, offset: null };
     },
     async move(from, to) {
@@ -111,15 +134,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       const order = [...files];
       const [moved] = order.splice(from, 1);
       order.splice(to, 0, moved);
-      // The files are renumbered in their new order. Each moves to a temporary name
-      // first, so no two files ever want the same name at once.
-      const named = order.map((path, i) => {
-        const folder = path.slice(0, path.lastIndexOf('/'));
-        const name = path.slice(path.lastIndexOf('/') + 1).replace(/^\d+[-_ ]*/, '');
-        return { path, temp: `${path}.reordering`, target: `${folder}/${String(i + 1).padStart(2, '0')}-${name}` };
-      });
-      for (const f of named) if (f.path !== f.target) await fs.move(f.path, f.temp);
-      for (const f of named) if (f.path !== f.target) await fs.move(f.temp, f.target);
+      await renumber(order);
     },
   };
 }

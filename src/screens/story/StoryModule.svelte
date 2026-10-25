@@ -3,11 +3,11 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import { buildStoryIndex, titleFromName, type Manuscript, type Section, type StoryIndex } from '../../lib/story/index';
+  import { buildStoryIndex, filesOf, titleFromName, type Manuscript, type Place, type Section, type StoryIndex } from '../../lib/story/index';
   import { fileSource, folderSource } from '../../lib/story/outlineSource';
-  import { withFirstChapter } from '../../lib/story/outline';
-  import { saveNow } from '../../lib/saves';
-  import { withHeader } from '../../lib/world';
+  import { moveToPlace, newManuscript } from '../../lib/story/manage';
+  import { saveAllUnder, saveNow } from '../../lib/saves';
+  import { splitHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
   import Panes from '../Panes.svelte';
@@ -21,8 +21,8 @@
   import type { Activity } from '../../lib/story/activity';
 
   /**
-   * The Story module (Milestone 3): the binder and the drawer on the left, and the
-   * writing in sliding panes. Names in a manuscript open their wiki entries beside it,
+   * The Story module (Milestone 3): the shelf, the desk, and the drawer on the left, and
+   * the writing in sliding panes. Names in a manuscript open their wiki entries beside it,
    * as in the World module (Mike, October 24).
    */
   let {
@@ -57,13 +57,26 @@
     }
   }
 
+  // The world's author and copyright holder, which new manuscripts start with.
+  let defaults = $state({ author: '', copyright: '' });
+  async function readDefaults() {
+    try {
+      const { header } = splitHeader(await fs.readText('world.md'));
+      defaults = { author: typeof header.author === 'string' ? header.author : '', copyright: typeof header.copyright === 'string' ? header.copyright : '' };
+    } catch {
+      defaults = { author: '', copyright: '' };
+    }
+  }
+
   // Saves, Obsidian, and git pulls all change the files, and the counts follow.
   onMount(() => {
     refresh();
     refreshActivity();
+    readDefaults();
     let timer: ReturnType<typeof setTimeout> | null = null;
     let slow: ReturnType<typeof setTimeout> | null = null;
     const stop = fs.onChange((paths) => {
+      if (paths.includes('world.md')) readDefaults();
       if (!paths.some((p) => p.startsWith(storiesDir))) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(refresh, 300);
@@ -81,24 +94,19 @@
   });
 
   /** Every piece of writing the stories folder holds, which panes may show. */
-  const pieces = $derived(
-    new Set([
-      ...(story?.manuscripts ?? []).flatMap((m) => (m.kind === 'file' ? [m.path] : m.sections.map((s) => s.path))),
-      ...(story?.drawer ?? []).map((d) => d.path),
-    ]),
-  );
+  const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
   const row = $derived(nav.panes.filter((id) => index.get(id) || pieces.has(id)));
 
   function label(id: string): string {
     const entry = index.get(id);
     if (entry) return entry.name;
-    const m = story?.manuscripts.find((x) => x.path === id);
+    const m = story?.manuscripts.find((x) => x.path === id || x.book === id);
     if (m) return m.title;
     for (const x of story?.manuscripts ?? []) {
-      const s = x.sections.find((y) => y.path === id);
+      const s = [...x.front, ...x.sections, ...x.back].find((y) => y.path === id);
       if (s) return s.title;
     }
-    return story?.drawer.find((d) => d.path === id)?.title ?? titleFromName(id.split('/').pop() ?? id);
+    return titleFromName(id.split('/').pop() ?? id);
   }
 
   /** Opens a piece, and moves to a chapter in it when `offset` is given. */
@@ -107,13 +115,27 @@
     if (offset !== null && offset !== undefined) jump = { path, offset, at: Date.now(), title };
   }
 
-  async function declare(path: string, manuscript: boolean) {
+  /** Keeps open panes on a piece whose file or folder moved, or closes them when it was archived. */
+  async function followed(from: string, to: string | null) {
+    await refresh();
+    if (/\.md$/i.test(from)) nav.replace(from, to);
+    else nav.replacePrefix(from, to);
+  }
+
+  /** Moves a manuscript to the desk, the drawer, or the shelf (Mike, October 25). */
+  async function moveTo(m: Manuscript, place: Place) {
+    if (!story) return;
     problem = '';
     try {
-      const text = withHeader(await fs.readText(path), { manuscript: manuscript ? true : undefined });
-      // A new manuscript's prose belongs to a chapter, so it shows in outline view.
-      await fs.writeText(path, manuscript ? withFirstChapter(text).text : text);
+      await saveNow(m.path);
+      await saveAllUnder(m.path);
+      const to = await moveToPlace(fs, m, story.root, place);
       await refresh();
+      if (m.kind === 'file' && to !== m.path && !/\.md$/i.test(to)) {
+        // A file that became a folder: its pane shows the new title page.
+        nav.replace(m.path, `${to}/book.md`);
+      } else if (m.kind === 'folder') nav.replacePrefix(m.path, to);
+      else nav.replace(m.path, to);
     } catch (e) {
       problem = String(e);
     }
@@ -126,20 +148,9 @@
       const source = sourceOf(m);
       const at = await source.add();
       await refresh();
+      // A chapter that is its own file opens with the cursor in it.
+      if (at.offset === null) fresh = at.path;
       openPiece(at.path, at.offset);
-    } catch (e) {
-      problem = String(e);
-    }
-  }
-
-  /** Puts a manuscript away on the binder's shelf, or takes it back out. */
-  async function shelve(m: Manuscript, shelved: boolean) {
-    problem = '';
-    const path = m.kind === 'file' ? m.path : `${m.path}/book.md`;
-    try {
-      await saveNow(path);
-      await fs.writeText(path, withHeader(await fs.readText(path), { shelved: shelved ? true : undefined }));
-      await refresh();
     } catch (e) {
       problem = String(e);
     }
@@ -226,8 +237,8 @@
     ui.drafting = path;
   }
 
-  // Creating a new manuscript or a new piece for the drawer.
-  let creating = $state<'manuscript' | 'drawer' | null>(null);
+  // Creating a new manuscript on the desk, or a new piece in the drawer.
+  let creating = $state<'desk' | 'drawer' | null>(null);
   let newName = $state('');
   let busy = $state(false);
   async function create() {
@@ -235,17 +246,21 @@
     if (!slug || !creating) return;
     busy = true;
     problem = '';
-    const path = `${storiesDir}/${slug}.md`;
     try {
-      if (await fs.exists(path)) throw new Error(`Something called ${slug} already exists in the stories folder.`);
-      const start = `# ${newName.trim()}\n\n`;
-      // A new manuscript opens on its first chapter, with the cursor ready in it.
-      const first = withFirstChapter(withHeader(start, { manuscript: true }));
-      await fs.writeText(path, creating === 'manuscript' ? first.text : start);
-      await refresh();
-      fresh = path;
-      nav.open(path);
-      if (creating === 'manuscript') jump = { path, offset: first.offset, at: Date.now() };
+      if (creating === 'desk') {
+        // A manuscript is a folder with its title page and a first chapter, ready for writing.
+        const made = await newManuscript(fs, storiesDir, newName, defaults);
+        await refresh();
+        fresh = made.chapter;
+        nav.open(made.chapter);
+      } else {
+        const path = `${storiesDir}/ideas/${slug}.md`;
+        if (await fs.exists(path)) throw new Error(`Something called ${slug} is already in the drawer.`);
+        await fs.writeText(path, `# ${newName.trim()}\n\n`);
+        await refresh();
+        fresh = path;
+        nav.open(path);
+      }
       creating = null;
       newName = '';
     } catch (e) {
@@ -272,7 +287,7 @@
         onOpen={() => {}}
         onCursor={(pos) => (cursor = { path: ui.drafting!, pos })}
         onDraft={() => {}}
-        onDeclare={declare}
+        onMoveTo={() => {}}
         onOpenPiece={() => {}} />
     </div>
   </div>
@@ -285,19 +300,15 @@
       open={row}
       {cursor}
       onOpen={openPiece}
-      onDeclare={declare}
       onAddChapter={addChapter}
-      onShelve={shelve}
+      onMoveTo={moveTo}
       onMoveChapter={moveChapter}
       onRenameChapter={(m, s) => {
         renaming = { m, s };
         chapterName = s.title;
         problem = '';
       }}
-      onMoved={async (from, to) => {
-        await refresh();
-        nav.replace(from, to);
-      }}
+      onMoved={followed}
       onNew={(kind) => {
         creating = kind;
         problem = '';
@@ -331,20 +342,29 @@
               onOpen={(target) => nav.open(target, i)}
               onCursor={(pos) => (cursor = { path: id, pos })}
               onDraft={() => draft(id)}
-              onDeclare={declare}
+              onMoveTo={moveTo}
               onOpenPiece={openPiece}
               onMakeEntry={(name) => (makingEntry = { name, after: i })}
-              onMoved={async (from, to) => {
-                await refresh();
-                nav.replace(from, to);
-              }} />
+              onMoved={followed}
+              {defaults}
+              onDefaults={readDefaults} />
           {/if}
         {/snippet}
       </Panes>
     {:else}
       <main class="home">
         <h1>Story</h1>
-        <p>Open a manuscript from the binder, or a piece from the drawer. Names in your writing open their wiki entries beside it.</p>
+        {#if story?.missing}
+          <p class="problem" role="alert">
+            The stories folder is missing. This world's <code>world.md</code> says its stories live in a folder called “{storiesDir}”, and there is no
+            folder by that name. If it was renamed, renaming it back brings everything back, or a new empty one can start here.
+          </p>
+          <button type="button" class="make" onclick={async () => (await fs.createDir(`${storiesDir}/ideas`), await fs.createDir(`${storiesDir}/finished`), refresh())}>
+            Make a new stories folder
+          </button>
+        {:else}
+          <p>The desk holds what you are writing, the drawer what you might write, and the shelf what is finished. Names in your writing open their wiki entries beside it.</p>
+        {/if}
         {#if activity}
           <h2 class="label">Writing, the last year</h2>
           <div class="year"><Heatmap {activity} weeks={53} months /></div>
@@ -369,7 +389,7 @@
 
 {#if creating}
   <Dialog
-    title={creating === 'manuscript' ? 'New manuscript' : 'New piece'}
+    title={creating === 'desk' ? 'New manuscript' : 'New piece'}
     action="Create"
     ready={!!slugify(newName)}
     {busy}
@@ -380,7 +400,7 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input id="story-new-name" type="text" bind:value={newName} autofocus autocomplete="off" />
     <p class="hint">
-      {creating === 'manuscript' ? 'It goes in the binder, as one file in the stories folder.' : 'It goes in the drawer, as one file in the stories folder.'}
+      {creating === 'desk' ? 'It goes on the desk, with a title page and a first chapter.' : 'It goes in the drawer.'}
     </p>
   </Dialog>
 {/if}
@@ -419,6 +439,15 @@
   }
   .problem {
     color: #ff9a9a !important;
+  }
+  .make {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 0;
+    padding: 10px 16px;
+    min-height: 44px;
   }
   .drafting {
     position: relative;

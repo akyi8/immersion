@@ -1,29 +1,26 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import { archivePiece, renamePiece } from '../../lib/story/manage';
-  import { saveNow } from '../../lib/saves';
+  import { saveAllUnder, saveNow } from '../../lib/saves';
   import Dialog from '../shelf/Dialog.svelte';
 
-  // Rename and archive for a manuscript or a drawer piece, and moving a manuscript back
-  // to the drawer, from a small menu by its title (Mike, October 25).
+  // Rename and archive for a manuscript or a drawer piece, from a small menu by its
+  // title or from a right-click (Mike, October 25).
   let {
     fs,
     path,
     title,
     root,
-    manuscript,
-    onDeclare,
     onMoved,
     button = true,
   }: {
     fs: WorldFs;
+    /** The piece's file, or its folder. */
     path: string;
     title: string;
     /** The stories folder, whose archive takes archived pieces. */
     root: string;
-    manuscript: boolean;
-    onDeclare: (path: string, manuscript: boolean) => void;
-    /** Called after the piece's file moves, with its new path, or null once archived. */
+    /** Called after the piece moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
     /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
     button?: boolean;
@@ -47,6 +44,7 @@
     problem = '';
     try {
       await saveNow(path);
+      await saveAllUnder(path);
       if (doing === 'rename') onMoved(path, await renamePiece(fs, path, name));
       else {
         await archivePiece(fs, path, root);
@@ -69,9 +67,6 @@
   {#if open}
     <div class="menu" role="menu">
       <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
-      {#if manuscript}
-        <button type="button" role="menuitem" onclick={() => ((open = false), onDeclare(path, false))}>Back to the drawer</button>
-      {/if}
       <button type="button" role="menuitem" onclick={() => start('archive')}>Archive</button>
     </div>
   {/if}
@@ -87,8 +82,8 @@
 {:else if doing === 'archive'}
   <Dialog title="Archive" action="Archive" ready={true} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>
     <p class="hint">
-      {title} moves to the stories folder's archive and stops appearing in the app. The file is kept, so nothing is lost, and moving it back
-      out of the archive folder restores it.
+      {title} moves to the stories folder's archive and stops appearing in the app. Its files are kept, so nothing is lost, and moving them
+      back out of the archive folder restores it.
     </p>
   </Dialog>
 {/if}

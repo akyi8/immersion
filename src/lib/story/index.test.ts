@@ -42,32 +42,43 @@ test('a one-file manuscript has chapters and scenes from its headings', () => {
   assert.equal(titleOf(tideLetter, 'tide.md'), 'The Tide Letter');
 });
 
-test('declared manuscripts go to the binder and everything else to the drawer', async () => {
+test('the desk, the drawer, and the shelf are folders, and every manuscript is a folder', async () => {
   const fs = new MemoryFs({
     'stories/the-tide-letter.md': tideLetter,
     'stories/the-tide-letter.outline.md': '# Outline\n',
     'stories/ideas/salt-ghosts.md': '# Salt Ghosts\n\nA seed.\n',
+    'stories/ideas/ink/outline.md': '# Ink\n',
     'stories/archive/old.md': '# Old\n',
-    'stories/portraits/book.md': '---\nmanuscript: true\ntitle: Harbor Portraits\n---\n',
+    'stories/export/old.md': '# Exported\n',
+    'stories/portraits/book.md': '---\nauthor: Wren\n---\n\n# Harbor Portraits\n',
+    'stories/portraits/front/01-dedication.md': '# Dedication\n\nFor Rook.\n',
     'stories/portraits/02-rook.md': '# Rook\n\nTwo words.\n',
     'stories/portraits/10-wren.md': '# Wren\n\nThree more words.\n',
+    'stories/finished/the-long-tide/book.md': '# The Long Tide\n',
+    'stories/finished/the-long-tide/01-chapter-1.md': '# Chapter 1\n',
   });
   const index = await buildStoryIndex(fs, 'stories');
   assert.deepEqual(
-    index.manuscripts.map((m) => [m.title, m.kind]),
+    index.manuscripts.map((m) => [m.title, m.kind, m.place]),
     [
-      ['Harbor Portraits', 'folder'],
-      ['The Tide Letter', 'file'],
+      ['Harbor Portraits', 'folder', 'desk'],
+      ['Ink', 'folder', 'drawer'],
+      ['Salt Ghosts', 'file', 'drawer'],
+      ['The Long Tide', 'folder', 'shelf'],
+      ['The Tide Letter', 'file', 'desk'],
     ],
   );
-  assert.deepEqual(
-    index.manuscripts[0].sections.map((s) => s.title),
-    ['Rook', 'Wren'],
-  );
-  assert.deepEqual(
-    index.drawer.map((d) => [d.title, d.group]),
-    [['Salt Ghosts', 'ideas']],
-  );
+  const portraits = index.manuscripts[0];
+  assert.deepEqual(portraits.sections.map((s) => s.title), ['Rook', 'Wren']);
+  assert.deepEqual(portraits.front.map((s) => s.title), ['Dedication']);
+  assert.equal(portraits.book, 'stories/portraits/book.md');
+  // Front matter does not count toward the story's words.
+  assert.equal(portraits.words, 3 + 4);
+});
+
+test('a missing stories folder is reported', async () => {
+  const index = await buildStoryIndex(new MemoryFs({ 'world.md': '# W\n' }), 'stories');
+  assert.equal(index.missing, true);
 });
 
 test('declaring a manuscript adds one header line and keeps the rest', () => {
