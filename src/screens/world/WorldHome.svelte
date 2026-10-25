@@ -70,6 +70,7 @@
     min-height: 44px;
   }
   h1 {
+    color: var(--title);
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;

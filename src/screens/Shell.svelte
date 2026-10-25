@@ -239,8 +239,8 @@
     min-height: 40px;
   }
   nav button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
     font-weight: 700;
   }
   .toggle {
@@ -256,8 +256,8 @@
     min-height: 40px;
   }
   .toggle button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
   }
   .update {
     font-size: 13px;

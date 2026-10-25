@@ -32,6 +32,14 @@
 
   /* Colors every theme shares: problems, shadows, and the dimming behind dialogs. */
   --danger: #ff9a9a;
+
+  /* Where the highlight falls (Mike, October 25): the names of things, both page
+     titles and names in the prose, and whatever is selected or active. */
+  --title: var(--accent);
+  --name: var(--accent);
+  --selected-fg: var(--accent);
+  --selected-bg: color-mix(in srgb, var(--accent) 14%, var(--bg));
+  --selected-border: var(--accent);
   --shadow: rgb(0 0 0 / 0.5);
   --scrim: rgb(0 0 0 / 0.55);
 
@@ -146,11 +154,10 @@ button {
 /* Automatic links: drawn over the text, never written into the file. */
 .mention {
   font: inherit;
-  color: inherit;
+  color: var(--name);
   background: none;
   border: 0;
   padding: 0;
-  border-bottom: 1px dotted var(--accent);
   cursor: pointer;
 }
 .mention:hover,

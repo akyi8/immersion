@@ -189,7 +189,7 @@ const theme = EditorView.theme(
     '&.cm-focused': { outline: 'none' },
     '.cm-cursor': { borderLeftColor: 'var(--structure-soft)', borderLeftWidth: '2px' },
     '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--structure-deep) !important' },
-    '.cm-mention': { borderBottom: '1px dotted var(--accent)', cursor: 'pointer' },
+    '.cm-mention': { color: 'var(--name)', cursor: 'pointer' },
     '.cm-mention-open': { backgroundColor: 'var(--accent-wash)' },
     '.cm-md-link': { color: 'var(--structure)' },
     '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },

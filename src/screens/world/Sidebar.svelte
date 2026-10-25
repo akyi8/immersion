@@ -231,9 +231,9 @@
     min-height: 38px;
   }
   .modes button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
-    border-color: var(--structure);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
   }
   .list {
     display: flex;
@@ -281,8 +281,8 @@
     background: var(--surface);
   }
   .item.current {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
   }
   .folder {
     justify-content: flex-start;

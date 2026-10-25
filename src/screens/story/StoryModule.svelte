@@ -416,6 +416,7 @@
     padding: 36px 48px;
   }
   .home h1 {
+    color: var(--title);
     margin: 0 0 12px;
     font-family: var(--font-display);
     font-weight: 400;

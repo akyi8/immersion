@@ -163,6 +163,7 @@
     background: var(--surface);
   }
   .title {
+    color: var(--title);
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;

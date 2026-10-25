@@ -261,8 +261,8 @@
     min-height: 32px;
   }
   .views button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
   }
   article.drafting {
     margin: 0 auto;
@@ -271,6 +271,7 @@
     margin-bottom: 22px;
   }
   h1 {
+    color: var(--title);
     margin: 4px 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
@@ -350,8 +351,8 @@
     color: var(--muted);
   }
   .action.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
   }
   .action:hover {
     border-color: var(--structure);

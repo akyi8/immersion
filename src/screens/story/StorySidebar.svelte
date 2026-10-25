@@ -260,9 +260,9 @@
     min-height: 38px;
   }
   .tabs button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
-    border-color: var(--structure);
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
   }
   .count {
     font-family: var(--font-label);
@@ -342,7 +342,7 @@
     min-height: 36px;
   }
   .manuscript-row.current .manuscript {
-    color: var(--structure-soft);
+    color: var(--selected-fg);
   }
   .sections {
     padding-bottom: 6px;
@@ -373,9 +373,9 @@
     color: var(--structure);
   }
   .section.here {
-    color: var(--text);
-    box-shadow: inset 2px 0 0 var(--structure);
-    background: var(--surface);
+    color: var(--selected-fg);
+    box-shadow: inset 2px 0 0 var(--selected-border);
+    background: var(--selected-bg);
   }
   .n {
     font-family: var(--font-label);
