@@ -33,7 +33,7 @@
   }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void> } = $props();
 
   let story = $state.raw<StoryIndex | null>(null);
-  let jump = $state<{ path: string; offset: number; at: number } | null>(null);
+  let jump = $state<{ path: string; offset: number; at: number; title?: string } | null>(null);
   let cursor = $state<{ path: string; pos: number } | null>(null);
   let fresh = $state<string | null>(null);
   let problem = $state('');
@@ -101,9 +101,9 @@
   }
 
   /** Opens a piece, and moves to a chapter in it when `offset` is given. */
-  function openPiece(path: string, offset?: number | null) {
+  function openPiece(path: string, offset?: number | null, title?: string) {
     nav.open(path);
-    if (offset !== null && offset !== undefined) jump = { path, offset, at: Date.now() };
+    if (offset !== null && offset !== undefined) jump = { path, offset, at: Date.now(), title };
   }
 
   async function declare(path: string, manuscript: boolean) {

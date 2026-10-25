@@ -6,6 +6,8 @@
   import EntryEditor from '../world/EntryEditor.svelte';
   import OutlineView from './OutlineView.svelte';
   import PieceActions from './PieceActions.svelte';
+  import OutlineAside from './OutlineAside.svelte';
+  import type { EditorView } from '@codemirror/view';
 
   /**
    * A piece of writing open in the Story module: a manuscript, one chapter of a
@@ -36,14 +38,14 @@
     next: string | null;
     fresh?: boolean;
     drafting?: boolean;
-    jump?: { offset: number; at: number } | null;
+    jump?: { offset: number; at: number; title?: string } | null;
     onOpen: (id: string) => void;
     onCursor: (pos: number) => void;
     onDraft: () => void;
     /** Moves a piece into the binder, or back to the drawer. */
     onDeclare: (path: string, manuscript: boolean) => void;
     /** Opens a piece of writing, at a chapter when `offset` is given. */
-    onOpenPiece: (path: string, offset: number | null) => void;
+    onOpenPiece: (path: string, offset: number | null, title?: string) => void;
     /** Starts a wiki entry for a name selected in the writing. */
     onMakeEntry?: (name: string) => void;
     /** Called after the piece is renamed or archived (null). */
@@ -53,6 +55,26 @@
   // Writing and outline are two views of the same chapters (Mike, October 25).
   let mode = $state<'write' | 'outline'>('write');
   let outlineFocus = $state<number | null>(null);
+
+  // The outline beside the writing, remembered between sessions (Mike, October 25).
+  function savedAside(): boolean {
+    try {
+      return localStorage.getItem('immersion.outlineAside') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+  let aside = $state(savedAside());
+  function setAside(on: boolean) {
+    aside = on;
+    try {
+      localStorage.setItem('immersion.outlineAside', on ? 'on' : 'off');
+    } catch {
+      // Not remembering the choice is harmless.
+    }
+  }
+  let editor = $state.raw<EditorView | null>(null);
+  let cursor = $state(0);
 
   /** The chapters behind outline view: this file's headings, or the files of its folder. */
   const source = $derived.by((): OutlineSource | null => {
@@ -118,6 +140,11 @@
           {/if}
           <span class="meta">{about.meta}</span>
           {#if mode === 'write'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
+          {#if mode === 'write' && source}
+            <button type="button" class="action" class:on={aside} aria-pressed={aside} onclick={() => setAside(!aside)} title="The outline of the chapter you are in, beside the writing">
+              {aside ? 'Hide outline' : 'Show outline'}
+            </button>
+          {/if}
           {#if about.kind === 'drawer'}
             <button type="button" class="action" onclick={() => onDeclare(id, true)}>Make this a manuscript</button>
           {/if}
@@ -134,14 +161,43 @@
         focus={outlineFocus}
         onWrite={(card) => {
           mode = 'write';
-          onOpenPiece(card.path, card.offset);
+          onOpenPiece(card.path, card.offset, card.title);
         }}
         onAdded={() => {}} />
     {:else}
-      <div class="book">
-        {#key id}
-          <EntryEditor {fs} {index} {id} title={about.title} autofocus={fresh} {onOpen} {next} {jump} {onCursor} onOutline={showOutline} {onMakeEntry} />
-        {/key}
+      <div class="room">
+      <div class="writing" class:with-aside={aside && !!source}>
+        <div class="book">
+          {#key id}
+            <EntryEditor
+              {fs}
+              {index}
+              {id}
+              title={about.title}
+              autofocus={fresh}
+              {onOpen}
+              {next}
+              {jump}
+              onCursor={(pos) => {
+                cursor = pos;
+                onCursor(pos);
+              }}
+              onOutline={showOutline}
+              {onMakeEntry}
+              onReady={(v) => (editor = v)} />
+          {/key}
+        </div>
+        {#if aside && source}
+          <OutlineAside
+            view={editor}
+            {cursor}
+            wholeBook={about.kind === 'manuscript'}
+            onOpenOutline={(i) => {
+              outlineFocus = about.kind === 'manuscript' ? i : (story?.manuscripts.find((m) => m.sections.some((s) => s.path === id))?.sections.findIndex((s) => s.path === id) ?? null);
+              mode = 'outline';
+            }} />
+        {/if}
+      </div>
       </div>
     {/if}
   </article>
@@ -153,6 +209,27 @@
   }
   article:has(:global(.grid)) {
     max-width: none;
+  }
+  article:has(.with-aside) {
+    max-width: 1000px;
+  }
+  /* The outline sits beside the writing when there is room, and steps away in a narrow pane. */
+  .room {
+    container-type: inline-size;
+  }
+  .writing.with-aside {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 28px;
+    align-items: start;
+  }
+  @container (max-width: 760px) {
+    .writing.with-aside {
+      display: block;
+    }
+    .writing.with-aside :global(.outline-aside) {
+      display: none;
+    }
   }
   .views {
     display: flex;
@@ -224,6 +301,10 @@
   }
   .action {
     color: var(--structure);
+  }
+  .action.on {
+    color: var(--structure-soft);
+    background: var(--structure-deep);
   }
   .action:hover {
     border-color: var(--structure);

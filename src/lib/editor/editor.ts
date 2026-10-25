@@ -289,6 +289,23 @@ export function createEditor(options: {
 }
 
 /**
+ * Where a chapter's heading is now. A remembered position can be a little out of date
+ * after edits above it, so the heading is found by its title, at the occurrence nearest
+ * to where it was. Without a title, or when no heading has it, the position stands.
+ */
+export function headingNear(view: EditorView, pos: number, title?: string): number {
+  if (!title) return pos;
+  const doc = view.state.doc;
+  let best = -1;
+  for (let n = 1; n <= doc.lines; n++) {
+    const line = doc.line(n);
+    const m = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line.text);
+    if (m && m[1].trim() === title && (best < 0 || Math.abs(line.from - pos) < Math.abs(best - pos))) best = line.from;
+  }
+  return best < 0 ? pos : best;
+}
+
+/**
  * Scrolls `pos` to the top of the view, for jumping to a chapter. When `pos` is a
  * heading, the cursor goes to the first line of text below it, so the heading keeps
  * its finished look instead of showing its marks.

@@ -3,7 +3,7 @@
   import type { EditorView } from '@codemirror/view';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
-  import { createEditor, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
+  import { createEditor, headingNear, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
   import { registerSaver } from '../../lib/saves';
 
   let {
@@ -19,6 +19,7 @@
     onOutline,
     narratorTool = false,
     onMakeEntry,
+    onReady,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -28,12 +29,14 @@
     onOpen: (id: string) => void;
     next: string | null;
     /** A place in the file to move the cursor to, such as a chapter's heading. */
-    jump?: { offset: number; at: number } | null;
+    jump?: { offset: number; at: number; title?: string } | null;
     onCursor?: (pos: number) => void;
     onOutline?: (at: number) => void;
     /** Offer "Narrator only" on selected text, which only means something in the wiki. */
     narratorTool?: boolean;
     onMakeEntry?: (name: string) => void;
+    /** Hands over the editor once it exists, for panels that work through it. */
+    onReady?: (view: EditorView) => void;
   } = $props();
 
   // Saving happens on its own, a moment after typing stops (design: Milestone 2).
@@ -96,7 +99,7 @@
       pending = null;
       status = 'saved';
       // A chapter added from the binder arrives this way, after the jump to it was asked for.
-      if (jump && Date.now() - jump.at < 5000) jumpTo(view, jump.offset);
+      if (jump && Date.now() - jump.at < 5000) jumpTo(view, headingNear(view, jump.offset, jump.title));
     } else {
       conflict = text;
     }
@@ -142,6 +145,7 @@
     });
     status = 'saved';
     ready = true;
+    onReady?.(view);
     if (autofocus && !jump) {
       view.focus();
       view.dispatch({ selection: { anchor: view.state.doc.length } });
@@ -160,7 +164,7 @@
 
   // A jump waits until the editor exists, so a chapter chosen before the file loads still lands.
   $effect(() => {
-    if (ready && jump && view) jumpTo(view, jump.offset);
+    if (ready && jump && view) jumpTo(view, headingNear(view, jump.offset, jump.title));
   });
 
   onDestroy(() => {

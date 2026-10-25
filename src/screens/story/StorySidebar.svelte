@@ -24,7 +24,7 @@
     /** What is open in the Story module's panes. */
     open: string[];
     cursor: { path: string; pos: number } | null;
-    onOpen: (path: string, offset?: number | null) => void;
+    onOpen: (path: string, offset?: number | null, title?: string) => void;
     onDeclare: (path: string, manuscript: boolean) => void;
     onNew: (kind: 'manuscript' | 'drawer') => void;
     onAddChapter: (m: Manuscript) => void;
@@ -108,7 +108,7 @@
           {#if s.part && s.part !== m.sections[i - 1]?.part}
             <div class="part">{s.part}</div>
           {/if}
-          <button type="button" class="section depth-{s.depth}" class:here={i === at} onclick={() => onOpen(s.path, s.offset)}>
+          <button type="button" class="section depth-{s.depth}" class:here={i === at} onclick={() => onOpen(s.path, s.offset, s.title)}>
             <span>{s.title}</span><span class="n">{count(s.words)}</span>
           </button>
         {/each}
