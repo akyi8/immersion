@@ -19,7 +19,8 @@ export interface ThemeSpec {
   prose?: string;
   /**
    * Overrides for the light side. Without them, the light side is worked out from the
-   * same two colors: a pale background, dark text, and a highlight deep enough to read.
+   * same two colors: a pale background, dark text, and the darker of the two colors as
+   * the highlight. `base` and `highlight` here name the light side's own roles.
    */
   light?: SideOverrides;
 }
@@ -184,8 +185,14 @@ export function palette(spec: ThemeSpec, mode: Mode = 'dark'): Record<string, st
 
 function lightPalette(spec: ThemeSpec): Record<string, string> {
   const own = spec.light ?? {};
-  const base = rgbToOklch(hexToRgb(isHex(own.base) ? own.base : isHex(spec.base) ? spec.base : NIGHT.base));
-  const high = rgbToOklch(hexToRgb(isHex(own.highlight) ? own.highlight : isHex(spec.highlight) ? spec.highlight : NIGHT.highlight));
+  // On a pale page the darker of the two colors leads (Mike, October 25): it takes the
+  // titles, names, and selections, and the other takes the lines and labels and tints
+  // the page. Navy and gold therefore become navy ink on a warm gold-tinted page.
+  const darkBase = rgbToOklch(hexToRgb(isHex(spec.base) ? spec.base : NIGHT.base));
+  const darkHigh = rgbToOklch(hexToRgb(isHex(spec.highlight) ? spec.highlight : NIGHT.highlight));
+  const [lead, frame] = darkBase.l < darkHigh.l ? [darkBase, darkHigh] : [darkHigh, darkBase];
+  const base = isHex(own.base) ? rgbToOklch(hexToRgb(own.base)) : frame;
+  const high = isHex(own.highlight) ? rgbToOklch(hexToRgb(own.highlight)) : lead;
   const tint = Math.min(base.c, 0.16);
   const bgSeed = isHex(own.background) ? rgbToOklch(hexToRgb(own.background)) : { l: 0.965, c: tint * 0.12, h: base.h };
   const bg = hex(bgSeed);

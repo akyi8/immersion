@@ -37,3 +37,12 @@ test('the light side worked out from the same two colors stays readable', () => 
   // A light-side color chosen by hand is kept as chosen.
   assert.equal(palette({ base: '#1d3f8f', highlight: '#f2c12e', light: { highlight: '#9a6b00' } }, 'light')['--accent'], '#9a6b00');
 });
+
+test('on the light side the darker color leads', () => {
+  const p = palette({ base: '#1d3f8f', highlight: '#f2c12e' }, 'light');
+  // Navy takes the names and selections, and gold tints the page and the lines.
+  assert.equal(p['--accent'], '#1d3f8f');
+  assert.ok(contrast(p['--structure'], p['--bg']) >= 4.5);
+  // A highlight already darker than the base keeps its role.
+  assert.equal(palette({ base: '#a0a0a0', highlight: '#8a1c1c' }, 'light')['--accent'], '#8a1c1c');
+});

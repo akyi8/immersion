@@ -179,9 +179,9 @@
     {/if}
     {#if warning}<p class="warning">{warning}</p>{/if}
   {:else if own}
-    <p class="about">The light side is worked out from the same two colors, so that everything stays readable on a pale page. Any of its colors can be chosen by hand.</p>
+    <p class="about">The light side is worked out from the same two colors. The darker one leads, taking titles, names, and what is selected, and the other tints the page and draws the lines. Any of its colors can be chosen by hand.</p>
     {#each LIGHT_ROWS as [key, label, token]}
-      <label class="check"><input type="checkbox" checked={lightPicks[key].on} onchange={(e) => choose(key, (e.currentTarget as HTMLInputElement).checked)} /> Choose the light {label.toLowerCase()} myself</label>
+      <label class="check"><input type="checkbox" checked={lightPicks[key].on} onchange={(e) => choose(key, (e.currentTarget as HTMLInputElement).checked)} /> Choose the light side's {label.toLowerCase()} myself</label>
       {#if lightPicks[key].on}
         <div class="color">
           <input type="color" bind:value={lightPicks[key].value} aria-label="Light {label.toLowerCase()} color" />
