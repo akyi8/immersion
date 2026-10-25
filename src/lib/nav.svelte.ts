@@ -81,6 +81,15 @@ export class Navigator {
     this.push({ ...this.current, rows });
   }
 
+  /** Follows a folder that moved: everything open inside it moves too, or closes when `to` is null. */
+  replacePrefix(from: string, to: string | null) {
+    const rows: Location['rows'] = {};
+    for (const [module, row] of Object.entries(this.current.rows) as [Module, string[]][]) {
+      rows[module] = row.flatMap((id) => (id.startsWith(from + '/') ? (to ? [to + id.slice(from.length)] : []) : [id]));
+    }
+    this.push({ ...this.current, rows });
+  }
+
   close(id: string) {
     this.setRow(this.panes.filter((p) => p !== id));
   }

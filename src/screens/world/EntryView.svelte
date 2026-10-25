@@ -6,6 +6,7 @@
   import type { ImageSource } from '../../lib/fs/types';
   import { dropImage } from '../../lib/drop';
   import { pickImage } from '../../lib/pickImage';
+  import { removePicture } from '../../lib/index/manage';
   import Portrait from './Portrait.svelte';
   import EntryEditor from './EntryEditor.svelte';
   import EntryActions from './EntryActions.svelte';
@@ -42,6 +43,16 @@
 
   // A picture dropped on the portrait, or chosen with Change picture, is copied in beside
   // the entry under the entry's own name (design: the world shelf).
+  async function takePictureAway() {
+    if (!entry.imagePath) return;
+    pictureProblem = '';
+    try {
+      await removePicture(fs, entry.imagePath, index.root.path);
+    } catch (e) {
+      pictureProblem = String(e);
+    }
+  }
+
   async function setPicture(image: ImageSource | null) {
     if (!image) return;
     pictureProblem = '';
@@ -71,7 +82,10 @@
     {#if view === 'narrator'}
       <div class="picture" use:dropImage={setPicture}>
         <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
-        <button type="button" class="change" onclick={async () => setPicture(await pickImage())}>{entry.imagePath ? 'Change picture' : 'Add picture'}</button>
+        <div class="change">
+          <button type="button" onclick={async () => setPicture(await pickImage())}>{entry.imagePath ? 'Change' : 'Add picture'}</button>
+          {#if entry.imagePath}<button type="button" onclick={takePictureAway}>Remove</button>{/if}
+        </div>
         <span class="drop-hint" aria-hidden="true">Drop to set</span>
       </div>
     {:else}
@@ -132,17 +146,28 @@
   .change {
     position: absolute;
     inset: auto 0 0 0;
-    font-size: 12px;
-    color: var(--text);
+    display: flex;
     background: rgb(7 9 11 / 0.8);
-    border: 0;
     border-top: 1px solid var(--rule-strong);
-    padding: 6px 4px;
     opacity: 0;
     transition: opacity 150ms;
   }
+  .change button {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text);
+    background: none;
+    border: 0;
+    padding: 6px 4px;
+  }
+  .change button + button {
+    border-left: 1px solid var(--rule-strong);
+  }
+  .change button:hover {
+    color: var(--structure-soft);
+  }
   .picture:hover .change,
-  .change:focus-visible {
+  .change:focus-within {
     opacity: 1;
   }
   .drop-hint {

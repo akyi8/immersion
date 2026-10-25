@@ -4,6 +4,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import Portrait from './Portrait.svelte';
+  import CategoryActions from './CategoryActions.svelte';
 
   let {
     index,
@@ -11,7 +12,15 @@
     nav,
     onNewEntry,
     onNewFolder,
-  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; onNewEntry: () => void; onNewFolder: () => void } = $props();
+    onCategoryMoved,
+  }: {
+    index: WikiIndex;
+    fs: WorldFs;
+    nav: Navigator;
+    onNewEntry: () => void;
+    onNewFolder: () => void;
+    onCategoryMoved: (from: string, to: string | null) => void;
+  } = $props();
 
   type Mode = 'working' | 'tree' | 'faces';
   const MODES: [Mode, string][] = [
@@ -67,11 +76,14 @@
 <nav class="sidebar" aria-label="Wiki">
   {#snippet folderView(folder: Folder, depth: number)}
     {#each folder.folders as child}
-      <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
-        {folderLabel(child.name)}
-        <span class="count">{child.entries.length || ''}</span>
-      </button>
+      <div class="folder-row">
+        <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+          {folderLabel(child.name)}
+          <span class="count">{child.entries.length || ''}</span>
+        </button>
+        <div class="row-actions"><CategoryActions {fs} {index} folder={child} onMoved={onCategoryMoved} /></div>
+      </div>
       {#if isOpen(child)}
         {@render folderView(child, depth + 1)}
       {/if}
@@ -178,6 +190,24 @@
     font-size: 11px;
   }
   .item,
+  .folder-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .folder-row .folder {
+    flex: 1;
+    min-width: 0;
+  }
+  .row-actions {
+    position: absolute;
+    right: 8px;
+    opacity: 0;
+  }
+  .folder-row:hover .row-actions,
+  .row-actions:focus-within {
+    opacity: 1;
+  }
   .folder {
     text-align: left;
     font-size: 14px;

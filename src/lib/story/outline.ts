@@ -185,3 +185,18 @@ export function withFirstChapter(text: string): { text: string; offset: number }
   const at = lines[i].from;
   return { text: `${text.slice(0, at)}## Chapter 1\n\n${text.slice(at)}`, offset: at };
 }
+
+/**
+ * Moves the chapter at `from` to position `to`, carrying its heading, its outline, and
+ * its prose with it (Mike, October 25). Whatever comes before the first chapter, such as
+ * the title, stays where it is.
+ */
+export function moveChapter(text: string, from: number, to: number): string {
+  const chapters = readOutline(text);
+  if (from === to || !chapters[from] || to < 0 || to >= chapters.length) return text;
+  const head = text.slice(0, chapters[0].offset).replace(/\s*$/, '');
+  const blocks = chapters.map((c, i) => text.slice(c.offset, chapters[i + 1]?.offset ?? text.length).replace(/\s*$/, ''));
+  const [moved] = blocks.splice(from, 1);
+  blocks.splice(to, 0, moved);
+  return `${head ? `${head}\n\n` : ''}${blocks.join('\n\n')}\n`;
+}

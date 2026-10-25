@@ -1,7 +1,7 @@
 import type { WorldFs } from '../fs/types';
 import { slugify } from '../slug';
 import { countWords, type Manuscript } from './index';
-import { addChapter, fileTitle, nextChapterTitle, readOutline, renameChapter, setOutline } from './outline';
+import { addChapter, fileTitle, moveChapter, nextChapterTitle, readOutline, renameChapter, setOutline } from './outline';
 
 /** One card in outline view: a chapter, its outline, and where it is written. */
 export interface Card {
@@ -24,6 +24,8 @@ export interface OutlineSource {
   rename(i: number, title: string): Promise<void>;
   /** Adds the next chapter and returns where it starts. */
   add(): Promise<{ path: string; offset: number | null }>;
+  /** Moves the chapter at `from` to position `to`, with everything in it. */
+  move(from: number, to: number): Promise<void>;
 }
 
 /** A manuscript kept as one file, whose chapters are headings. */
@@ -55,6 +57,10 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
       const added = addChapter(text, nextChapterTitle(list));
       await fs.writeText(path, added.text);
       return { path, offset: added.offset };
+    },
+    async move(from, to) {
+      const text = await fs.readText(path);
+      await fs.writeText(path, moveChapter(text, from, to));
     },
   };
 }
@@ -99,6 +105,21 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       for (let k = 2; await fs.exists(path); k++) path = `${manuscript.path}/${n}-${slugify(title)}-${k}.md`;
       await fs.writeText(path, `# ${title}\n\n`);
       return { path, offset: null };
+    },
+    async move(from, to) {
+      if (from === to || !files[from] || to < 0 || to >= files.length) return;
+      const order = [...files];
+      const [moved] = order.splice(from, 1);
+      order.splice(to, 0, moved);
+      // The files are renumbered in their new order. Each moves to a temporary name
+      // first, so no two files ever want the same name at once.
+      const named = order.map((path, i) => {
+        const folder = path.slice(0, path.lastIndexOf('/'));
+        const name = path.slice(path.lastIndexOf('/') + 1).replace(/^\d+[-_ ]*/, '');
+        return { path, temp: `${path}.reordering`, target: `${folder}/${String(i + 1).padStart(2, '0')}-${name}` };
+      });
+      for (const f of named) if (f.path !== f.target) await fs.move(f.path, f.temp);
+      for (const f of named) if (f.path !== f.target) await fs.move(f.temp, f.target);
     },
   };
 }

@@ -249,7 +249,11 @@
               onDraft={() => draft(id)}
               onDeclare={declare}
               onOpenPiece={openPiece}
-              onMakeEntry={(name) => (makingEntry = { name, after: i })} />
+              onMakeEntry={(name) => (makingEntry = { name, after: i })}
+              onMoved={async (from, to) => {
+                await refresh();
+                nav.replace(from, to);
+              }} />
           {/if}
         {/snippet}
       </Panes>

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addChapter, nextChapterTitle, readOutline, renameChapter, setOutline, withFirstChapter, withoutOutlines } from './outline.ts';
+import { addChapter, moveChapter, nextChapterTitle, readOutline, renameChapter, setOutline, withFirstChapter, withoutOutlines } from './outline.ts';
 
 const book = `# The Tide Letter
 
@@ -77,4 +77,18 @@ test('a manuscript without chapters gains a first chapter that holds its prose',
   assert.equal(declared.text.slice(declared.offset).startsWith('## Chapter 1'), true);
   assert.equal(withFirstChapter('# Empty\n').text, '# Empty\n\n## Chapter 1\n\n');
   assert.equal(withFirstChapter(book).text, book);
+});
+
+test('a chapter moves with its outline and prose, and nothing is lost', () => {
+  const moved = moveChapter(book, 0, 1);
+  assert.deepEqual(
+    readOutline(moved).map((c) => [c.title, c.outline]),
+    [
+      ['Chapter 2', ''],
+      ['Chapter 1', 'Wren takes the long way.\n\nRook waits at the stall.'],
+      ['About the Author', ''],
+    ],
+  );
+  assert.match(moved, /^# The Tide Letter\n\n## Chapter 2\n\nShe did not stop\.\n\n## Chapter 1\n/);
+  assert.equal(moveChapter(moveChapter(book, 0, 1), 1, 0), book);
 });

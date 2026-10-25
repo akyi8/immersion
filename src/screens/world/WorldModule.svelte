@@ -73,7 +73,11 @@
     {fs}
     {nav}
     onNewEntry={() => (creating = { kind: 'entry', folder: currentFolder() })}
-    onNewFolder={() => (creating = { kind: 'folder', folder: currentFolder() })} />
+    onNewFolder={() => (creating = { kind: 'folder', folder: currentFolder() })}
+    onCategoryMoved={async (from, to) => {
+      await rebuild();
+      nav.replacePrefix(from, to);
+    }} />
   {#if entries.length}
     <Panes {nav} ids={entries} label={(id) => index.get(id)?.name ?? id}>
       {#snippet pane(id, i, next)}

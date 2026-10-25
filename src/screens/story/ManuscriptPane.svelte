@@ -5,6 +5,7 @@
   import { fileSource, folderSource, type OutlineSource } from '../../lib/story/outlineSource';
   import EntryEditor from '../world/EntryEditor.svelte';
   import OutlineView from './OutlineView.svelte';
+  import PieceActions from './PieceActions.svelte';
 
   /**
    * A piece of writing open in the Story module: a manuscript, one chapter of a
@@ -26,6 +27,7 @@
     onDeclare,
     onOpenPiece,
     onMakeEntry,
+    onMoved,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -44,6 +46,8 @@
     onOpenPiece: (path: string, offset: number | null) => void;
     /** Starts a wiki entry for a name selected in the writing. */
     onMakeEntry?: (name: string) => void;
+    /** Called after the piece is renamed or archived (null). */
+    onMoved?: (from: string, to: string | null) => void;
   } = $props();
 
   // Writing and outline are two views of the same chapters (Mike, October 25).
@@ -116,8 +120,9 @@
           {#if mode === 'write'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
           {#if about.kind === 'drawer'}
             <button type="button" class="action" onclick={() => onDeclare(id, true)}>Make this a manuscript</button>
-          {:else if about.kind === 'manuscript'}
-            <button type="button" class="quiet" onclick={() => onDeclare(id, false)}>Back to the drawer</button>
+          {/if}
+          {#if about.kind !== 'chapter' && onMoved && story}
+            <PieceActions {fs} path={id} title={about.title} root={story.root} manuscript={about.kind === 'manuscript'} {onDeclare} {onMoved} />
           {/if}
         </div>
       </header>
@@ -210,8 +215,7 @@
     color: var(--text-soft) !important;
     padding-top: 1.2em !important;
   }
-  .action,
-  .quiet {
+  .action {
     font-size: 13px;
     background: none;
     border: 1px solid var(--rule-strong);
@@ -221,12 +225,7 @@
   .action {
     color: var(--structure);
   }
-  .quiet {
-    color: var(--muted);
-    border-color: transparent;
-  }
-  .action:hover,
-  .quiet:hover {
+  .action:hover {
     border-color: var(--structure);
     color: var(--text);
   }

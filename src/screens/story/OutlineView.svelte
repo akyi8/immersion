@@ -79,6 +79,23 @@
     }
   }
 
+  /** Moves a chapter, with its outline and prose, to another place in the book. */
+  async function move(from: number, to: number) {
+    if (!cards || to < 0 || to >= cards.length || from === to) return;
+    await flush();
+    try {
+      await source.move(from, to);
+      await load();
+    } catch (e) {
+      problem = String(e);
+      await load();
+    }
+  }
+
+  // Dragging a card by its number moves the chapter to where it is dropped.
+  let dragging = $state<number | null>(null);
+  let over = $state<number | null>(null);
+
   async function add() {
     await flush();
     try {
@@ -127,9 +144,43 @@
 {#if cards}
   <div class="grid" bind:this={grid}>
     {#each cards as card, i (card.path + ':' + i)}
-      <section class="card">
+      <section
+        class="card"
+        role="group"
+        aria-label="Chapter {i + 1}: {card.title}"
+        class:over={over === i && dragging !== null && dragging !== i}
+        ondragover={(e) => {
+          if (dragging === null) return;
+          e.preventDefault();
+          over = i;
+        }}
+        ondragleave={() => (over = over === i ? null : over)}
+        ondrop={(e) => {
+          e.preventDefault();
+          const from = dragging;
+          dragging = over = null;
+          if (from !== null) move(from, i);
+        }}>
         <div class="top">
-          <span class="n">{String(i + 1).padStart(2, '0')}</span>
+          <span
+            class="n"
+            draggable="true"
+            title="Drag to move this chapter"
+            role="button"
+            tabindex="-1"
+            ondragstart={(e) => {
+              dragging = i;
+              e.dataTransfer?.setData('text/plain', String(i));
+            }}
+            ondragend={() => (dragging = over = null)}>⋮⋮ {String(i + 1).padStart(2, '0')}</span>
+          <span class="move">
+            <button type="button" aria-label="Move {card.title} earlier" title="Move earlier" disabled={i === 0} onclick={() => move(i, i - 1)}>
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2 L4 6 L8 10" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+            </button>
+            <button type="button" aria-label="Move {card.title} later" title="Move later" disabled={i === cards.length - 1} onclick={() => move(i, i + 1)}>
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2 L8 6 L4 10" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+            </button>
+          </span>
           <span class="words">{card.words ? `${card.words.toLocaleString()} words` : 'Not written yet'}</span>
         </div>
         <textarea
@@ -184,8 +235,14 @@
   .card:focus-within {
     border-color: var(--structure);
   }
+  .card.over {
+    border-color: var(--structure);
+    box-shadow: inset 3px 0 0 var(--structure);
+  }
   .top {
     display: flex;
+    align-items: center;
+    gap: 8px;
     justify-content: space-between;
     font-family: var(--font-label);
     font-size: 11px;
@@ -193,6 +250,31 @@
   }
   .n {
     color: var(--structure);
+    cursor: grab;
+    user-select: none;
+  }
+  .move {
+    display: flex;
+    gap: 2px;
+    margin-right: auto;
+  }
+  .move button {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: none;
+    border: 1px solid transparent;
+    padding: 0;
+  }
+  .move button:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--rule-strong);
+  }
+  .move button:disabled {
+    opacity: 0.25;
+    cursor: default;
   }
   .title {
     font-family: var(--font-display);

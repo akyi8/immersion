@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
-import { archiveEntry, moveEntry, renameEntry, withAlias, withTitle } from './manage.ts';
+import { aliasesOf, archiveCategory, archiveEntry, moveEntry, renameCategory, renameEntry, withAlias, withAliases, withTitle } from './manage.ts';
 
 const entry = (id: string, name: string) => ({ id, name, aliases: [], category: 'people', body: '', summary: '', imagePath: null });
 
@@ -33,4 +33,23 @@ test('moving and archiving keep the file and its picture together', async () => 
   const archived = await archiveEntry(fs, entry(moved, 'Wren'), 'wiki');
   assert.equal(archived, 'wiki/archive/places/wren.md');
   assert.equal(await fs.exists('wiki/archive/places/wren.png'), true);
+});
+
+test('other names are read and written in the form the entry uses', () => {
+  const lined = '# Rook\n\n**Aliases:** Tomas, the Ledger\n\nA smuggler.\n';
+  assert.deepEqual(aliasesOf(lined), ['Tomas', 'the Ledger']);
+  assert.equal(withAliases(lined, ['Tomas']), '# Rook\n\n**Aliases:** Tomas\n\nA smuggler.\n');
+  assert.equal(withAliases(lined, []), '# Rook\n\nA smuggler.\n');
+  const yaml = withAliases('# Wren\n', ['Marta', 'Wren of the Narrows']);
+  assert.deepEqual(aliasesOf(yaml), ['Marta', 'Wren of the Narrows']);
+  assert.equal(withAliases(yaml, []), '# Wren\n');
+});
+
+test('categories are renamed and archived with everything in them', async () => {
+  const fs = new MemoryFs({ 'wiki/factions/synod.md': '# Synod\n', 'wiki/factions/synod.jpg': 'img' });
+  const renamed = await renameCategory(fs, 'wiki/factions', 'Powers');
+  assert.equal(renamed, 'wiki/powers');
+  assert.equal(await fs.exists('wiki/powers/synod.jpg'), true);
+  assert.equal(await archiveCategory(fs, renamed, 'wiki'), 'wiki/archive/powers');
+  assert.equal(await fs.exists('wiki/archive/powers/synod.md'), true);
 });

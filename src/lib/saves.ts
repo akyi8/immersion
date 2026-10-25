@@ -15,3 +15,8 @@ export function registerSaver(path: string, save: () => Promise<void>): () => vo
 export async function saveNow(path: string): Promise<void> {
   await savers.get(path)?.();
 }
+
+/** Saves every open editor whose file is inside `folder`, before the folder moves. */
+export async function saveAllUnder(folder: string): Promise<void> {
+  await Promise.all([...savers].filter(([path]) => path.startsWith(folder + '/')).map(([, save]) => save()));
+}

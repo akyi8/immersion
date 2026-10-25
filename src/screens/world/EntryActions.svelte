@@ -2,7 +2,7 @@
   import type { Entry, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
-  import { archiveEntry, moveEntry, renameEntry } from '../../lib/index/manage';
+  import { aliasesOf, archiveEntry, moveEntry, renameEntry, withAliases } from '../../lib/index/manage';
   import Dialog from '../shelf/Dialog.svelte';
   import { saveNow } from '../../lib/saves';
 
@@ -21,7 +21,9 @@
   } = $props();
 
   let open = $state(false);
-  let doing = $state<'rename' | 'move' | 'archive' | null>(null);
+  let doing = $state<'rename' | 'names' | 'move' | 'archive' | null>(null);
+  let names = $state<string[]>([]);
+  let newName = $state('');
   let name = $state('');
   let folder = $state('');
   let busy = $state(false);
@@ -30,12 +32,23 @@
   const here = $derived(entry.id.slice(0, entry.id.lastIndexOf('/')));
   const places = $derived([{ path: index.root.path, label: 'Uncategorized' }, ...index.root.folders.map((f) => ({ path: f.path, label: folderLabel(f.name) }))]);
 
-  function start(what: 'rename' | 'move' | 'archive') {
+  async function start(what: 'rename' | 'names' | 'move' | 'archive') {
     open = false;
     problem = '';
     name = entry.name;
     folder = here;
+    newName = '';
+    if (what === 'names') {
+      await saveNow(entry.id);
+      names = aliasesOf(await fs.readText(entry.id));
+    }
     doing = what;
+  }
+
+  function addName() {
+    const n = newName.trim();
+    if (n && !names.some((x) => x.toLowerCase() === n.toLowerCase())) names = [...names, n];
+    newName = '';
   }
 
   async function run() {
@@ -44,7 +57,10 @@
     try {
       const from = entry.id;
       await saveNow(from);
-      if (doing === 'rename') onMoved(from, await renameEntry(fs, entry, name));
+      if (doing === 'names') {
+        if (newName.trim()) addName();
+        await fs.writeText(from, withAliases(await fs.readText(from), names));
+      } else if (doing === 'rename') onMoved(from, await renameEntry(fs, entry, name));
       else if (doing === 'move') onMoved(from, await moveEntry(fs, entry, folder));
       else if (doing === 'archive') {
         await archiveEntry(fs, entry, index.root.path);
@@ -66,6 +82,7 @@
   {#if open}
     <div class="menu" role="menu">
       <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
+      <button type="button" role="menuitem" onclick={() => start('names')}>Other names</button>
       <button type="button" role="menuitem" onclick={() => start('move')}>Move to another category</button>
       <button type="button" role="menuitem" onclick={() => start('archive')}>Archive</button>
     </div>
@@ -78,6 +95,37 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input id="rename-name" type="text" bind:value={name} autofocus autocomplete="off" />
     <p class="hint">"{entry.name}" stays as another name for this entry, so everywhere you already wrote it still links here.</p>
+  </Dialog>
+{:else if doing === 'names'}
+  <Dialog title="Other names" action="Save" ready={true} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>
+    <p class="hint">Every one of these links to {entry.name} wherever you write it.</p>
+    <div class="chips">
+      {#each names as n}
+        <span class="name-chip">
+          {n}
+          <button type="button" aria-label="Remove {n}" onclick={() => (names = names.filter((x) => x !== n))}>
+            <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.6" /></svg>
+          </button>
+        </span>
+      {:else}
+        <span class="hint">No other names yet.</span>
+      {/each}
+    </div>
+    <label for="alias-new" class="label">Add a name</label>
+    <!-- svelte-ignore a11y_autofocus -->
+    <input
+      id="alias-new"
+      type="text"
+      bind:value={newName}
+      autofocus
+      autocomplete="off"
+      placeholder="A nickname, a title, an old name"
+      onkeydown={(e) => {
+        if (e.key === 'Enter' && newName.trim()) {
+          e.preventDefault();
+          addName();
+        }
+      }} />
   </Dialog>
 {:else if doing === 'move'}
   <Dialog title="Move" action="Move" ready={folder !== here} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>
@@ -153,6 +201,29 @@
     border: 1px solid var(--rule-strong);
     padding: 6px 12px;
     min-height: 36px;
+  }
+  .name-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text);
+    border: 1px solid var(--rule-strong);
+    padding: 4px 4px 4px 10px;
+  }
+  .name-chip button {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    padding: 0;
+    min-height: 0;
+  }
+  .name-chip button:hover {
+    color: var(--text);
   }
   .chips button.on {
     color: var(--structure-soft);
