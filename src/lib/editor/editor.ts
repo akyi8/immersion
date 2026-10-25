@@ -211,6 +211,28 @@ const theme = EditorView.theme(
       textTransform: 'uppercase',
       color: 'var(--structure)',
     },
+    '.cm-outline-fold': {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'baseline',
+      margin: '4px 0 2px',
+      padding: '6px 10px',
+      borderLeft: '2px solid var(--structure-deep)',
+      cursor: 'pointer',
+      color: 'var(--muted)',
+      fontSize: '14px',
+      lineHeight: '1.4',
+    },
+    '.cm-outline-fold:hover': { borderLeftColor: 'var(--structure)', color: 'var(--text-soft)' },
+    '.cm-outline-label': {
+      fontFamily: 'var(--font-label)',
+      fontSize: '11px',
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--structure)',
+      flexShrink: '0',
+    },
+    '.cm-outline-text': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: '0' },
     '.cm-properties': {
       fontFamily: 'var(--font-label)',
       fontSize: '11px',
@@ -234,6 +256,8 @@ export function createEditor(options: {
   onMention: (id: string) => void;
   /** Called with the cursor's position whenever it moves. */
   onCursor?: (pos: number) => void;
+  /** Called when a chapter's folded outline is clicked, with where its outline starts. */
+  onOutline?: (at: number) => void;
 }): EditorView {
   return new EditorView({
     parent: options.parent,
@@ -244,7 +268,7 @@ export function createEditor(options: {
         paragraphKeys,
         keymap.of([...defaultKeymap, ...historyKeymap]),
         markdown({ base: markdownLanguage }),
-        livePreview(options.title),
+        livePreview(options.title, options.onOutline ?? null),
         syntaxHighlighting(markdownStyle),
         EditorView.lineWrapping,
         paragraphGaps,
@@ -271,9 +295,13 @@ export function jumpTo(view: EditorView, pos: number) {
   let cursor = at;
   let line = doc.lineAt(at);
   if (/^#{1,6}\s/.test(line.text)) {
+    // Past blank lines and the chapter's folded outline, to the first line of prose.
+    let inOutline = false;
     while (line.number < doc.lines) {
       line = doc.line(line.number + 1);
-      if (line.text.trim() !== '') break;
+      if (/^>\s*\[!outline\]/i.test(line.text)) inOutline = true;
+      else if (inOutline && !/^>/.test(line.text)) inOutline = false;
+      if (line.text.trim() !== '' && !inOutline) break;
     }
     cursor = line.from;
   }

@@ -3,7 +3,8 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import { buildStoryIndex, titleFromName, type StoryIndex } from '../../lib/story/index';
+  import { buildStoryIndex, titleFromName, type Manuscript, type StoryIndex } from '../../lib/story/index';
+  import { fileSource, folderSource } from '../../lib/story/outlineSource';
   import { withHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
@@ -107,13 +108,14 @@
     }
   }
 
-  async function declareFolder(folder: string) {
+  /** Adds the next chapter to a manuscript and opens it there, ready for writing. */
+  async function addChapter(m: Manuscript) {
     problem = '';
-    const book = `${folder}/book.md`;
     try {
-      const text = (await fs.exists(book)) ? await fs.readText(book) : '';
-      await fs.writeText(book, withHeader(text, { manuscript: true, title: titleFromName(folder.split('/').pop() ?? folder) }));
+      const source = m.kind === 'file' ? fileSource(fs, m.path) : folderSource(fs, m);
+      const at = await source.add();
       await refresh();
+      openPiece(at.path, at.offset);
     } catch (e) {
       problem = String(e);
     }
@@ -168,7 +170,8 @@
         onOpen={() => {}}
         onCursor={(pos) => (cursor = { path: ui.drafting!, pos })}
         onDraft={() => {}}
-        onDeclare={declare} />
+        onDeclare={declare}
+        onOpenPiece={() => {}} />
     </div>
   </div>
 {:else}
@@ -180,7 +183,7 @@
       {cursor}
       onOpen={openPiece}
       onDeclare={declare}
-      onDeclareFolder={declareFolder}
+      onAddChapter={addChapter}
       onNew={(kind) => {
         creating = kind;
         problem = '';
@@ -202,7 +205,8 @@
               onOpen={(target) => nav.open(target, i)}
               onCursor={(pos) => (cursor = { path: id, pos })}
               onDraft={() => draft(id)}
-              onDeclare={declare} />
+              onDeclare={declare}
+              onOpenPiece={openPiece} />
           {/if}
         {/snippet}
       </Panes>

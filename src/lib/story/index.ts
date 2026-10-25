@@ -1,5 +1,6 @@
 import type { WorldFs } from '../fs/types';
 import { splitHeader } from '../world.ts';
+import { withoutOutlines } from './outline.ts';
 
 /**
  * The Story module's view of a world's stories folder (design: the binder and the
@@ -54,7 +55,7 @@ const ARCHIVE = /^(archive|old)$/i;
 /** Counts the words a reader would see, leaving out markdown marks, headers, and link addresses. */
 export function countWords(markdown: string): number {
   const { body } = splitHeader(markdown);
-  const text = body
+  const text = withoutOutlines(body)
     .replace(/\[!\w+\]/g, ' ')
     .replace(/\]\([^)]*\)/g, ' ')
     .replace(/[#>*_`~[\]|]/g, ' ');

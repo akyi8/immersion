@@ -16,8 +16,8 @@
     cursor,
     onOpen,
     onDeclare,
-    onDeclareFolder,
     onNew,
+    onAddChapter,
   }: {
     story: StoryIndex | null;
     activity: Activity | null;
@@ -26,8 +26,8 @@
     cursor: { path: string; pos: number } | null;
     onOpen: (path: string, offset?: number | null) => void;
     onDeclare: (path: string, manuscript: boolean) => void;
-    onDeclareFolder: (folder: string) => void;
     onNew: (kind: 'manuscript' | 'drawer') => void;
+    onAddChapter: (m: Manuscript) => void;
   } = $props();
 
   type DrawerMode = 'recent' | 'folders';
@@ -112,6 +112,7 @@
             <span>{s.title}</span><span class="n">{count(s.words)}</span>
           </button>
         {/each}
+        <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ Chapter</button>
       </div>
     {/if}
   {:else}
@@ -144,9 +145,6 @@
     {#each groups as [group, items]}
       <div class="group">
         <span>{group || 'Loose pieces'}</span>
-        {#if group}
-          <button type="button" class="add" onclick={() => onDeclareFolder(`${story!.root}/${group}`)} title="Make this folder one manuscript, with its files as chapters">Make manuscript</button>
-        {/if}
       </div>
       {#each items as item (item.path)}
         <div class="piece" class:current={open.includes(item.path)}>
@@ -245,6 +243,9 @@
     padding-left: 42px;
     font-size: 13px;
   }
+  .new-chapter {
+    color: var(--structure);
+  }
   .section.here {
     color: var(--text);
     box-shadow: inset 2px 0 0 var(--structure);
@@ -326,11 +327,6 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
-  }
-  .group .add {
-    text-transform: none;
-    letter-spacing: 0;
-    font-family: var(--font-body);
   }
   .hint {
     margin: 4px 18px 8px;
