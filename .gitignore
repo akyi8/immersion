@@ -6,3 +6,6 @@ src-tauri/gen/
 # The repo root ignores lockfiles; the build needs this one.
 !package-lock.json
 src/lib/sample/full.generated.json
+
+# Screenshots from testing never belong in the repository.
+/*.png
