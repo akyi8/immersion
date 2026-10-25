@@ -42,6 +42,10 @@ export class DiskFs implements WorldFs {
     return invoke('create_dir', { rel: path });
   }
 
+  move(from: string, to: string): Promise<void> {
+    return invoke('move_path', { from, to });
+  }
+
   writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null> {
     return invoke('writing_activity', { dir, days });
   }

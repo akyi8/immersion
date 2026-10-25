@@ -225,7 +225,11 @@
               {next}
               fresh={freshEntry === id}
               onOpen={(target) => nav.open(target, i)}
-              onMakeEntry={(name) => (makingEntry = { name, after: i })} />
+              onMakeEntry={(name) => (makingEntry = { name, after: i })}
+              onMoved={async (from, to) => {
+                await rebuild();
+                nav.replace(from, to);
+              }} />
           {:else}
             <ManuscriptPane
               {fs}

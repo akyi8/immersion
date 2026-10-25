@@ -480,6 +480,21 @@ fn create_dir(rel: String, state: State<OpenWorld>) -> Result<(), String> {
     fs::create_dir_all(&path).map_err(|e| format!("Could not create {rel}: {e}"))
 }
 
+/// Moves or renames a file or folder inside the world. Refuses to replace anything.
+#[tauri::command]
+fn move_path(from: String, to: String, state: State<OpenWorld>) -> Result<(), String> {
+    let root = root(&state)?;
+    let source = inside(&root, &from)?;
+    let target = inside(&root, &to)?;
+    if target.exists() {
+        return Err(format!("{to} already exists"));
+    }
+    if let Some(dir) = target.parent() {
+        fs::create_dir_all(dir).map_err(|e| format!("Could not create the folder for {to}: {e}"))?;
+    }
+    fs::rename(&source, &target).map_err(|e| format!("Could not move {from}: {e}"))
+}
+
 #[tauri::command]
 fn exists(rel: String, state: State<OpenWorld>) -> bool {
     root(&state)
@@ -566,6 +581,7 @@ pub fn run() {
             exists,
             write_text,
             create_dir,
+            move_path,
             shelf,
             forget_world,
             inspect_folder,

@@ -41,6 +41,12 @@
     return here ? here.slice(0, here.lastIndexOf('/')) : index.root.path;
   }
 
+  /** Keeps the open panes on an entry that was renamed, moved, or archived. */
+  async function moved(from: string, to: string | null) {
+    await rebuild();
+    nav.replace(from, to);
+  }
+
   async function create(name: string, folder: string): Promise<string | null> {
     try {
       if (creating?.kind === 'entry') {
@@ -79,7 +85,8 @@
           {next}
           fresh={fresh === id}
           onOpen={(target) => nav.open(target, i)}
-          onMakeEntry={(name) => (creating = { kind: 'entry', folder: likelyCategory(index), name, after: i })} />
+          onMakeEntry={(name) => (creating = { kind: 'entry', folder: likelyCategory(index), name, after: i })}
+          onMoved={moved} />
       {/snippet}
     </Panes>
   {:else}

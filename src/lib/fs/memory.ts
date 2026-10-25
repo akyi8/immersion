@@ -62,6 +62,19 @@ export class MemoryFs implements WorldFs {
     this.notify([normalize(path)]);
   }
 
+  async move(from: string, to: string): Promise<void> {
+    const a = normalize(from);
+    const b = normalize(to);
+    if (await this.exists(b)) throw new Error(`${to} already exists`);
+    for (const key of Object.keys(this.files)) {
+      if (key === a || key.startsWith(a + '/')) {
+        this.files[b + key.slice(a.length)] = this.files[key];
+        delete this.files[key];
+      }
+    }
+    this.notify([a, b]);
+  }
+
   async setImage(stem: string, image: ImageSource): Promise<string> {
     if (image.kind !== 'file') throw new Error('A browser takes pictures as files.');
     const ext = imageExtension(image.file.name);

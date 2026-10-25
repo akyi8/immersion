@@ -4,6 +4,7 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import { createEditor, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
+  import { registerSaver } from '../../lib/saves';
 
   let {
     fs,
@@ -118,6 +119,7 @@
   }
 
   let stopWatching = () => {};
+  let unregister = () => {};
   onMount(async () => {
     try {
       lastSaved = await fs.readText(id);
@@ -145,6 +147,7 @@
       view.dispatch({ selection: { anchor: view.state.doc.length } });
     }
     stopWatching = fs.onChange(changedElsewhere);
+    unregister = registerSaver(id, save);
   });
 
   // A rebuilt index brings new names, and a new pane to the right moves the marked name,
@@ -162,6 +165,7 @@
 
   onDestroy(() => {
     stopWatching();
+    unregister();
     void save();
     view?.destroy();
   });
