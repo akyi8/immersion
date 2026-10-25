@@ -11,6 +11,7 @@
   import ThemeEditor from '../ThemeEditor.svelte';
   import type { Mode, ThemeSpec } from '../../lib/theme';
   import ModeToggle from '../ModeToggle.svelte';
+  import UpdateButton from '../UpdateButton.svelte';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -100,6 +101,7 @@
     <h1>Worlds</h1>
     <div class="corner">
       {#if version}<div class="label">Immersion {version}</div>{/if}
+      <UpdateButton />
       <ModeToggle />
     </div>
   </header>

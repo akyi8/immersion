@@ -37,7 +37,7 @@ export class DiskLibrary implements Library {
 
   async open(path: string): Promise<WorldFs> {
     await invoke('open_world', { path });
-    return new DiskFs();
+    return new DiskFs(path);
   }
 
   close(): Promise<void> {

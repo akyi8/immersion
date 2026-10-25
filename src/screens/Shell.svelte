@@ -9,8 +9,7 @@
   import { ui } from '../lib/ui.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
   import ModeToggle from './ModeToggle.svelte';
-  import { findUpdate, installUpdate } from '../lib/updates';
-  import type { Update } from '@tauri-apps/plugin-updater';
+  import UpdateButton from './UpdateButton.svelte';
 
   let {
     index,
@@ -40,21 +39,6 @@
     if (nav.current.module !== 'story') ui.drafting = null;
   });
 
-  // A newer build, if GitHub has one. Checked once at startup.
-  let update = $state<Update | null>(null);
-  let updating = $state(false);
-  let updateError = $state('');
-  async function runUpdate() {
-    if (!update) return;
-    updating = true;
-    updateError = '';
-    try {
-      await installUpdate(update);
-    } catch (e) {
-      updateError = String(e);
-      updating = false;
-    }
-  }
 
   function savedView(): View {
     try {
@@ -87,7 +71,6 @@
   };
 
   onMount(() => {
-    findUpdate().then((u) => (update = u));
     // Back and forward from the keyboard and from the mouse's side buttons.
     const onKey = (e: KeyboardEvent) => {
       const back = (e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
@@ -144,11 +127,7 @@
       </nav>
     </div>
     <div class="right">
-      {#if update}
-        <button type="button" class="update" disabled={updating} title={updateError || `Install Immersion ${update.version}`} onclick={runUpdate}>
-          {updating ? 'Updating…' : updateError ? 'Update failed, retry' : `Update to ${update.version}`}
-        </button>
-      {/if}
+      <UpdateButton />
       {#if nav.current.module === 'world'}
         <div class="toggle" role="group" aria-label="Wiki view">
           <button type="button" class:on={view === 'narrator'} aria-pressed={view === 'narrator'} onclick={() => setView('narrator')}>Narrator</button>
@@ -260,19 +239,6 @@
   .toggle button.on {
     color: var(--selected-fg);
     background: var(--selected-bg);
-  }
-  .update {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent-ink);
-    background: var(--accent);
-    border: 0;
-    padding: 9px 14px;
-    min-height: 40px;
-  }
-  .update:disabled {
-    opacity: 0.7;
-    cursor: default;
   }
   .quiet {
     font-size: 13px;

@@ -6,6 +6,19 @@ import type { DirEntry, ImageSource, WorldFs } from './types';
 export class DiskFs implements WorldFs {
   readonly kind = 'disk' as const;
 
+  /**
+   * Every world's pictures are served at the same addresses, such as `world.png`, so
+   * each address also names its world. Otherwise the webview can show a picture it
+   * cached from the world opened before (Mike, October 25).
+   */
+  private worldTag: string;
+
+  constructor(worldPath: string) {
+    let hash = 0;
+    for (const ch of worldPath) hash = (Math.imul(hash, 31) + ch.charCodeAt(0)) | 0;
+    this.worldTag = (hash >>> 0).toString(36);
+  }
+
   readText(path: string): Promise<string> {
     return invoke<string>('read_text', { rel: path });
   }
@@ -24,7 +37,7 @@ export class DiskFs implements WorldFs {
   imageUrl(path: string): string {
     // The backend serves the open world's files on the `world` scheme.
     const url = convertFileSrc(path.replace(/\\/g, '/'), 'world');
-    return this.imageVersion ? `${url}?v=${this.imageVersion}` : url;
+    return `${url}?w=${this.worldTag}${this.imageVersion ? `&v=${this.imageVersion}` : ''}`;
   }
 
   async setImage(stem: string, image: ImageSource): Promise<string> {
