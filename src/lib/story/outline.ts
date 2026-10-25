@@ -117,8 +117,9 @@ export function addChapter(text: string, title: string): { text: string; offset:
   const after = numbered.at(-1);
   const next = after ? chapters[chapters.indexOf(after) + 1] : undefined;
   if (next) {
+    // An empty line between blank lines gives the new chapter somewhere to type.
     const before = text.slice(0, next.offset).replace(/\s*$/, '');
-    const inserted = `${before}\n\n${heading}\n\n`;
+    const inserted = `${before}\n\n${heading}\n\n\n\n`;
     return { text: inserted + text.slice(next.offset), offset: before.length + 2 };
   }
   const before = text.replace(/\s*$/, '');
