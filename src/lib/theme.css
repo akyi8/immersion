@@ -84,8 +84,9 @@
   --shadow: rgb(40 30 20 / 0.18);
   --scrim: rgb(40 30 20 / 0.35);
 
-  /* On a pale page, names sit a little darker than the highlight instead of paler. */
-  --name: color-mix(in oklab, var(--accent) 85%, black);
+  /* On a pale page too, names sit a little lighter than the highlight, so a deep
+     highlight such as navy still reads as a name and not as ink (Mike, October 25). */
+  --name: color-mix(in oklab, var(--accent) 80%, white);
   --selected-bg: color-mix(in srgb, var(--accent) 10%, var(--bg));
 
   --font-display: 'Playfair Display', serif;
