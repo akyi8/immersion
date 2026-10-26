@@ -99,7 +99,7 @@
 
   /** Every piece of writing the stories folder holds, which panes may show. */
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
-  // A series board opens as a pane of its own, named by its series (Mike, October 25).
+  // A series board opens in Boards (Mike, October 26); one left open here from before still shows.
   const SERIES = '@series:';
   const row = $derived(nav.panes.filter((id) => id.startsWith(SERIES) || index.get(id) || pieces.has(id)));
 
@@ -277,7 +277,7 @@
       } else {
         await newManuscript(fs, dir, newName, defaults, { name: seriesName, number: 1 });
         await refresh();
-        nav.open(SERIES + seriesName.trim());
+        nav.openIn('boards', SERIES + seriesName.trim());
       }
       creating = null;
       newName = '';
@@ -349,7 +349,7 @@
         problem = '';
       }}
       onMakeManuscript={startMaking}
-      onSeries={(name) => nav.open(SERIES + name)} />
+      onSeries={(name) => nav.openIn('boards', SERIES + name)} />
     {/if}
     {#if row.length}
       <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats}>
@@ -393,7 +393,7 @@
               onMakeEntry={(name) => (makingEntry = { name, after: i })}
               onMoved={followed}
               onWindow={() => toWindow(id)}
-              onSeries={(name) => nav.open(SERIES + name, i)}
+              onSeries={(name) => nav.openIn('boards', SERIES + name)}
               onMakeManuscript={startMaking}
               {defaults}
               onDefaults={readDefaults} />

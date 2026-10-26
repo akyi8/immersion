@@ -13,6 +13,7 @@
   import ManuscriptPane from './story/ManuscriptPane.svelte';
   import TimelineView from './world/TimelineView.svelte';
   import SeriesPane from './story/SeriesPane.svelte';
+  import ManuscriptBoard from './boards/ManuscriptBoard.svelte';
 
   /**
    * A reading window (Jen and Mike, October 25): one page and nothing else, so it can sit
@@ -55,11 +56,14 @@
   });
 
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
-  const row = $derived(nav.panes.filter((p) => p === '@timeline' || p.startsWith('@series:') || index?.get(p) || pieces.has(p)));
+  const boardOf = (p: string) => (p.startsWith('@board:') ? (story?.manuscripts.find((m) => m.path === p.slice('@board:'.length)) ?? null) : null);
+  const row = $derived(nav.panes.filter((p) => p === '@timeline' || p.startsWith('@series:') || boardOf(p) || index?.get(p) || pieces.has(p)));
 
   function label(p: string): string {
     if (p === '@timeline') return 'Timeline';
     if (p.startsWith('@series:')) return p.slice('@series:'.length);
+    const board = boardOf(p);
+    if (board) return board.title;
     const entry = index?.get(p);
     if (entry) return entry.name;
     for (const m of story?.manuscripts ?? []) {
@@ -95,6 +99,8 @@
       {#snippet pane(p, i, next)}
         {#if p.startsWith('@series:') && world}
           <SeriesPane {fs} root={world.storiesDir} series={p.slice('@series:'.length)} onOpenBook={(book) => nav.open(book, i)} onChanged={load} />
+        {:else if boardOf(p)}
+          <ManuscriptBoard {fs} manuscript={boardOf(p)!} onWrite={(path) => nav.open(path, i)} />
         {:else if p === '@timeline'}
           <TimelineView index={index!} {fs} rebuild={load} onOpen={(target) => nav.open(target, i)} />
         {:else if index!.get(p)}

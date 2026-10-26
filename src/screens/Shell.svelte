@@ -9,6 +9,7 @@
   import { ui } from '../lib/ui.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
   import SyncStatus from './SyncStatus.svelte';
+  import BoardsModule from './boards/BoardsModule.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import UpdateButton from './UpdateButton.svelte';
 
@@ -67,6 +68,7 @@
     ['character', 'Character'],
     ['play', 'Play'],
     ['world', 'World'],
+    ['boards', 'Boards'],
     ['story', 'Story'],
   ];
   const COMING: Record<Module, string> = {
@@ -74,6 +76,7 @@
     play: 'Play is built after World and Story.',
     story: '',
     world: '',
+    boards: '',
   };
 
   onMount(() => {
@@ -154,6 +157,12 @@
   {#if nav.current.module === 'world'}
     {#if index}
       <WorldModule {index} {fs} {nav} {view} {worldName} {rebuild} />
+    {:else}
+      <div class="waiting">Reading the world…</div>
+    {/if}
+  {:else if nav.current.module === 'boards'}
+    {#if index}
+      <BoardsModule {index} {fs} {nav} {worldName} {storiesDir} {rebuild} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}

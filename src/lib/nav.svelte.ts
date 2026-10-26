@@ -5,7 +5,7 @@
  * entries opened from it in Story. Every change to a row is one step of history, so
  * Back after following a name closes the pane it opened.
  */
-export type Module = 'character' | 'play' | 'world' | 'story';
+export type Module = 'character' | 'play' | 'world' | 'boards' | 'story';
 
 export interface Location {
   module: Module;
@@ -45,6 +45,17 @@ export class Navigator {
   /** Shows a module, with whatever was open in it before. */
   show(module: Module) {
     this.push({ ...this.current, module });
+  }
+
+  /**
+   * Shows another module with something opened in it, as one step of history, such as a
+   * timeline opened from the World home page in Boards (Mike, October 26).
+   */
+  openIn(module: Module, id: string) {
+    const row = this.current.rows[module] ?? [];
+    const rows = { ...this.current.rows, [module]: row.includes(id) ? row : [...row, id] };
+    this.push({ module, rows });
+    if (row.includes(id)) this.reveal = { id, at: Date.now() };
   }
 
   /** Replaces the row of panes in the module on screen. */
