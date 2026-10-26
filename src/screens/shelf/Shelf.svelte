@@ -13,6 +13,7 @@
   import ModeToggle from '../ModeToggle.svelte';
   import UpdateButton from '../UpdateButton.svelte';
   import { account } from '../../lib/account.svelte';
+  import { ui } from '../../lib/ui.svelte';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -124,6 +125,9 @@
       {#if version}<div class="label">Immersion {version}</div>{/if}
       <UpdateButton />
       <ModeToggle />
+      <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="M8 1.2 V3 M8 13 V14.8 M1.2 8 H3 M13 8 H14.8 M3.2 3.2 L4.5 4.5 M11.5 11.5 L12.8 12.8 M3.2 12.8 L4.5 11.5 M11.5 4.5 L12.8 3.2" stroke="currentColor" stroke-width="1.4" /></svg>
+    </button>
     </div>
   </header>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -217,6 +221,18 @@
 {/if}
 
 <style>
+  .gear {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--rule-strong);
+  }
+  .gear:hover {
+    color: var(--text);
+  }
   .corner {
     margin-left: auto;
     display: flex;

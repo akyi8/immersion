@@ -15,6 +15,9 @@
   import Reader from './screens/Reader.svelte';
   import { readerPage, setWindowWorld } from './lib/windows';
   import { account } from './lib/account.svelte';
+  import { ui } from './lib/ui.svelte';
+  import { splitHeader } from './lib/world';
+  import Settings from './screens/Settings.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -70,8 +73,10 @@
     });
   }
 
+  let openPath = $state('');
   async function open(path: string) {
     if (!library) return;
+    openPath = path;
     setWindowWorld(path);
     try {
       await enter(await library.open(path));
@@ -88,6 +93,24 @@
     world = null;
     phase = 'shelf';
   }
+
+  // Settings shows the open world's author details, so they can become a profile.
+  let settingsWorld = $state<{ name: string; path: string; author: string; copyright: string } | null>(null);
+  $effect(() => {
+    if (!ui.settings) return;
+    const source = fs;
+    const w = world;
+    const path = openPath;
+    if (!source || !w || phase === 'shelf') {
+      settingsWorld = null;
+      return;
+    }
+    source.readText('world.md').then((text) => {
+      const { header } = splitHeader(text);
+      const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+      settingsWorld = { name: w.name, path, author: str(header.author), copyright: str(header.copyright) };
+    });
+  });
 
   // The theme panel for the open world, with the text of its world.md.
   let themeFor = $state<string | null>(null);
@@ -131,6 +154,7 @@
     if (last) {
       try {
         setWindowWorld(last);
+        openPath = last;
         await enter(await library.open(last));
         return;
       } catch {
@@ -184,6 +208,10 @@
   {/if}
 {:else if phase === 'error'}
   <main class="problem" role="alert">{problem}</main>
+{/if}
+
+{#if ui.settings && phase !== 'reader'}
+  <Settings world={phase === 'shelf' ? null : settingsWorld} onTheme={editTheme} />
 {/if}
 
 <ContextMenu />

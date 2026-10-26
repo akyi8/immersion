@@ -137,6 +137,9 @@
         </div>
       {/if}
       <ModeToggle />
+      <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="M8 1.2 V3 M8 13 V14.8 M1.2 8 H3 M13 8 H14.8 M3.2 3.2 L4.5 4.5 M11.5 11.5 L12.8 12.8 M3.2 12.8 L4.5 11.5 M11.5 4.5 L12.8 3.2" stroke="currentColor" stroke-width="1.4" /></svg>
+      </button>
       <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
   </header>
@@ -160,6 +163,18 @@
 </div>
 
 <style>
+  .gear {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--rule-strong);
+  }
+  .gear:hover {
+    color: var(--text);
+  }
   .shell {
     height: 100%;
     display: flex;

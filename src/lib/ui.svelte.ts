@@ -6,6 +6,8 @@
 class Ui {
   /** The document shown full screen, or null. */
   full = $state<string | null>(null);
+  /** The Settings tab that is open, or null when Settings is closed (Mike, October 26). */
+  settings = $state<'you' | 'world' | 'computer' | null>(null);
 }
 
 export const ui = new Ui();
