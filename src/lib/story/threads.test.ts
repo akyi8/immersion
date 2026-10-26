@@ -67,3 +67,28 @@ test('a manuscript folder keeps its threads in book.md and its beats in each cha
   assert.equal(await fs.readText('stories/w/02-chapter-2.md'), '# Chapter 2\n\n> [!outline]- Viking\n> He lies.\n\nLater.\n');
   assert.deepEqual((await source.load()).map((c) => c.beats), [{ '': 'The wreck.' }, { Viking: 'He lies.' }]);
 });
+
+test('a series board orders books by number and keeps series beats in each book.md', async () => {
+  const fs = new MemoryFs({
+    'world.md': '---\nname: W\n---\n# W\n',
+    'stories/the-wreckage/book.md': '---\nseries: Cerys Cross Chronicles\nnumber: 2\nauthor: Cerys Cross\n---\n\n# The Wreckage\n',
+    'stories/the-wreckage/01-chapter-1.md': '# Chapter 1\n',
+    'stories/finished/the-road-south/book.md': '---\nseries: Cerys Cross Chronicles\nnumber: 1\n---\n\n# The Road South\n',
+    'stories/finished/the-road-south/01-chapter-1.md': '# Chapter 1\n',
+    'stories/other/book.md': '# Another Story\n',
+  });
+  const { seriesSource } = await import('./outlineSource.ts');
+  const source = seriesSource(fs, 'stories', 'Cerys Cross Chronicles');
+  assert.deepEqual((await source.load()).map((c) => c.title), ['The Road South', 'The Wreckage']);
+  await source.addThread("Cerys's arc");
+  await source.setBeat(1, "Cerys's arc", 'She learns what Viking does.');
+  assert.match(await fs.readText('stories/the-wreckage/book.md'), /# The Wreckage\n\n> \[!outline\]- Cerys's arc\n> She learns what Viking does\.\n/);
+  assert.match(await fs.readText('world.md'), /series_threads:\n {2}Cerys Cross Chronicles:\n {4}- Main plot\n {4}- Cerys's arc/);
+  await source.move(1, 0);
+  assert.deepEqual((await source.load()).map((c) => c.title), ['The Wreckage', 'The Road South']);
+  const added = await source.add();
+  assert.equal(added.path, 'stories/story-3/book.md');
+  const made = await fs.readText(added.path);
+  assert.match(made, /series: Cerys Cross Chronicles\nnumber: 3/);
+  assert.match(made, /author: Cerys Cross/);
+});

@@ -17,6 +17,7 @@
     defaults,
     onMoved,
     onDefaults,
+    onSeries,
   }: {
     fs: WorldFs;
     /** The manuscript's `book.md`. */
@@ -28,6 +29,8 @@
     onMoved: (from: string, to: string) => void;
     /** Called after the world's defaults change. */
     onDefaults: () => void;
+    /** Opens the board of the series this book belongs to. */
+    onSeries?: (series: string) => void;
   } = $props();
 
   let page = $state<TitlePage | null>(null);
@@ -95,7 +98,12 @@
     {#if page.copyright || page.year}
       <p class="copyright">Copyright © {[page.year, page.copyright].filter(Boolean).join(' ')}<br />All rights reserved.</p>
     {/if}
-    <button type="button" class="edit" onclick={edit}>Edit title page</button>
+    <div class="buttons">
+      <button type="button" class="edit" onclick={edit}>Edit title page</button>
+      {#if page.series.trim() && onSeries}
+        <button type="button" class="edit" onclick={() => onSeries(page!.series.trim())}>The {page.series.trim().replace(/^the\s+/i, '')} board</button>
+      {/if}
+    </div>
   </section>
 {:else if editing}
   <form class="form" aria-label="Title page" onsubmit={save}>
@@ -189,8 +197,14 @@
     line-height: 1.6;
     color: var(--muted);
   }
-  .edit {
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
     margin-top: 28px;
+  }
+  .edit {
     font-size: 13px;
     color: var(--structure);
     background: none;

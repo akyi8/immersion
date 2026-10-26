@@ -14,9 +14,22 @@ export interface Thread {
 
 export const MAIN_THREAD = 'Main plot';
 
-export function threadsFrom(headerText: string, found: Iterable<string>): Thread[] {
+/** The thread names listed in a header's `threads:`, or an empty list. */
+export function listedThreads(headerText: string): string[] {
   const { header } = splitHeader(headerText);
-  const listed = Array.isArray(header.threads) ? header.threads.filter((t): t is string => typeof t === 'string' && !!t.trim()).map((t) => t.trim()) : [];
+  return namesIn(header.threads);
+}
+
+export function namesIn(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((t): t is string => typeof t === 'string' && !!t.trim()).map((t) => t.trim()) : [];
+}
+
+export function threadsFrom(headerText: string, found: Iterable<string>): Thread[] {
+  return threadsFromNames(listedThreads(headerText), found);
+}
+
+/** The full thread list from the names kept in order and the thread keys found in the beats. */
+export function threadsFromNames(listed: string[], found: Iterable<string>): Thread[] {
   const main = listed[0] ?? MAIN_THREAD;
   const others = listed.slice(1);
   for (const key of found) if (key && !others.includes(key)) others.push(key);

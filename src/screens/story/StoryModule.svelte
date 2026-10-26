@@ -19,6 +19,7 @@
   import CreateDialog from '../world/CreateDialog.svelte';
   import { createEntry, likelyCategory } from '../../lib/index/create';
   import Heatmap from './Heatmap.svelte';
+  import SeriesPane from './SeriesPane.svelte';
   import type { Activity } from '../../lib/story/activity';
 
   /**
@@ -96,9 +97,12 @@
 
   /** Every piece of writing the stories folder holds, which panes may show. */
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
-  const row = $derived(nav.panes.filter((id) => index.get(id) || pieces.has(id)));
+  // A series board opens as a pane of its own, named by its series (Mike, October 25).
+  const SERIES = '@series:';
+  const row = $derived(nav.panes.filter((id) => id.startsWith(SERIES) || index.get(id) || pieces.has(id)));
 
   function label(id: string): string {
+    if (id.startsWith(SERIES)) return id.slice(SERIES.length);
     const entry = index.get(id);
     if (entry) return entry.name;
     const m = story?.manuscripts.find((x) => x.path === id || x.book === id);
@@ -325,7 +329,14 @@
     {#if row.length}
       <Panes {nav} ids={row} {label} onWindow={toWindow}>
         {#snippet pane(id, i, next)}
-          {#if index.get(id)}
+          {#if id.startsWith(SERIES)}
+            <SeriesPane
+              {fs}
+              root={storiesDir}
+              series={id.slice(SERIES.length)}
+              onOpenBook={(book) => nav.open(book, i)}
+              onChanged={refresh} />
+          {:else if index.get(id)}
             <EntryView
               {index}
               {fs}
@@ -357,6 +368,7 @@
               onMakeEntry={(name) => (makingEntry = { name, after: i })}
               onMoved={followed}
               onWindow={() => toWindow(id)}
+              onSeries={(name) => nav.open(SERIES + name, i)}
               {defaults}
               onDefaults={readDefaults} />
           {/if}

@@ -2,7 +2,12 @@ import type { WorldFs } from '../fs/types';
 import { slugify } from '../slug.ts';
 import { countWords, type Manuscript } from './index.ts';
 import { addChapter, fileTitle, moveChapter, nextChapterTitle, readOutline, removeThreadIn, renameChapter, renameThreadIn, setBeat, setOutline, type Beat } from './outline.ts';
-import { threadsFrom, withThreads, type Thread } from './threads.ts';
+import { MAIN_THREAD, threadsFromNames, listedThreads, withThreads, type Thread } from './threads.ts';
+import { splitHeader, withHeader } from '../world.ts';
+import { buildStoryIndex } from './index.ts';
+import { readTitlePage, withTitlePage } from './book.ts';
+import { newManuscript, renamePiece } from './manage.ts';
+import { namesIn } from './threads.ts';
 
 /** One card in outline view: a chapter, its outline, and where it is written. */
 export interface Card {
@@ -43,18 +48,35 @@ export interface OutlineSource {
 
 const beatMap = (beats: Beat[]) => Object.fromEntries(beats.map((b) => [b.thread, b.text]));
 
+/** Where a board keeps the order and names of its threads. */
+interface ThreadList {
+  read(): Promise<string[]>;
+  write(threads: Thread[]): Promise<void>;
+}
+
+/** A thread list kept as `threads:` in the header of one file. */
+function headerList(fs: WorldFs, header: () => Promise<{ path: string; text: string }>): ThreadList {
+  return {
+    async read() {
+      return listedThreads((await header()).text);
+    },
+    async write(threads) {
+      const h = await header();
+      await fs.writeText(h.path, withThreads(h.text, threads));
+    },
+  };
+}
+
 /**
- * The thread operations every manuscript shares. `header` is the file whose header keeps
- * the thread list, `texts` lists the files that hold chapters, and `found` reads the
- * thread keys used in those files.
+ * The thread operations every board shares. `store` keeps the thread list, `texts`
+ * lists the files that hold beats, and `found` reads the thread keys used in them.
  */
-function threadOps(fs: WorldFs, header: () => Promise<{ path: string; text: string }>, texts: () => string[], found: () => Promise<string[]>) {
+function threadOps(fs: WorldFs, store: ThreadList, texts: () => string[] | Promise<string[]>, found: () => Promise<string[]>) {
   async function list(): Promise<Thread[]> {
-    return threadsFrom((await header()).text, await found());
+    return threadsFromNames(await store.read(), await found());
   }
   async function save(threads: Thread[]) {
-    const h = await header();
-    await fs.writeText(h.path, withThreads(h.text, threads));
+    await store.write(threads);
   }
   function clean(name: string): string {
     const n = name.replace(/\s+/g, ' ').trim();
@@ -62,7 +84,7 @@ function threadOps(fs: WorldFs, header: () => Promise<{ path: string; text: stri
     return n;
   }
   async function rewrite(change: (text: string) => string) {
-    for (const path of texts()) {
+    for (const path of await texts()) {
       const text = await fs.readText(path);
       const next = change(text);
       if (next !== text) await fs.writeText(path, next);
@@ -141,7 +163,7 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
     },
     ...threadOps(
       fs,
-      async () => ({ path, text: await fs.readText(path) }),
+      headerList(fs, async () => ({ path, text: await fs.readText(path) })),
       () => [path],
       async () => readOutline(await fs.readText(path)).flatMap((c) => c.beats.map((b) => b.thread)),
     ),
@@ -232,10 +254,10 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
     },
     ...threadOps(
       fs,
-      async () => {
+      headerList(fs, async () => {
         const path = `${manuscript.path}/book.md`;
         return { path, text: (await fs.exists(path)) ? await fs.readText(path) : `# ${manuscript.title}\n` };
-      },
+      }),
       () => files,
       async () => {
         const keys: string[] = [];
@@ -244,4 +266,108 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       },
     ),
   };
+}
+
+/**
+ * A series board (Mike, October 25): the books of one series along When, in the order
+ * their title pages number them, with series threads alongside. A book's beat on a
+ * series thread is kept in its `book.md`, under the book's title, the way a chapter's
+ * beats sit under its heading. The world's `world.md` keeps each series' thread order.
+ */
+export function seriesSource(fs: WorldFs, root: string, series: string): OutlineSource {
+  async function books() {
+    const index = await buildStoryIndex(fs, root);
+    const found: { m: Manuscript; book: string; text: string; page: ReturnType<typeof readTitlePage> }[] = [];
+    for (const m of index.manuscripts) {
+      if (!m.book) continue;
+      const text = await fs.readText(m.book);
+      const page = readTitlePage(text, m.title);
+      if (page.series.trim().toLowerCase() === series.trim().toLowerCase()) found.push({ m, book: m.book, text, page });
+    }
+    return found.sort((a, b) => (a.page.number ?? 1e9) - (b.page.number ?? 1e9) || a.page.title.localeCompare(b.page.title));
+  }
+  async function at(i: number) {
+    const list = await books();
+    if (!list[i]) throw new Error('That book is gone. The board has been reloaded.');
+    return { list, b: list[i] };
+  }
+  /** Writes the series order into each book's number. */
+  async function renumber(order: { book: string; text: string; page: ReturnType<typeof readTitlePage> }[]) {
+    for (const [n, b] of order.entries()) if (b.page.number !== n + 1) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, number: n + 1 }));
+  }
+  const store: ThreadList = {
+    async read() {
+      const { header } = splitHeader(await fs.readText('world.md'));
+      const all = header.series_threads && typeof header.series_threads === 'object' ? (header.series_threads as Record<string, unknown>) : {};
+      return namesIn(all[series]);
+    },
+    async write(threads) {
+      const text = await fs.readText('world.md');
+      const { header } = splitHeader(text);
+      const all = { ...(header.series_threads && typeof header.series_threads === 'object' ? (header.series_threads as Record<string, unknown>) : {}) };
+      if (threads.length === 1 && threads[0].name === MAIN_THREAD) delete all[series];
+      else all[series] = threads.map((t) => t.name);
+      await fs.writeText('world.md', withHeader(text, { series_threads: Object.keys(all).length ? all : undefined }));
+    },
+  };
+  return {
+    async load() {
+      return (await books()).map(({ m, text, page }) => {
+        const head = fileTitle(splitHeader(text).body);
+        return { title: page.title, outline: head?.outline ?? '', beats: beatMap(head?.beats ?? []), words: m.words, path: m.book!, offset: null };
+      });
+    },
+    async setOutline(i, outline) {
+      const { b } = await at(i);
+      await fs.writeText(b.book, setBeatUnderTitle(b.text, '', outline));
+    },
+    async setBeat(i, thread, beat) {
+      const { b } = await at(i);
+      await fs.writeText(b.book, setBeatUnderTitle(b.text, thread, beat));
+    },
+    async rename(i, title) {
+      const { b } = await at(i);
+      await renamePiece(fs, b.m.path, title);
+    },
+    async add() {
+      const list = await books();
+      // A new book takes its author and copyright from the latest book that has them.
+      const last = [...list].reverse().find((b) => b.page.author || b.page.copyright)?.page ?? list[list.length - 1]?.page;
+      const word = list[list.length - 1]?.page.seriesWord || 'Story';
+      let n = list.length + 1;
+      let title = `${word} ${n}`;
+      while (await fs.exists(`${root}/${slugify(title)}`)) title = `${word} ${++n}`;
+      const made = await newManuscript(fs, root, title, { author: last?.author, copyright: last?.copyright });
+      const book = `${made.folder}/book.md`;
+      const page = readTitlePage(await fs.readText(book), title);
+      await fs.writeText(book, withTitlePage(await fs.readText(book), { ...page, series, number: list.length + 1, seriesWord: word, year: last?.year ?? page.year }));
+      return { path: book, offset: null };
+    },
+    async move(from, to) {
+      const list = await books();
+      if (from === to || !list[from] || to < 0 || to >= list.length) return;
+      const [moved] = list.splice(from, 1);
+      list.splice(to, 0, moved);
+      await renumber(list);
+    },
+    ...threadOps(
+      fs,
+      store,
+      async () => (await books()).map((b) => b.book),
+      async () => {
+        const keys: string[] = [];
+        for (const b of await books()) keys.push(...(fileTitle(splitHeader(b.text).body)?.beats.map((x) => x.thread) ?? []));
+        return keys;
+      },
+    ),
+  };
+}
+
+/** Sets a beat under a `book.md`'s title heading, keeping its header. */
+function setBeatUnderTitle(text: string, thread: string, beat: string): string {
+  const { body } = splitHeader(text);
+  const head = text.slice(0, text.length - body.length);
+  const title = fileTitle(body);
+  if (!title) throw new Error('This book has no title heading to keep its series beats under.');
+  return head + setBeat(body, title.offset, thread, beat);
 }

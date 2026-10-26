@@ -12,6 +12,7 @@
   import EntryView from './world/EntryView.svelte';
   import ManuscriptPane from './story/ManuscriptPane.svelte';
   import TimelineView from './world/TimelineView.svelte';
+  import SeriesPane from './story/SeriesPane.svelte';
 
   /**
    * A reading window (Jen and Mike, October 25): one page and nothing else, so it can sit
@@ -54,10 +55,11 @@
   });
 
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
-  const row = $derived(nav.panes.filter((p) => p === '@timeline' || index?.get(p) || pieces.has(p)));
+  const row = $derived(nav.panes.filter((p) => p === '@timeline' || p.startsWith('@series:') || index?.get(p) || pieces.has(p)));
 
   function label(p: string): string {
     if (p === '@timeline') return 'Timeline';
+    if (p.startsWith('@series:')) return p.slice('@series:'.length);
     const entry = index?.get(p);
     if (entry) return entry.name;
     for (const m of story?.manuscripts ?? []) {
@@ -91,7 +93,9 @@
   {#if index && row.length}
     <Panes {nav} ids={row} {label}>
       {#snippet pane(p, i, next)}
-        {#if p === '@timeline'}
+        {#if p.startsWith('@series:') && world}
+          <SeriesPane {fs} root={world.storiesDir} series={p.slice('@series:'.length)} onOpenBook={(book) => nav.open(book, i)} onChanged={load} />
+        {:else if p === '@timeline'}
           <TimelineView index={index!} {fs} rebuild={load} onOpen={(target) => nav.open(target, i)} />
         {:else if index!.get(p)}
           <EntryView index={index!} {fs} id={p} {view} {next} fresh={false} onOpen={(target) => nav.open(target, i)} />

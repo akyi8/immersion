@@ -19,6 +19,7 @@
     focus = null,
     onWrite,
     onAdded,
+    unit = 'chapter',
   }: {
     fs: WorldFs;
     source: OutlineSource;
@@ -27,7 +28,12 @@
     /** Opens a chapter in the writing view. */
     onWrite: (card: Card) => void;
     onAdded: (at: { path: string; offset: number | null }) => void;
+    /** What runs along When: a manuscript's chapters, or a series' books. */
+    unit?: 'chapter' | 'book';
   } = $props();
+
+  const Unit = $derived(unit === 'book' ? 'Book' : 'Chapter');
+  const writeLabel = $derived(unit === 'book' ? 'Open this book' : 'Write this chapter');
 
   const SAVE_DELAY_MS = 800;
 
@@ -204,7 +210,7 @@
         <button type="button" class="tool" onclick={() => ((naming = false), (newThread = ''))}>Cancel</button>
       </form>
     {:else}
-      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the chapters">+ Thread</button>
+      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {unit}s">+ Thread</button>
     {/if}
     {#if threads.length > 1}
       <button type="button" class="tool" onclick={flip} title="Swap which runs across and which runs down">Flip</button>
@@ -217,7 +223,7 @@
       <section
         class="card"
         role="group"
-        aria-label="Chapter {i + 1}: {card.title}"
+        aria-label="{Unit} {i + 1}: {card.title}"
         class:over={over === i && dragging !== null && dragging !== i}
         ondragover={(e) => {
           if (dragging === null) return;
@@ -235,7 +241,7 @@
           <span
             class="n"
             draggable="true"
-            title="Drag to move this chapter"
+            title="Drag to move this {unit}"
             role="button"
             tabindex="-1"
             ondragstart={(e) => {
@@ -258,7 +264,7 @@
           rows="1"
           use:grow={0}
           value={card.title}
-          aria-label="Chapter {i + 1} title"
+          aria-label="{Unit} {i + 1} title"
           onkeydown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -270,16 +276,16 @@
           class="body"
           use:grow={200}
           value={card.outline}
-          placeholder="What happens in this chapter?"
+          placeholder="What happens in this {unit}?"
           aria-label="Outline of {card.title}"
           oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value)}
           onblur={flush}></textarea>
-        <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>Write this chapter</button>
+        <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>{writeLabel}</button>
       </section>
     {/each}
     <button type="button" class="card add" onclick={add}>
       <span class="plus" aria-hidden="true">+</span>
-      <span>Chapter</span>
+      <span>{Unit}</span>
     </button>
   </div>
   {:else}
@@ -346,7 +352,7 @@
             rows="1"
             use:grow={0}
             value={card.title}
-            aria-label="Chapter {i + 1} title"
+            aria-label="{Unit} {i + 1} title"
             onkeydown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -354,7 +360,7 @@
               }
             }}
             onblur={(e) => rename(i, (e.currentTarget as HTMLTextAreaElement).value.replace(/\s+/g, ' '))}></textarea>
-          <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>Write this chapter</button>
+          <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>{writeLabel}</button>
         </div>
         {#each threads as t, ti (t.key)}
           <div class="cell" style={at(i, ti)}>
@@ -369,7 +375,7 @@
           </div>
         {/each}
       {/each}
-      <button type="button" class="add-when" style={flipped ? `grid-row: ${W + 2}; grid-column: 1` : `grid-row: 1; grid-column: ${W + 2}`} onclick={add}>+ Chapter</button>
+      <button type="button" class="add-when" style={flipped ? `grid-row: ${W + 2}; grid-column: 1` : `grid-row: 1; grid-column: ${W + 2}`} onclick={add}>+ {Unit}</button>
     </div>
   {/if}
 {/if}

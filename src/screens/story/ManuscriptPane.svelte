@@ -34,6 +34,7 @@
     onMakeEntry,
     onMoved,
     onWindow,
+    onSeries,
     defaults = { author: '', copyright: '' },
     onDefaults = () => {},
   }: {
@@ -58,6 +59,8 @@
     onMoved?: (from: string, to: string | null) => void;
     /** Moves the page into a reading window of its own. */
     onWindow?: () => void;
+    /** Opens a series board beside this pane. */
+    onSeries?: (series: string) => void;
     /** The world's author and copyright holder for new manuscripts. */
     defaults?: { author: string; copyright: string };
     onDefaults?: () => void;
@@ -203,7 +206,7 @@
         }}
         onAdded={() => {}} />
     {:else if about.kind === 'book' && owner}
-      <TitlePage {fs} book={id} folder={owner.path} {defaults} {onDefaults} onMoved={(from, to) => onMoved?.(from, to)} />
+      <TitlePage {fs} book={id} folder={owner.path} {defaults} {onDefaults} {onSeries} onMoved={(from, to) => onMoved?.(from, to)} />
       <nav class="contents" aria-label="Contents">
         {#each [...owner.front, ...owner.sections, ...owner.back] as s}
           <button type="button" class:matter={!owner.sections.includes(s)} onclick={() => onOpenPiece(s.path, null, s.title)}>
