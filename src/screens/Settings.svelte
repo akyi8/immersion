@@ -14,12 +14,17 @@
    */
   let {
     world = null,
+    journal = null,
+    onDaily,
     onTheme,
   }: {
     /** The open world, with the author details its `world.md` names, if any. */
     world?: { name: string; path: string; author: string; copyright: string } | null;
     /** Opens the open world's theme panel. */
     onTheme?: () => void;
+    /** For Real World: whether it keeps a page for each day. */
+    journal?: { daily: boolean } | null;
+    onDaily?: (on: boolean) => Promise<void>;
   } = $props();
 
   const TABS: ['you' | 'world' | 'computer', string][] = [
@@ -125,6 +130,14 @@
         <h3 class="label">Theme</h3>
         <p class="hint">Its colors and fonts, on both the dark and the light side.</p>
         <button type="button" onclick={() => ((ui.settings = null), onTheme?.())}>Change the theme…</button>
+        {#if journal}
+          <h3 class="label">Daily pages</h3>
+          <label class="check">
+            <input type="checkbox" checked={journal.daily} onchange={(e) => run(async () => onDaily?.((e.currentTarget as HTMLInputElement).checked))} />
+            Keep a page for each day
+          </label>
+          <p class="hint">Adds a Today button to the journal. Days you skip simply do not exist, and nothing reminds you.</p>
+        {/if}
         <h3 class="label">Folder</h3>
         <p class="path">{world.path}</p>
       {:else}

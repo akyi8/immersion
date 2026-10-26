@@ -16,8 +16,9 @@
   import { readerPage, setWindowWorld } from './lib/windows';
   import { account } from './lib/account.svelte';
   import { ui } from './lib/ui.svelte';
-  import { splitHeader } from './lib/world';
+  import { splitHeader, withHeader } from './lib/world';
   import Settings from './screens/Settings.svelte';
+  import realWorld from './assets/real-world.jpg';
   import WorldDetails from './screens/shelf/WorldDetails.svelte';
   import type { ShelfWorld } from './lib/library/types';
   import { sync } from './lib/sync.svelte';
@@ -200,6 +201,8 @@
     {rebuild}
     worldName={world.name}
     storiesDir={world.storiesDir}
+    journal={world.journal}
+    daily={world.daily}
     onShowLoading={() => (phase = 'loading')}
     onShowShelf={showShelf}
     onTheme={editTheme}
@@ -231,7 +234,7 @@
     <div class="overlay">
       <Loading
         {world}
-        imageUrl={world.imagePath ? fs.imageUrl(world.imagePath) : null}
+        imageUrl={world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null}
         onEnter={() => (phase = 'inside')}
         onSetCover={async (image) => {
           if (!fs) return;
@@ -245,7 +248,15 @@
 {/if}
 
 {#if ui.settings && phase !== 'reader'}
-  <Settings world={phase === 'shelf' ? null : settingsWorld} onTheme={editTheme} />
+  <Settings
+    world={phase === 'shelf' ? null : settingsWorld}
+    journal={world?.journal ? { daily: world.daily } : null}
+    onDaily={async (on) => {
+      if (!fs) return;
+      await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { daily: on ? true : undefined }));
+      world = await loadWorld(fs);
+    }}
+    onTheme={editTheme} />
 {/if}
 
 <ContextMenu />

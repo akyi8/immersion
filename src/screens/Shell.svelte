@@ -19,6 +19,8 @@
     rebuild,
     worldName,
     storiesDir,
+    journal = false,
+    daily = false,
     onShowLoading,
     onShowShelf,
     onTheme,
@@ -29,6 +31,9 @@
     rebuild: () => Promise<void>;
     worldName: string;
     storiesDir: string;
+    /** Real World, the journal, which opens on its vault. */
+    journal?: boolean;
+    daily?: boolean;
     onShowLoading: () => void;
     onShowShelf: () => void;
     /** Opens the theme panel for this world. */
@@ -78,6 +83,11 @@
     world: '',
     boards: '',
   };
+
+  // Real World opens on its journal (Mike, October 26).
+  onMount(() => {
+    if (journal) nav.openIn('story', '@vault');
+  });
 
   onMount(() => {
     // Back and forward from the keyboard and from the mouse's side buttons.
@@ -168,7 +178,7 @@
     {/if}
   {:else if nav.current.module === 'story'}
     {#if index}
-      <StoryModule {index} {fs} {nav} {storiesDir} {rebuild} />
+      <StoryModule {index} {fs} {nav} {storiesDir} {rebuild} {journal} {daily} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}

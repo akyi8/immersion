@@ -44,7 +44,7 @@ export class MemoryLibrary implements Library {
       let cover: string | null = null;
       for (const ext of ['jpg', 'jpeg', 'png', 'webp']) if (await fs.exists(`world.${ext}`)) cover ??= fs.imageUrl(`world.${ext}`);
       const local = !this.library.path || !path.startsWith(this.library.path + '/');
-      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false, worldMd, local });
+      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false, worldMd, local, journal: about.journal });
     }
     return out;
   }

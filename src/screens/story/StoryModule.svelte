@@ -22,6 +22,7 @@
   import Heatmap from './Heatmap.svelte';
   import SeriesPane from './SeriesPane.svelte';
   import VaultPane from '../vault/VaultPane.svelte';
+  import { account } from '../../lib/account.svelte';
   import type { Activity } from '../../lib/story/activity';
 
   /**
@@ -35,7 +36,15 @@
     nav,
     storiesDir,
     rebuild,
-  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void> } = $props();
+    journal = false,
+    daily = false,
+  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void>; journal?: boolean; daily?: boolean } = $props();
+
+  // From Real World, the vault of any world on the Worlds page can be read (Mike, October 26).
+  let otherWorlds = $state<{ path: string; name: string }[]>([]);
+  $effect(() => {
+    if (journal) account.library?.list().then((all) => (otherWorlds = all.filter((w) => !w.missing).map((w) => ({ path: w.path, name: w.name }))));
+  });
 
   let story = $state.raw<StoryIndex | null>(null);
   let jump = $state<{ path: string; offset: number; at: number; title?: string } | null>(null);
@@ -361,7 +370,7 @@
       <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats} canWindow={(id) => id !== VAULT}>
         {#snippet pane(id, i, next, full)}
           {#if id === VAULT && ui.world}
-            <VaultPane world={ui.world.path} worldName={ui.world.name} {index} onOpen={(target) => nav.open(target, i)} />
+            <VaultPane world={ui.world.path} worldName={ui.world.name} {index} {daily} worlds={journal ? otherWorlds : []} onOpen={(target) => nav.open(target, i)} />
           {:else if id.startsWith(SERIES)}
             <SeriesPane
               {fs}

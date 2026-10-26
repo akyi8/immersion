@@ -18,6 +18,8 @@ export interface ShelfWorld {
   worldMd: string | null;
   /** True for a world outside the library, which only this computer shows. */
   local: boolean;
+  /** True for Real World, the writer's journal. */
+  journal: boolean;
 }
 
 /** Where the library is on this computer, and how it syncs (Mike, October 26). */

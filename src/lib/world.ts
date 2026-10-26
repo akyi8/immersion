@@ -12,6 +12,10 @@ export interface World {
   theme: ThemeSpec | null;
   /** Path of the loading-screen image, relative to the world folder, if there is one. */
   imagePath: string | null;
+  /** True for Real World, the writer's journal (Mike, October 26). */
+  journal: boolean;
+  /** True when the journal keeps a page for each day. Off unless the writer turns it on. */
+  daily: boolean;
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -44,7 +48,28 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     wikiDir: text(header.wiki, 'wiki'),
     storiesDir: text(header.stories, 'stories'),
     theme: themeFrom(header),
+    journal: header.journal === true,
+    daily: header.daily === true,
   };
+}
+
+/** The folder in the library that holds Real World, the writer's journal (Mike, October 26). */
+export const JOURNAL_FOLDER = 'immersion-journal';
+
+/** The `world.md` of a new Real World. */
+export function journalFile(): string {
+  return `---
+name: Real World
+tagline: Your journal
+wiki: wiki
+stories: stories
+journal: true
+---
+
+# Real World
+
+This folder is Immersion's journal. Its stories are kept in the vault, encrypted, and the vault of every other world can be read from here.
+`;
 }
 
 /** The `world.md` the app writes for a new or newly added world. */

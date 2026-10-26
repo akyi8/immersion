@@ -29,6 +29,7 @@ export class DiskLibrary implements Library {
         missing: w.worldMd === null,
         worldMd: w.worldMd,
         local: w.local,
+        journal: about?.journal ?? false,
       };
     });
   }

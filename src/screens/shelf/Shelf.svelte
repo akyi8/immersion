@@ -14,6 +14,8 @@
   import UpdateButton from '../UpdateButton.svelte';
   import { account } from '../../lib/account.svelte';
   import { ui } from '../../lib/ui.svelte';
+  import { JOURNAL_FOLDER, journalFile } from '../../lib/world';
+  import realWorld from '../../assets/real-world.jpg';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -63,6 +65,27 @@
       problem = String(e);
     }
   }
+  // Real World, the writer's journal (Mike, October 26), is always on the Worlds page once
+  // there is a library. Its folder is made the first time it is opened.
+  const hasJournal = $derived(!!worlds?.some((w) => w.journal));
+  async function openJournal() {
+    const lib = info?.path;
+    if (!lib) return;
+    problem = '';
+    try {
+      const sep = lib.includes('\\') ? '\\' : '/';
+      const existing = (await library.list()).find((w) => w.journal);
+      onOpen(existing ? existing.path : await library.create(lib, JOURNAL_FOLDER, journalFile(), ['wiki', 'stories']).catch(async (e) => {
+        // A folder left from before is opened as it is.
+        const path = `${lib}${sep}${JOURNAL_FOLDER}`;
+        if ((await library.inspect(path).catch(() => null))?.hasWorld) return path;
+        throw e;
+      }));
+    } catch (e) {
+      problem = String(e);
+    }
+  }
+
   async function notNow() {
     await library.skipLibrary();
     await account.refresh();
@@ -150,10 +173,18 @@
 
   {#if worlds}
     <div class="grid">
+      {#if info?.path && !hasJournal}
+        <div class="card">
+          <button type="button" class="cover" onclick={openJournal} title="Your journal">
+            <img src={realWorld} alt="" />
+            <span class="words"><span class="tagline">Your journal</span><span class="name">Real World</span></span>
+          </button>
+        </div>
+      {/if}
       {#each worlds as world (world.path)}
         <div class="card" class:missing={world.missing} oncontextmenu={(e) => worldMenu(e, world)} role="presentation" use:dropImage={(image) => !world.missing && setCover(world, image)}>
           <button type="button" class="cover" disabled={world.missing} onclick={() => onOpen(world.path)} title={world.path}>
-            {#if world.cover}<img src={world.cover} alt="" />{/if}
+            {#if world.cover}<img src={world.cover} alt="" />{:else if world.journal}<img src={realWorld} alt="" />{/if}
             <span class="words">
               {#if world.missing}
                 <span class="tagline">Not found on this computer</span>

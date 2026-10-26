@@ -19,6 +19,7 @@
     index,
     onOpen,
     worlds = [],
+    daily = false,
   }: {
     /** The folder of the world whose vault this is. */
     world: string;
@@ -27,6 +28,8 @@
     onOpen: (id: string) => void;
     /** Other worlds whose vaults can be looked into from here, for the journal. */
     worlds?: { path: string; name: string }[];
+    /** Whether the journal keeps a page for each day, with a Today button. */
+    daily?: boolean;
   } = $props();
 
   // svelte-ignore state_referenced_locally
@@ -89,6 +92,15 @@
     run(async () => {
       if (!(await vault.unlock(pass, remember))) throw new Error('That is not the passphrase.');
       pass = '';
+    });
+
+  // Today's page, found or begun. Only the days that were written have pages.
+  const today = () =>
+    run(async () => {
+      const title = new Date().toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const found = (await vault.stories(showing)).find((s) => s.entry.title === title);
+      current = found ?? (await vault.newStory(showing, title));
+      await load();
     });
 
   const newStory = () =>
@@ -243,7 +255,10 @@
     </div>
   {:else}
     <div class="list">
-      <button type="button" class="add" onclick={newStory} disabled={busy}>+ Story</button>
+      <div class="row">
+        {#if daily && showing === world}<button type="button" class="primary" onclick={today} disabled={busy}>Today</button>{/if}
+        <button type="button" class="add" onclick={newStory} disabled={busy}>+ Story</button>
+      </div>
       {#each stories as s (s.name)}
         <button type="button" class="item" onclick={() => (current = s)}>
           {#if s.entry.picture}<img src={s.entry.picture} alt="" />{:else}<span class="blank" aria-hidden="true"></span>{/if}
