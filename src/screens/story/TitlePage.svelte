@@ -113,8 +113,8 @@
     <input id="tp-subtitle" type="text" bind:value={editing.subtitle} autocomplete="off" />
     <div class="pair">
       <div class="grow">
-        <label for="tp-series" class="label">Series</label>
-        <input id="tp-series" type="text" bind:value={editing.series} autocomplete="off" placeholder="Cerys Cross Chronicles" />
+        <label for="tp-series" class="label">Series <span class="optional">(leave empty for a book that stands alone)</span></label>
+        <input id="tp-series" type="text" bind:value={editing.series} autocomplete="off" />
       </div>
       <div>
         <label for="tp-number" class="label">Number</label>
@@ -227,6 +227,11 @@
   .label {
     font-size: 11px;
     margin-top: 8px;
+  }
+  .optional {
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0;
   }
   input[type='text'],
   input[type='number'],

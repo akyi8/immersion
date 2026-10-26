@@ -14,7 +14,7 @@
   }: { library: Library; path: string; shape: FolderShape; onAdded: (path: string) => void; onCancel: () => void } = $props();
 
   const folderName = $derived(path.split(/[\\/]/).filter(Boolean).pop() ?? '');
-  // A folder name like "project-unflinching-gothic" suggests "Unflinching Gothic".
+  // A folder name like "project-iron-coast" suggests "Iron Coast".
   function suggestName(folder: string): string {
     return folder
       .replace(/^project[-_ ]/i, '')

@@ -7,7 +7,7 @@
  *
  * A chapter can hold one outline beat per thread (Mike, October 25), such as the main
  * plot and a character's arc. Each beat is its own callout under the heading, labelled
- * with its thread: `> [!outline]- Cerys's arc`. A callout with no label belongs to the
+ * with its thread: `> [!outline]- Mara's arc`. A callout with no label belongs to the
  * main thread, so an outline written before threads existed is the main plot's beat.
  */
 

@@ -33,9 +33,9 @@ test('moving between the desk, the drawer, and the shelf moves the folder', asyn
 
 test('a new manuscript is a folder with a title page and a first chapter', async () => {
   const fs = new MemoryFs({});
-  const made = await newManuscript(fs, 'stories', 'The Wreckage', { author: 'Cerys Cross' });
-  assert.deepEqual(made, { folder: 'stories/the-wreckage', chapter: 'stories/the-wreckage/01-chapter-1.md' });
-  assert.match(await fs.readText('stories/the-wreckage/book.md'), /author: Cerys Cross[\s\S]*# The Wreckage/);
+  const made = await newManuscript(fs, 'stories', 'The Crossing', { author: 'Mara Vell' });
+  assert.deepEqual(made, { folder: 'stories/the-crossing', chapter: 'stories/the-crossing/01-chapter-1.md' });
+  assert.match(await fs.readText('stories/the-crossing/book.md'), /author: Mara Vell[\s\S]*# The Crossing/);
 });
 
 test('renaming a manuscript folder renames its title page and its folder', async () => {

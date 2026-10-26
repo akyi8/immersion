@@ -205,7 +205,7 @@
     {#if naming}
       <form class="name-thread" onsubmit={addThread}>
         <!-- svelte-ignore a11y_autofocus -->
-        <input type="text" bind:value={newThread} placeholder="Cerys's arc" aria-label="New thread's name" autofocus autocomplete="off" />
+        <input type="text" bind:value={newThread} placeholder="Mara's arc" aria-label="New thread's name" autofocus autocomplete="off" />
         <button type="submit" class="tool strong" disabled={!newThread.trim()}>Add thread</button>
         <button type="button" class="tool" onclick={() => ((naming = false), (newThread = ''))}>Cancel</button>
       </form>

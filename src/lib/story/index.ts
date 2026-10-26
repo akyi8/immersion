@@ -116,7 +116,7 @@ export function headingsOf(text: string): Heading[] {
   return out;
 }
 
-/** A name for a file from its file name, such as "the-road-south.md" to "The Road South". */
+/** A name for a file from its file name, such as "the-long-road.md" to "The Long Road". */
 export function titleFromName(name: string): string {
   const stem = name.replace(/\.md$/i, '').replace(/^\d+[-_ ]+/, '');
   return stem

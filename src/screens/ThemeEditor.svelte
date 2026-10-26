@@ -227,8 +227,8 @@
 
   <div class="sample" aria-hidden="true">
     <div class="label">Sample</div>
-    <div class="sample-title">The Road South</div>
-    <p>The bus sat in the terminal while <span class="sample-name">Cerys Cross</span> watched the queue. <em>Seven hours,</em> she thought.</p>
+    <div class="sample-title">The Long Road</div>
+    <p>The ferry left at dawn, and <span class="sample-name">Mara Vell</span> watched the harbor shrink. <em>Not long now,</em> she thought.</p>
     <span class="sample-button">Create</span>
   </div>
 

@@ -7,13 +7,13 @@ manuscript: true
 shelved: true
 ---
 
-# The Road South
+# The Long Road
 
-*The First Story in the Cerys Cross Chronicles*
+*The First Story in the Wayfarer Chronicles*
 
-**by Cerys Cross**
+**by Mara Vell**
 
-Copyright © 2026 C. Michael Howlett
+Copyright © 2026 Ada Lane
 
 All rights reserved.
 
@@ -49,8 +49,8 @@ Thanks.
 `;
 
 test('a typed-out title page becomes fields, and chapters become files', () => {
-  const { title, files } = fileToFolder(typedOut, 'the-road-south.md');
-  assert.equal(title, 'The Road South');
+  const { title, files } = fileToFolder(typedOut, 'the-long-road.md');
+  assert.equal(title, 'The Long Road');
   assert.deepEqual(Object.keys(files), [
     'book.md',
     'front/01-dedication.md',
@@ -62,13 +62,13 @@ test('a typed-out title page becomes fields, and chapters become files', () => {
   ]);
   const page = readTitlePage(files['book.md'], 'x');
   assert.deepEqual(page, {
-    title: 'The Road South',
+    title: 'The Long Road',
     subtitle: '',
-    series: 'Cerys Cross Chronicles',
+    series: 'Wayfarer Chronicles',
     number: 1,
     seriesWord: 'Story',
-    author: 'Cerys Cross',
-    copyright: 'C. Michael Howlett',
+    author: 'Mara Vell',
+    copyright: 'Ada Lane',
     year: 2026,
   });
   assert.doesNotMatch(files['book.md'], /manuscript|shelved|All rights/);
@@ -83,17 +83,26 @@ test('a file without chapters becomes a folder with one chapter', () => {
 });
 
 test('the series line is written from the series and its number', () => {
-  assert.equal(seriesLine({ series: 'Cerys Cross Chronicles', number: 2, seriesWord: 'Story' }), 'The Second Story in the Cerys Cross Chronicles');
+  assert.equal(seriesLine({ series: 'Wayfarer Chronicles', number: 2, seriesWord: 'Story' }), 'The Second Story in the Wayfarer Chronicles');
   assert.equal(seriesLine({ series: 'The Tide Books', number: 23, seriesWord: 'Book' }), 'The 23rd Book in The Tide Books');
   assert.equal(seriesLine({ series: '', number: 2, seriesWord: 'Story' }), '');
 });
 
 test('a title page round-trips through book.md and keeps notes', () => {
-  const page = { ...blankPage('The Wreckage', { author: 'Cerys Cross', copyright: 'C. Michael Howlett' }), series: 'Cerys Cross Chronicles', number: 2 };
+  const page = { ...blankPage('The Crossing', { author: 'Mara Vell', copyright: 'Ada Lane' }), series: 'Wayfarer Chronicles', number: 2 };
   const book = newBook(page) + '\nNotes stay.\n';
   assert.deepEqual(readTitlePage(book, 'x'), page);
   const renamed = withTitlePage(book, { ...page, title: 'The Wreck', series: '' });
   assert.match(renamed, /^# The Wreck$/m);
   assert.doesNotMatch(renamed, /series|number/);
   assert.match(renamed, /Notes stay\./);
+});
+
+test('a long italic note under the title stays with the text instead of becoming the subtitle', () => {
+  const note = '*Captured in one sitting, verbatim, as design material for the world and not as book text for any chapter.*';
+  const { files } = fileToFolder(`# The Campaign\n\n${note}\n\nThe first session began at the docks.\n`, 'campaign.md');
+  assert.doesNotMatch(files['book.md'], /subtitle:/);
+  assert.ok(files['01-chapter-1.md'].includes(note));
+  const short = fileToFolder('# The Campaign\n\n*A ghost story*\n\nThe docks.\n', 'campaign.md').files['book.md'];
+  assert.match(short, /subtitle: A ghost story/);
 });

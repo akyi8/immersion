@@ -10,7 +10,7 @@ import { headingsOf, titleFromName } from './index.ts';
 export interface TitlePage {
   title: string;
   subtitle: string;
-  /** The series' name, such as "Cerys Cross Chronicles". */
+  /** The series' name, such as "Wayfarer Chronicles". */
   series: string;
   /** Its place in the series, from 1. */
   number: number | null;
@@ -38,7 +38,7 @@ function ordinalNumber(word: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** "The Second Story in the Cerys Cross Chronicles", or '' without a series. */
+/** "The Second Story in the Wayfarer Chronicles", or '' without a series. */
 export function seriesLine(page: Pick<TitlePage, 'series' | 'number' | 'seriesWord'>): string {
   const series = page.series.trim();
   if (!series) return '';
@@ -96,6 +96,8 @@ export function blankPage(title: string, defaults: { author?: string; copyright?
 const FRONT = /^(dedication|epigraph|foreword|preface|contents|table of contents|copyright)$/i;
 const BACK = /^(acknowledge?ments?|about the author|afterword|author'?s note|a note from the author|glossary|appendix\b.*|also by\b.*)$/i;
 const MACHINE = ['manuscript', 'shelved'];
+/** The longest italic line under a title that is still read as its subtitle. */
+const SUBTITLE_WORDS = 15;
 
 /**
  * Turns a manuscript kept as one file into the files of a manuscript folder (Mike,
@@ -130,7 +132,8 @@ export function fileToFolder(source: string, fileName: string): { title: string;
       page.year = m[1] ? Number(m[1]) : null;
       page.copyright = m[2].trim();
     } else if (/^all rights reserved\.?$/i.test(t)) continue;
-    else if ((m = /^\*([^*].*?)\*$/.exec(t)) && !page.subtitle && !kept.some((k) => k.trim())) page.subtitle = m[1].trim();
+    // Only a short italic line is a subtitle. A longer one is a note, and stays with the text.
+    else if ((m = /^\*([^*].*?)\*$/.exec(t)) && !page.subtitle && !kept.some((k) => k.trim()) && m[1].trim().split(/\s+/).length <= SUBTITLE_WORDS) page.subtitle = m[1].trim();
     else kept.push(line);
   }
 
