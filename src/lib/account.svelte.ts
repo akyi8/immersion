@@ -1,5 +1,15 @@
 import type { Library, LibraryInfo } from './library/types';
 import { readYou, withProfiles, type Profile } from './you.ts';
+import { splitHeader, withHeader } from './world.ts';
+import type { KeyParams } from './vault/crypto.ts';
+
+function vaultParamsFrom(source: string | null): KeyParams | null {
+  if (!source) return null;
+  const v = splitHeader(source).header.vault as Partial<KeyParams> | undefined;
+  return v && typeof v.salt === 'string' && v.check && typeof v.check.nonce === 'string' && typeof v.check.data === 'string'
+    ? { salt: v.salt, memory: Number(v.memory), passes: Number(v.passes), lanes: Number(v.lanes), check: { nonce: v.check.nonce, data: v.check.data } }
+    : null;
+}
 
 /**
  * The library and what it holds for the writer (Mike, October 26), shared by the
@@ -10,6 +20,8 @@ class Account {
   library = $state.raw<Library | null>(null);
   info = $state.raw<LibraryInfo | null>(null);
   profiles = $state.raw<Profile[]>([]);
+  /** The vault's key settings from `immersion.md`, or null before a passphrase is chosen. */
+  vaultParams = $state.raw<KeyParams | null>(null);
   private source: string | null = null;
 
   async attach(library: Library) {
@@ -22,6 +34,16 @@ class Account {
     this.info = await this.library.info();
     this.source = this.info.path ? await this.library.readYou() : null;
     this.profiles = readYou(this.source).profiles;
+    this.vaultParams = vaultParamsFrom(this.source);
+  }
+
+  /** Saves the vault's key settings into `immersion.md`, keeping everything else in it. */
+  async saveVaultParams(params: KeyParams) {
+    if (!this.library) return;
+    const text = withHeader(this.source ?? withProfiles(null, []), { vault: params });
+    await this.library.writeYou(text);
+    this.source = text;
+    this.vaultParams = vaultParamsFrom(text);
   }
 
   /** Saves the profiles into `immersion.md`, keeping anything else the file holds. */

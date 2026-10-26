@@ -31,6 +31,8 @@
     onMoved,
     onMakeManuscript,
     onSeries,
+    onVault,
+    vaultOpen = false,
   }: {
     fs: WorldFs;
     story: StoryIndex | null;
@@ -54,6 +56,9 @@
     onMakeManuscript: (note: Manuscript) => void;
     /** Opens a series' board. */
     onSeries: (name: string) => void;
+    /** Opens the world's vault. */
+    onVault: () => void;
+    vaultOpen?: boolean;
   } = $props();
 
   const TABS: [Place, string][] = [
@@ -265,6 +270,10 @@
 
   <div class="tree" role="tabpanel">
     <div class="head">
+      <button type="button" class="vault" class:on={vaultOpen} onclick={onVault} title="This world's locked stories">
+        <svg width="12" height="13" viewBox="0 0 12 13" aria-hidden="true"><rect x="1.5" y="5.5" width="9" height="6.5" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="M3.5 5.5 V3.8 A2.5 2.5 0 0 1 8.5 3.8 V5.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+        Vault
+      </button>
       <button type="button" class="add" aria-haspopup="menu" onclick={newMenu}>+ New</button>
     </div>
     {#each rows as row (row.kind === 'series' ? `series:${row.name}` : row.m.path)}
@@ -358,6 +367,21 @@
   .activity {
     padding: 14px 18px 16px;
     border-top: 1px solid var(--rule);
+  }
+  .vault {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: auto;
+    font-size: 12px;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    padding: 4px 0;
+  }
+  .vault:hover,
+  .vault.on {
+    color: var(--text);
   }
   .head {
     display: flex;

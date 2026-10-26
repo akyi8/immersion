@@ -22,6 +22,7 @@
     pane,
     onWindow,
     hasBeats,
+    canWindow = () => true,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
@@ -33,6 +34,8 @@
     onWindow?: (id: string) => void;
     /** Whether a pane's document has beats to show beside it. */
     hasBeats?: (id: string) => boolean;
+    /** Whether a pane may move to a reading window. The vault never may. */
+    canWindow?: (id: string) => boolean;
   } = $props();
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
@@ -142,7 +145,7 @@
                 <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M1.5 5 V1.5 H5 M8 1.5 H11.5 V5 M1.5 8 V11.5 H5 M8 11.5 H11.5 V8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
               </button>
             {/if}
-            {#if onWindow && !full}
+            {#if onWindow && !full && canWindow(id)}
               <button type="button" aria-label="Open {name} in a new window" title="Open in a new window" onclick={() => onWindow(id)}>
                 <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M5 2 H11 V8 M11 2 L5.5 7.5 M9 9.5 V11 H2 V4 H3.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
               </button>

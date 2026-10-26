@@ -21,6 +21,7 @@
   import WorldDetails from './screens/shelf/WorldDetails.svelte';
   import type { ShelfWorld } from './lib/library/types';
   import { sync } from './lib/sync.svelte';
+  import { vault } from './lib/vault/vault.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -78,6 +79,9 @@
   }
 
   let openPath = $state('');
+  $effect(() => {
+    ui.world = openPath && world && phase !== 'shelf' ? { path: openPath, name: world.name } : null;
+  });
   async function open(path: string) {
     if (!library) return;
     openPath = path;
@@ -140,6 +144,13 @@
   let readerId = $state('');
 
   onMount(async () => {
+    // Ctrl or Cmd, Shift, L locks the vault at once, wherever the writer is.
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        void vault.lock();
+      }
+    });
     const page = readerPage();
     if (page) {
       readerId = page.id;

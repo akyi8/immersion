@@ -108,4 +108,37 @@ export class DiskLibrary implements Library {
   writeYou(text: string): Promise<void> {
     return invoke('write_you', { text });
   }
+
+  vaultList(world: string): Promise<string[]> {
+    return invoke<string[]>('vault_list', { world });
+  }
+
+  vaultRead(world: string, name: string): Promise<string> {
+    return invoke<string>('vault_read', { world, name });
+  }
+
+  vaultWrite(world: string, name: string, text: string): Promise<void> {
+    return invoke('vault_write', { world, name, text });
+  }
+
+  vaultArchive(world: string, name: string): Promise<void> {
+    return invoke('vault_archive', { world, name });
+  }
+
+  vaultRemember(key: string): Promise<void> {
+    return invoke('vault_remember', { key });
+  }
+
+  vaultRecall(): Promise<string | null> {
+    return invoke<string | null>('vault_recall');
+  }
+
+  vaultForget(): Promise<void> {
+    return invoke('vault_forget');
+  }
+
+  async readPicture(image: ImageSource): Promise<Uint8Array> {
+    if (image.kind === 'file') return new Uint8Array(await image.file.arrayBuffer());
+    return new Uint8Array(await invoke<ArrayBuffer>('read_picture', { path: image.path }));
+  }
 }

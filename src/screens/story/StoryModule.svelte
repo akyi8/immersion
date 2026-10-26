@@ -21,6 +21,7 @@
   import { createEntry, likelyCategory } from '../../lib/index/create';
   import Heatmap from './Heatmap.svelte';
   import SeriesPane from './SeriesPane.svelte';
+  import VaultPane from '../vault/VaultPane.svelte';
   import type { Activity } from '../../lib/story/activity';
 
   /**
@@ -101,9 +102,12 @@
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
   // A series board opens in Boards (Mike, October 26); one left open here from before still shows.
   const SERIES = '@series:';
-  const row = $derived(nav.panes.filter((id) => id.startsWith(SERIES) || index.get(id) || pieces.has(id)));
+  // The world's vault opens as a pane of its own (Mike, October 26).
+  const VAULT = '@vault';
+  const row = $derived(nav.panes.filter((id) => id === VAULT || id.startsWith(SERIES) || index.get(id) || pieces.has(id)));
 
   function label(id: string): string {
+    if (id === VAULT) return 'Vault';
     if (id.startsWith(SERIES)) return id.slice(SERIES.length);
     const entry = index.get(id);
     if (entry) return entry.name;
@@ -349,12 +353,16 @@
         problem = '';
       }}
       onMakeManuscript={startMaking}
-      onSeries={(name) => nav.openIn('boards', SERIES + name)} />
+      onSeries={(name) => nav.openIn('boards', SERIES + name)}
+      onVault={() => nav.open(VAULT)}
+      vaultOpen={nav.panes.includes(VAULT)} />
     {/if}
     {#if row.length}
-      <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats}>
+      <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats} canWindow={(id) => id !== VAULT}>
         {#snippet pane(id, i, next, full)}
-          {#if id.startsWith(SERIES)}
+          {#if id === VAULT && ui.world}
+            <VaultPane world={ui.world.path} worldName={ui.world.name} {index} onOpen={(target) => nav.open(target, i)} />
+          {:else if id.startsWith(SERIES)}
             <SeriesPane
               {fs}
               root={storiesDir}

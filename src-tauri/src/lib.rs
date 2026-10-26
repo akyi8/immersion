@@ -684,6 +684,101 @@ fn write_you(text: String, app: AppHandle) -> Result<(), String> {
     })
 }
 
+/// The folder in each world that holds its vault, hidden so Obsidian and the index pass it by.
+const VAULT_DIR: &str = ".vault";
+
+/// A vault file's name: random letters and digits, so the name tells nothing about the story.
+fn vault_name_ok(name: &str) -> bool {
+    name.len() == 31 && name.ends_with(".locked") && name[..24].chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// The vault folder of a world on the Worlds page, and the file inside it when a name is given.
+fn vault_path(app: &AppHandle, world: &str, name: Option<&str>) -> Result<PathBuf, String> {
+    if !on_shelf(&load_settings(app), world) {
+        return Err("That world is not on the Worlds page".into());
+    }
+    let dir = Path::new(world).join(VAULT_DIR);
+    match name {
+        Some(n) if !vault_name_ok(n) => Err("That is not a vault file".into()),
+        Some(n) => Ok(dir.join(n)),
+        None => Ok(dir),
+    }
+}
+
+/// The names of the stories in a world's vault (Mike, October 26). They are encrypted,
+/// and the app decrypts them itself, in memory.
+#[tauri::command]
+fn vault_list(world: String, app: AppHandle) -> Result<Vec<String>, String> {
+    let dir = vault_path(&app, &world, None)?;
+    let Ok(entries) = fs::read_dir(&dir) else { return Ok(Vec::new()) };
+    let mut names: Vec<String> = entries.filter_map(Result::ok).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| vault_name_ok(n)).collect();
+    names.sort();
+    Ok(names)
+}
+
+#[tauri::command]
+fn vault_read(world: String, name: String, app: AppHandle) -> Result<String, String> {
+    fs::read_to_string(vault_path(&app, &world, Some(&name))?).map_err(|e| format!("Could not read the vault: {e}"))
+}
+
+/// Saves an encrypted story, through a temporary file so a crash never leaves half of it.
+#[tauri::command]
+fn vault_write(world: String, name: String, text: String, app: AppHandle) -> Result<(), String> {
+    let target = vault_path(&app, &world, Some(&name))?;
+    fs::create_dir_all(target.parent().unwrap()).map_err(|e| format!("Could not make the vault folder: {e}"))?;
+    let temp = target.with_extension(format!("locked{SAVING_SUFFIX}"));
+    fs::write(&temp, text).map_err(|e| format!("Could not save to the vault: {e}"))?;
+    fs::rename(&temp, &target).map_err(|e| {
+        let _ = fs::remove_file(&temp);
+        format!("Could not save to the vault: {e}")
+    })
+}
+
+/// Moves a story into the vault's own archive, still encrypted.
+#[tauri::command]
+fn vault_archive(world: String, name: String, app: AppHandle) -> Result<(), String> {
+    let from = vault_path(&app, &world, Some(&name))?;
+    let archive = from.parent().unwrap().join("archive");
+    fs::create_dir_all(&archive).map_err(|e| e.to_string())?;
+    fs::rename(&from, archive.join(&name)).map_err(|e| format!("Could not archive it: {e}"))
+}
+
+/// The keychain entry for this library's vault key, when this computer remembers it.
+fn vault_keychain(app: &AppHandle) -> Result<keyring::Entry, String> {
+    let lib = load_settings(app).library.ok_or("There is no library on this computer yet.")?;
+    keyring::Entry::new("Immersion vault", &lib).map_err(|e| e.to_string())
+}
+
+/// Remembers the vault key in this computer's own keychain, when the writer asks.
+#[tauri::command]
+fn vault_remember(key: String, app: AppHandle) -> Result<(), String> {
+    vault_keychain(&app)?.set_password(&key).map_err(|e| format!("This computer's keychain would not keep it: {e}"))
+}
+
+#[tauri::command]
+fn vault_recall(app: AppHandle) -> Option<String> {
+    vault_keychain(&app).ok()?.get_password().ok()
+}
+
+#[tauri::command]
+fn vault_forget(app: AppHandle) {
+    if let Ok(entry) = vault_keychain(&app) {
+        let _ = entry.delete_credential();
+    }
+}
+
+/// The bytes of a picture the writer chose, so it can be encrypted into a story. Only
+/// pictures can be read this way.
+#[tauri::command]
+fn read_picture(path: String) -> Result<tauri::ipc::Response, String> {
+    let p = PathBuf::from(&path);
+    let ok = p.extension().and_then(|e| e.to_str()).map(|e| IMAGE_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str())).unwrap_or(false);
+    if !ok {
+        return Err("Pictures can be JPEG, PNG, or WebP files.".into());
+    }
+    fs::read(&p).map(tauri::ipc::Response::new).map_err(|e| format!("Could not read the picture: {e}"))
+}
+
 /// Saves a shelf world's `world.md`, used to change its name and tagline.
 #[tauri::command]
 fn write_world_md(path: String, text: String, app: AppHandle) -> Result<(), String> {
@@ -903,6 +998,14 @@ pub fn run() {
             write_world_md,
             writing_activity,
             sync_world,
+            vault_list,
+            vault_read,
+            vault_write,
+            vault_archive,
+            vault_remember,
+            vault_recall,
+            vault_forget,
+            read_picture,
             set_image
         ])
         .run(tauri::generate_context!())
@@ -911,7 +1014,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{added_words, git_run, inside, library_worlds, place_image, relevant_change, shelf_paths, sync_folder, Settings};
+    use super::{added_words, git_run, vault_name_ok, inside, library_worlds, place_image, relevant_change, shelf_paths, sync_folder, Settings};
     use std::path::Path;
 
     #[test]
@@ -1066,6 +1169,14 @@ mod tests {
         assert_eq!(std::fs::read_to_string(world.join("world.md")).unwrap(), "# Ashfall, here\n");
         assert!(git_run(&here, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_err());
         let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn only_random_vault_names_are_accepted() {
+        assert!(vault_name_ok("0123456789abcdef01234567.locked"));
+        assert!(!vault_name_ok("../secrets/0123456789abcd.locked"));
+        assert!(!vault_name_ok("the-night-on-the-pier.locked"));
+        assert!(!vault_name_ok("0123456789abcdef01234567.md"));
     }
 
     #[test]

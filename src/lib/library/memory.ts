@@ -139,6 +139,50 @@ export class MemoryLibrary implements Library {
     this.you = text;
   }
 
+  // Vaults held in memory: world path to file name to encrypted text.
+  private vaults = new Map<string, Map<string, string>>();
+  private remembered: string | null = null;
+
+  private vault(world: string): Map<string, string> {
+    if (!this.vaults.has(world)) this.vaults.set(world, new Map());
+    return this.vaults.get(world)!;
+  }
+
+  async vaultList(world: string): Promise<string[]> {
+    return [...this.vault(world).keys()].sort();
+  }
+
+  async vaultRead(world: string, name: string): Promise<string> {
+    const text = this.vault(world).get(name);
+    if (text === undefined) throw new Error('No such story in the vault.');
+    return text;
+  }
+
+  async vaultWrite(world: string, name: string, text: string): Promise<void> {
+    this.vault(world).set(name, text);
+  }
+
+  async vaultArchive(world: string, name: string): Promise<void> {
+    this.vault(world).delete(name);
+  }
+
+  async vaultRemember(key: string): Promise<void> {
+    this.remembered = key;
+  }
+
+  async vaultRecall(): Promise<string | null> {
+    return this.remembered;
+  }
+
+  async vaultForget(): Promise<void> {
+    this.remembered = null;
+  }
+
+  async readPicture(image: ImageSource): Promise<Uint8Array> {
+    if (image.kind !== 'file') throw new Error('The browser test takes pictures from a file.');
+    return new Uint8Array(await image.file.arrayBuffer());
+  }
+
   async setCover(path: string, image: ImageSource): Promise<void> {
     if (image.kind === 'file' && !imageExtension(image.file.name)) throw new Error('Pictures can be JPEG, PNG, or WebP files.');
     await this.worlds.get(path)!.setImage('world', image);

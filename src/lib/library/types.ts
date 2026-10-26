@@ -71,4 +71,17 @@ export interface Library {
   /** The library's `immersion.md`, which holds what follows the writer everywhere. */
   readYou(): Promise<string | null>;
   writeYou(text: string): Promise<void>;
+
+  /** The encrypted stories in a world's vault, by their random file names (Mike, October 26). */
+  vaultList(world: string): Promise<string[]>;
+  vaultRead(world: string, name: string): Promise<string>;
+  vaultWrite(world: string, name: string, text: string): Promise<void>;
+  /** Moves a story into the vault's own archive, still encrypted. */
+  vaultArchive(world: string, name: string): Promise<void>;
+  /** Keeps the vault key in this computer's keychain, or gives it back, or forgets it. */
+  vaultRemember(key: string): Promise<void>;
+  vaultRecall(): Promise<string | null>;
+  vaultForget(): Promise<void>;
+  /** The bytes of a picture the writer chose. */
+  readPicture(image: ImageSource): Promise<Uint8Array>;
 }
