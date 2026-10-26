@@ -9,6 +9,7 @@
   import Panes from '../Panes.svelte';
   import EntryView from './EntryView.svelte';
   import WorldHome from './WorldHome.svelte';
+  import TimelineView from './TimelineView.svelte';
   import CreateDialog from './CreateDialog.svelte';
   import { openInWindow } from '../../lib/windows';
 
@@ -35,7 +36,9 @@
   });
 
   // Entries deleted in another program drop out of the row.
-  const entries = $derived(nav.panes.filter((id) => index.get(id)));
+  // The timeline opens as a pane of its own, beside entries (Mike, October 25).
+  const TIMELINE = '@timeline';
+  const entries = $derived(nav.panes.filter((id) => id === TIMELINE || index.get(id)));
 
   function currentFolder(): string {
     const here = nav.entry;
@@ -88,12 +91,15 @@
     <Panes
       {nav}
       ids={entries}
-      label={(id) => index.get(id)?.name ?? id}
+      label={(id) => (id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id))}
       onWindow={(id) => {
-        openInWindow(id, index.get(id)?.name ?? id);
+        openInWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id));
         nav.close(id);
       }}>
       {#snippet pane(id, i, next)}
+        {#if id === TIMELINE}
+          <TimelineView {index} {fs} {rebuild} onOpen={(target) => nav.open(target, i)} />
+        {:else}
         <EntryView
           {index}
           {fs}
@@ -108,11 +114,12 @@
             openInWindow(id, index.get(id)?.name ?? id);
             nav.close(id);
           }} />
+        {/if}
       {/snippet}
     </Panes>
   {:else}
     <main>
-      <WorldHome {index} {nav} {worldName} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
+      <WorldHome {index} {nav} {worldName} onTimeline={() => nav.open(TIMELINE)} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
     </main>
   {/if}
 </div>

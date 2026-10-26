@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { portal } from '../../lib/portal';
   import type { Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
 
@@ -54,8 +55,8 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
 
-<div class="backdrop" role="presentation" onclick={onCancel}></div>
-<form class="dialog" aria-label={kind === 'entry' ? 'New entry' : 'New category'} onsubmit={submit}>
+<div class="backdrop" role="presentation" onclick={onCancel} use:portal></div>
+<form use:portal class="dialog" aria-label={kind === 'entry' ? 'New entry' : 'New category'} onsubmit={submit}>
   <h2>{kind === 'entry' ? 'New entry' : 'New category'}</h2>
   <label for="create-name" class="label">Name</label>
   <!-- svelte-ignore a11y_autofocus -->

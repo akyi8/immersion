@@ -10,7 +10,10 @@
     nav,
     worldName,
     onNewEntry,
-  }: { index: WikiIndex; nav: Navigator; worldName: string; onNewEntry: (folder?: string) => void } = $props();
+    onTimeline,
+  }: { index: WikiIndex; nav: Navigator; worldName: string; onNewEntry: (folder?: string) => void; onTimeline: () => void } = $props();
+
+  const dated = $derived(index.all().filter((e) => e.when).length);
 
   function allIn(folder: import('../../lib/index/wiki').Folder): string[] {
     return [...folder.entries, ...folder.folders.flatMap(allIn)];
@@ -27,7 +30,10 @@
           : 'An empty world. Start with a person or a place, and every name you write that matches an entry becomes a link.'}
       </p>
     </div>
-    <button type="button" class="new" onclick={() => onNewEntry()}>+ New entry</button>
+    <div class="actions">
+      <button type="button" class="timeline" onclick={onTimeline} title="Every entry with a date, in order, with its eras">Timeline{#if dated}<span>{dated}</span>{/if}</button>
+      <button type="button" class="new" onclick={() => onNewEntry()}>+ New entry</button>
+    </div>
   </div>
   {#each index.root.folders as folder}
     {@const ids = allIn(folder)}
@@ -59,6 +65,30 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+  .timeline {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--structure);
+    background: none;
+    border: 1px solid var(--rule-strong);
+    padding: 10px 16px;
+    min-height: 44px;
+  }
+  .timeline:hover {
+    color: var(--text);
+    border-color: var(--structure);
+  }
+  .timeline span {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--muted);
   }
   .new {
     font-size: 14px;

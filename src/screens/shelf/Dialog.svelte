@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { portal } from '../../lib/portal';
   import type { Snippet } from 'svelte';
 
   // The frame shared by the shelf's forms: a title, the fields, a problem line, and
@@ -31,8 +32,8 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
 
-<div class="backdrop" role="presentation" onclick={onCancel}></div>
-<form class="dialog" aria-label={title} onsubmit={submit}>
+<div class="backdrop" role="presentation" onclick={onCancel} use:portal></div>
+<form use:portal class="dialog" aria-label={title} onsubmit={submit}>
   <h2>{title}</h2>
   {@render children()}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

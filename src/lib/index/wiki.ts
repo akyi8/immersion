@@ -2,6 +2,7 @@ import type { WorldFs } from '../fs/types';
 import { splitHeader, type World } from '../world';
 import { parseEntry, plainText } from './parse';
 import { MentionScanner, type Term } from './scanner';
+import { parseWhen, type When } from '../time/when';
 
 /**
  * The index of a world's wiki (architecture decision 1). It is built from the files
@@ -17,6 +18,10 @@ export interface Entry {
   body: string;
   summary: string;
   imagePath: string | null;
+  /** When it happened, from its `when:` line, which puts it on the timeline. */
+  when: When | null;
+  /** An era: a span of time whose events belong to it (Mike, October 25). */
+  era: boolean;
 }
 
 export interface Folder {
@@ -123,6 +128,8 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         body: parsed.body,
         summary: parsed.summary,
         imagePath: image ? `${path}/${image}` : null,
+        when: parseWhen(header.when),
+        era: header.era === true && !!parseWhen(header.when),
       });
       folder.entries.push(childPath);
     }

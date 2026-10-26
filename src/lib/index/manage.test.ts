@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { aliasesOf, archiveCategory, archiveEntry, moveEntry, renameCategory, renameEntry, withAlias, withAliases, withTitle } from './manage.ts';
 
-const entry = (id: string, name: string) => ({ id, name, aliases: [], category: 'people', body: '', summary: '', imagePath: null });
+const entry = (id: string, name: string) => ({ id, name, aliases: [], category: 'people', body: '', summary: '', imagePath: null, when: null, era: false });
 
 test('an old name becomes an alias in the form the entry already uses', () => {
   assert.equal(withAlias('# Rook\n\n**Aliases:** Tomas\n', 'Rook'), '# Rook\n\n**Aliases:** Tomas, Rook\n');
