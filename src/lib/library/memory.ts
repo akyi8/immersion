@@ -2,7 +2,7 @@ import { MemoryFs } from '../fs/memory';
 import { imageExtension, type ImageSource, type WorldFs } from '../fs/types';
 import { describeWorld } from '../world';
 import { pickImage } from '../pickImage';
-import type { FolderShape, Library, ShelfWorld } from './types';
+import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
 
 /**
  * A shelf held in memory for browser testing. It starts with the sample world, and the
@@ -14,6 +14,9 @@ export class MemoryLibrary implements Library {
   private shelf: string[] = [];
   private folders = new Map<string, MemoryFs>();
   private lastOpen: string | null;
+  // The browser's library is the invented folder that holds the sample world.
+  private library: LibraryInfo = { path: null, asked: false, gitSync: true, isGit: true };
+  private you: string | null = null;
 
   constructor(sample: MemoryFs) {
     this.worlds.set('/worlds/sample', sample);
@@ -40,7 +43,8 @@ export class MemoryLibrary implements Library {
       const about = describeWorld(worldMd);
       let cover: string | null = null;
       for (const ext of ['jpg', 'jpeg', 'png', 'webp']) if (await fs.exists(`world.${ext}`)) cover ??= fs.imageUrl(`world.${ext}`);
-      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false, worldMd });
+      const local = !this.library.path || !path.startsWith(this.library.path + '/');
+      out.push({ path, name: about.name, tagline: about.tagline, cover, missing: false, worldMd, local });
     }
     return out;
   }
@@ -62,8 +66,8 @@ export class MemoryLibrary implements Library {
     this.shelf = this.shelf.filter((p) => p !== path);
   }
 
-  async pickFolder(): Promise<string | null> {
-    return '/notes/old-campaign';
+  async pickFolder(title: string): Promise<string | null> {
+    return /library/i.test(title) ? '/worlds' : '/notes/old-campaign';
   }
 
   pickImage(): Promise<ImageSource | null> {
@@ -108,6 +112,31 @@ export class MemoryLibrary implements Library {
 
   async writeWorldMd(path: string, text: string): Promise<void> {
     await this.worlds.get(path)!.writeText('world.md', text);
+  }
+
+  async info(): Promise<LibraryInfo> {
+    return { ...this.library };
+  }
+
+  async setLibrary(path: string | null): Promise<void> {
+    this.library = { ...this.library, path, asked: true };
+  }
+
+  async skipLibrary(): Promise<void> {
+    this.library = { ...this.library, asked: true };
+  }
+
+  async setGitSync(on: boolean): Promise<void> {
+    this.library = { ...this.library, gitSync: on };
+  }
+
+  async readYou(): Promise<string | null> {
+    return this.library.path ? this.you : null;
+  }
+
+  async writeYou(text: string): Promise<void> {
+    if (!this.library.path) throw new Error('There is no library on this computer yet.');
+    this.you = text;
   }
 
   async setCover(path: string, image: ImageSource): Promise<void> {

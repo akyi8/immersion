@@ -12,6 +12,7 @@
   import type { Mode, ThemeSpec } from '../../lib/theme';
   import ModeToggle from '../ModeToggle.svelte';
   import UpdateButton from '../UpdateButton.svelte';
+  import { account } from '../../lib/account.svelte';
 
   /**
    * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
@@ -44,6 +45,26 @@
 
   async function refresh() {
     worlds = await library.list();
+  }
+
+  // The library (Mike, October 26): asked once on each computer, and never again after
+  // an answer or "Not now".
+  const info = $derived(account.info);
+  async function chooseLibrary() {
+    problem = '';
+    const path = await library.pickFolder('Choose your library: the folder that holds your worlds');
+    if (!path) return;
+    try {
+      await library.setLibrary(path);
+      await account.refresh();
+      await refresh();
+    } catch (e) {
+      problem = String(e);
+    }
+  }
+  async function notNow() {
+    await library.skipLibrary();
+    await account.refresh();
   }
 
   onMount(() => {
@@ -106,6 +127,21 @@
     </div>
   </header>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+  {#if info && !info.asked && !info.path}
+    <section class="ask" aria-label="Your library">
+      <div>
+        <h2>Where is your library?</h2>
+        <p>
+          Your library is the folder that holds your worlds. Every computer that uses the same folder, synced through Git or Dropbox, shows the same
+          worlds and keeps your author profiles. Worlds you added on this computer stay here either way.
+        </p>
+      </div>
+      <div class="ask-buttons">
+        <button type="button" class="primary" onclick={chooseLibrary}>Choose a folder</button>
+        <button type="button" onclick={notNow}>Not now</button>
+      </div>
+    </section>
+  {/if}
 
   {#if worlds}
     <div class="grid">
@@ -119,6 +155,7 @@
               {:else if world.tagline}
                 <span class="tagline">{world.tagline}</span>
               {/if}
+              {#if world.local && info?.path}<span class="local">On this computer only</span>{/if}
               <span class="name">{world.name}</span>
             </span>
             <span class="drop-hint">Drop a picture to make it the cover</span>
@@ -209,6 +246,61 @@
   .problem {
     color: var(--danger);
     margin: 0 0 20px;
+  }
+  .ask {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 32px;
+    margin: 0 0 28px;
+    padding: 20px 24px;
+    border: 1px solid var(--structure);
+    background: var(--surface);
+  }
+  .ask > div:first-child {
+    flex: 1 1 420px;
+  }
+  .ask h2 {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--title);
+  }
+  .ask p {
+    margin: 0;
+    max-width: 640px;
+    line-height: 1.55;
+    color: var(--text-soft);
+  }
+  .ask-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .ask-buttons button {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-height: 44px;
+    color: var(--text);
+    background: none;
+    border: 1px solid var(--rule-strong);
+  }
+  .ask-buttons .primary {
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .local {
+    align-self: flex-start;
+    margin-top: 6px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #d8d2cb;
+    border: 1px solid rgb(216 210 203 / 0.5);
+    padding: 2px 6px;
   }
   .grid {
     display: grid;

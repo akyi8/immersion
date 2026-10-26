@@ -14,6 +14,7 @@
   import ThemeEditor from './screens/ThemeEditor.svelte';
   import Reader from './screens/Reader.svelte';
   import { readerPage, setWindowWorld } from './lib/windows';
+  import { account } from './lib/account.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -125,6 +126,7 @@
       const [{ MemoryLibrary }, { sampleWorld }] = await Promise.all([import('./lib/library/memory'), import('./lib/sample')]);
       library = new MemoryLibrary(sampleWorld());
     }
+    await account.attach(library);
     const last = await library.last();
     if (last) {
       try {

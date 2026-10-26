@@ -60,15 +60,93 @@ fn settings_file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|dir| dir.join("settings.json"))
 }
 
-/// What this machine remembers: the shelf of worlds and the one opened last.
+/// What this machine remembers: the library, the shelf of worlds, and the one opened last.
 #[derive(Serialize, Deserialize, Default)]
 struct Settings {
     /// The world opened last, which the app opens again at launch.
     #[serde(default)]
     world: Option<String>,
-    /// Every world on this machine's shelf, in the order they joined it.
+    /// Every world added on this machine, in the order they joined it. Worlds inside the
+    /// library are found there and need no place in this list.
     #[serde(default)]
     worlds: Vec<String>,
+    /// The library (Mike, October 26): one folder that holds the writer's worlds and
+    /// `immersion.md`, and syncs between computers. Where it is, is the one thing each
+    /// computer must remember for itself.
+    #[serde(default)]
+    library: Option<String>,
+    /// True once the writer has answered where the library is, or chosen "Not now".
+    #[serde(default)]
+    library_asked: bool,
+    /// Library worlds taken off this computer's Worlds page.
+    #[serde(default)]
+    hidden: Vec<String>,
+    /// Whether worlds in a Git library sync on their own. On unless switched off.
+    #[serde(default = "on")]
+    git_sync: bool,
+}
+
+fn on() -> bool {
+    true
+}
+
+/// The file in the library that holds what follows the writer to every computer.
+const YOU_FILE: &str = "immersion.md";
+
+/// Folders the library scan never enters, because they hold code, builds, or old work.
+const NOT_WORLDS: [&str; 7] = ["node_modules", "target", "dist", "build", "archive", "old", "export"];
+
+/// Every world in the library: any folder up to two levels down with a `world.md`. A
+/// world's own folders are not searched for more worlds.
+fn library_worlds(library: &Path) -> Vec<PathBuf> {
+    fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
+        if dir.join("world.md").is_file() {
+            out.push(dir.to_path_buf());
+            return;
+        }
+        if depth == 0 {
+            return;
+        }
+        let Ok(entries) = fs::read_dir(dir) else { return };
+        let mut dirs: Vec<PathBuf> = entries
+            .filter_map(Result::ok)
+            .filter(|e| e.path().is_dir())
+            .filter(|e| {
+                let name = e.file_name().to_string_lossy().to_lowercase();
+                !name.starts_with('.') && !NOT_WORLDS.contains(&name.as_str())
+            })
+            .map(|e| e.path())
+            .collect();
+        dirs.sort();
+        for d in dirs {
+            walk(&d, depth - 1, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(library, 2, &mut out);
+    out
+}
+
+/// The Worlds page, in order: the library's worlds, then those added on this computer
+/// alone. Each comes with whether it lives outside the library.
+fn shelf_paths(settings: &Settings) -> Vec<(String, bool)> {
+    let library = settings.library.as_ref().map(PathBuf::from);
+    let mut out: Vec<(String, bool)> = Vec::new();
+    if let Some(lib) = &library {
+        for w in library_worlds(lib) {
+            let path = w.to_string_lossy().into_owned();
+            if !settings.hidden.contains(&path) {
+                out.push((path, false));
+            }
+        }
+    }
+    for path in &settings.worlds {
+        let inside_library = library.as_ref().is_some_and(|lib| Path::new(path).starts_with(lib));
+        if !inside_library && !out.iter().any(|(p, _)| p == path) {
+            out.push((path.clone(), true));
+        }
+    }
+    out
 }
 
 fn load_settings(app: &AppHandle) -> Settings {
@@ -219,6 +297,8 @@ fn close_world(state: State<OpenWorld>, app: AppHandle) {
 #[derive(Serialize)]
 struct ShelfWorld {
     path: String,
+    /// True for a world outside the library, which only this computer shows.
+    local: bool,
     /// The text of `world.md`, which the screens read for the name and tagline.
     #[serde(rename = "worldMd")]
     world_md: Option<String>,
@@ -230,24 +310,28 @@ struct ShelfWorld {
 /// Every world on this machine's shelf. A world whose folder is gone has no text.
 #[tauri::command]
 fn shelf(app: AppHandle) -> Vec<ShelfWorld> {
-    load_settings(&app)
-        .worlds
+    shelf_paths(&load_settings(&app))
         .into_iter()
-        .map(|path| {
+        .map(|(path, local)| {
             let folder = PathBuf::from(&path);
             ShelfWorld {
                 world_md: fs::read_to_string(folder.join("world.md")).ok(),
                 has_cover: image_for(&folder.join("world")).is_some(),
                 path,
+                local,
             }
         })
         .collect()
 }
 
-/// Takes a world off the shelf. Its folder and files are untouched.
+/// Takes a world off this computer's shelf. Its folder and files are untouched. A world
+/// in the library stays in the library, and only this computer stops showing it.
 #[tauri::command]
 fn forget_world(path: String, app: AppHandle) {
     let mut settings = load_settings(&app);
+    if settings.library.as_ref().is_some_and(|lib| Path::new(&path).starts_with(lib)) && !settings.hidden.contains(&path) {
+        settings.hidden.push(path.clone());
+    }
     settings.worlds.retain(|w| w != &path);
     if settings.world.as_deref() == Some(path.as_str()) {
         settings.world = None;
@@ -399,11 +483,85 @@ async fn writing_activity(dir: String, days: u32, state: State<'_, OpenWorld>) -
     .map_err(|e| e.to_string())
 }
 
-/// Where new worlds go unless the player chooses otherwise: Documents/Immersion.
+/// Where new worlds go unless the player chooses otherwise: the library, or else
+/// Documents/Immersion.
 #[tauri::command]
 fn default_library(app: AppHandle) -> Result<String, String> {
+    if let Some(lib) = load_settings(&app).library {
+        return Ok(lib);
+    }
     let docs = app.path().document_dir().map_err(|e| e.to_string())?;
     Ok(docs.join("Immersion").to_string_lossy().into_owned())
+}
+
+#[derive(Serialize)]
+struct LibraryInfo {
+    path: Option<String>,
+    asked: bool,
+    #[serde(rename = "gitSync")]
+    git_sync: bool,
+    /// Whether the library is kept in a Git repository.
+    #[serde(rename = "isGit")]
+    is_git: bool,
+}
+
+/// Where the library is on this computer, and how it syncs.
+#[tauri::command]
+fn library_info(app: AppHandle) -> LibraryInfo {
+    let settings = load_settings(&app);
+    let is_git = settings.library.as_ref().is_some_and(|lib| git(Path::new(lib), &["rev-parse", "--is-inside-work-tree"]).is_some_and(|o| o.trim() == "true"));
+    LibraryInfo { path: settings.library, asked: settings.library_asked, git_sync: settings.git_sync, is_git }
+}
+
+/// Sets where the library is on this computer, or clears it. Either way the question
+/// has been answered.
+#[tauri::command]
+fn set_library(path: Option<String>, app: AppHandle) -> Result<(), String> {
+    if let Some(p) = &path {
+        if !Path::new(p).is_dir() {
+            return Err(format!("{p} is not a folder on this computer"));
+        }
+    }
+    let mut settings = load_settings(&app);
+    settings.library = path;
+    settings.library_asked = true;
+    save_settings(&app, &settings);
+    Ok(())
+}
+
+/// Leaves the library for later; the question is not asked again on this computer.
+#[tauri::command]
+fn skip_library(app: AppHandle) {
+    let mut settings = load_settings(&app);
+    settings.library_asked = true;
+    save_settings(&app, &settings);
+}
+
+#[tauri::command]
+fn set_git_sync(on: bool, app: AppHandle) {
+    let mut settings = load_settings(&app);
+    settings.git_sync = on;
+    save_settings(&app, &settings);
+}
+
+/// The text of the library's `immersion.md`, or None when there is no library or no file yet.
+#[tauri::command]
+fn read_you(app: AppHandle) -> Option<String> {
+    let lib = load_settings(&app).library?;
+    fs::read_to_string(Path::new(&lib).join(YOU_FILE)).ok()
+}
+
+/// Saves the library's `immersion.md`, through a temporary file so a crash never leaves half of it.
+#[tauri::command]
+fn write_you(text: String, app: AppHandle) -> Result<(), String> {
+    let lib = load_settings(&app).library.ok_or("There is no library on this computer yet.")?;
+    let target = Path::new(&lib).join(YOU_FILE);
+    let temp = Path::new(&lib).join(format!("{YOU_FILE}{SAVING_SUFFIX}"));
+    fs::write(&temp, text).map_err(|e| format!("Could not save {YOU_FILE}: {e}"))?;
+    fs::rename(&temp, &target).map_err(|e| {
+        let _ = fs::remove_file(&temp);
+        format!("Could not save {YOU_FILE}: {e}")
+    })
 }
 
 /// Saves a shelf world's `world.md`, used to change its name and tagline.
@@ -532,7 +690,7 @@ fn serve_cover(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
         .trim_matches('/')
         .parse::<usize>()
         .ok()
-        .and_then(|i| load_settings(app).worlds.get(i).cloned())
+        .and_then(|i| shelf_paths(&load_settings(app)).get(i).map(|(p, _)| p.clone()))
         .and_then(|w| image_for(&PathBuf::from(w).join("world")))
         .and_then(|p| fs::read(&p).ok().map(|bytes| (p, bytes)));
     match found {
@@ -606,6 +764,12 @@ pub fn run() {
             add_world,
             create_world,
             default_library,
+            library_info,
+            set_library,
+            skip_library,
+            set_git_sync,
+            read_you,
+            write_you,
             set_world_cover,
             write_world_md,
             writing_activity,
@@ -617,7 +781,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{added_words, inside, place_image, relevant_change};
+    use super::{added_words, inside, library_worlds, place_image, relevant_change, shelf_paths, Settings};
     use std::path::Path;
 
     #[test]
@@ -665,6 +829,30 @@ mod tests {
                 (Some("2026-10-24".to_string()), 2)
             ]
         );
+    }
+
+    #[test]
+    fn the_library_finds_worlds_two_levels_down_and_skips_the_rest() {
+        let lib = std::env::temp_dir().join(format!("immersion-library-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&lib);
+        for dir in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", ".git/x", "deep/a/b", "notes"] {
+            std::fs::create_dir_all(lib.join(dir)).unwrap();
+        }
+        for world in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", "deep/a/b"] {
+            std::fs::write(lib.join(world).join("world.md"), "# A world\n").unwrap();
+        }
+        let found = library_worlds(&lib);
+        assert_eq!(found, vec![lib.join("games").join("ashfall"), lib.join("project-sc")]);
+
+        let elsewhere = "/somewhere/else/world".to_string();
+        let settings = Settings {
+            library: Some(lib.to_string_lossy().into_owned()),
+            worlds: vec![lib.join("project-sc").to_string_lossy().into_owned(), elsewhere.clone()],
+            hidden: vec![lib.join("games").join("ashfall").to_string_lossy().into_owned()],
+            ..Default::default()
+        };
+        assert_eq!(shelf_paths(&settings), vec![(lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere, true)]);
+        let _ = std::fs::remove_dir_all(&lib);
     }
 
     #[test]

@@ -4,12 +4,13 @@ import { DiskFs } from '../fs/disk';
 import type { ImageSource, WorldFs } from '../fs/types';
 import { pickImage } from '../pickImage';
 import { describeWorld } from '../world';
-import type { FolderShape, Library, ShelfWorld } from './types';
+import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
 
 interface RawShelfWorld {
   path: string;
   worldMd: string | null;
   hasCover: boolean;
+  local: boolean;
 }
 
 /** This machine's shelf, kept by the Rust backend in the app's settings. */
@@ -27,6 +28,7 @@ export class DiskLibrary implements Library {
         cover: w.hasCover ? `${convertFileSrc(String(i), 'shelf')}?v=${stamp}` : null,
         missing: w.worldMd === null,
         worldMd: w.worldMd,
+        local: w.local,
       };
     });
   }
@@ -81,5 +83,29 @@ export class DiskLibrary implements Library {
   async setCover(path: string, image: ImageSource): Promise<void> {
     if (image.kind !== 'path') throw new Error('The desktop app takes pictures from disk.');
     await invoke('set_world_cover', { path, source: image.path });
+  }
+
+  info(): Promise<LibraryInfo> {
+    return invoke<LibraryInfo>('library_info');
+  }
+
+  setLibrary(path: string | null): Promise<void> {
+    return invoke('set_library', { path });
+  }
+
+  skipLibrary(): Promise<void> {
+    return invoke('skip_library');
+  }
+
+  setGitSync(on: boolean): Promise<void> {
+    return invoke('set_git_sync', { on });
+  }
+
+  readYou(): Promise<string | null> {
+    return invoke<string | null>('read_you');
+  }
+
+  writeYou(text: string): Promise<void> {
+    return invoke('write_you', { text });
   }
 }

@@ -16,6 +16,17 @@ export interface ShelfWorld {
   missing: boolean;
   /** The text of the world's `world.md`, or null when the folder is missing. */
   worldMd: string | null;
+  /** True for a world outside the library, which only this computer shows. */
+  local: boolean;
+}
+
+/** Where the library is on this computer, and how it syncs (Mike, October 26). */
+export interface LibraryInfo {
+  path: string | null;
+  /** True once the writer has said where the library is, or chosen "Not now". */
+  asked: boolean;
+  gitSync: boolean;
+  isGit: boolean;
 }
 
 /** What is inside a folder the player wants to add, to help describe it as a world. */
@@ -49,4 +60,14 @@ export interface Library {
   setCover(path: string, image: ImageSource): Promise<void>;
   /** Saves a shelf world's `world.md`, for example after its name changes. */
   writeWorldMd(path: string, text: string): Promise<void>;
+
+  info(): Promise<LibraryInfo>;
+  /** Sets where the library is on this computer, or clears it with null. */
+  setLibrary(path: string | null): Promise<void>;
+  /** Leaves the library for later, so the question is not asked again here. */
+  skipLibrary(): Promise<void>;
+  setGitSync(on: boolean): Promise<void>;
+  /** The library's `immersion.md`, which holds what follows the writer everywhere. */
+  readYou(): Promise<string | null>;
+  writeYou(text: string): Promise<void>;
 }
