@@ -117,8 +117,11 @@ class OutlineWidget extends WidgetType {
   }
 }
 
-/** Header keys the app writes for itself, which the writer never needs to see. */
-const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads']);
+/**
+ * Header keys the app writes for itself or shows in a place of its own, such as an entry's
+ * date under its name, which the writer never needs to see as raw header lines.
+ */
+const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era']);
 
 /** True when every key in the YAML header is one the app keeps for itself. */
 function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {

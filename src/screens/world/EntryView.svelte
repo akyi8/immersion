@@ -10,6 +10,7 @@
   import Portrait from './Portrait.svelte';
   import EntryEditor from './EntryEditor.svelte';
   import EntryActions from './EntryActions.svelte';
+  import EntryDate from './EntryDate.svelte';
 
   let {
     index,
@@ -100,6 +101,7 @@
         {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} {onWindow} />{/if}
       </div>
       <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
+      <EntryDate {fs} {entry} editable={view === 'narrator'} />
       {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
     </div>
   </header>
