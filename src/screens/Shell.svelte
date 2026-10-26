@@ -34,9 +34,11 @@
 
   const nav = new Navigator();
 
-  // Drafting mode belongs to the Story module, so leaving the module leaves it too.
+  // Full screen belongs to the module it was opened in, so leaving the module leaves it too.
+  const currentModule = $derived(nav.current.module);
   $effect(() => {
-    if (nav.current.module !== 'story') ui.drafting = null;
+    void currentModule;
+    ui.full = null;
   });
 
 
@@ -97,7 +99,7 @@
 </script>
 
 <div class="shell">
-  {#if !ui.drafting}
+  {#if !ui.full}
   <header>
     <div class="left">
       <div class="arrows">

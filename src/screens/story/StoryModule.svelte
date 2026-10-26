@@ -85,15 +85,14 @@
       if (slow) clearTimeout(slow);
       slow = setTimeout(refreshActivity, 3000);
     });
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && ui.drafting) ui.drafting = null;
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      stop();
-      window.removeEventListener('keydown', onKey);
-    };
+    return stop;
   });
+
+  /** Chapters, and manuscripts kept as one file, can show their beats beside the writing. */
+  function hasBeats(id: string): boolean {
+    const m = story?.manuscripts.find((x) => x.path === id || x.sections.some((s) => s.path === id));
+    return !!m && (m.kind === 'folder' ? m.sections.some((s) => s.path === id) : m.sections.some((s) => s.depth === 2));
+  }
 
   /** Every piece of writing the stories folder holds, which panes may show. */
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
@@ -243,12 +242,6 @@
     }
   }
 
-  function draft(path: string) {
-    // Drafting picks up where the cursor was.
-    if (cursor?.path === path) jump = { path, offset: cursor.pos, at: Date.now() };
-    ui.drafting = path;
-  }
-
   // Creating a new manuscript on the desk, or a new piece in the drawer.
   let creating = $state<'desk' | 'drawer' | null>(null);
   let newName = $state('');
@@ -283,28 +276,8 @@
   }
 </script>
 
-{#if ui.drafting && pieces.has(ui.drafting)}
-  <!-- Drafting mode: the manuscript alone, until Escape or the quiet button. -->
-  <div class="drafting">
-    <button type="button" class="leave" onclick={() => (ui.drafting = null)}>Leave drafting mode</button>
-    <div class="page">
-      <ManuscriptPane
-        {fs}
-        {index}
-        {story}
-        id={ui.drafting}
-        next={null}
-        drafting
-        jump={jump?.path === ui.drafting ? jump : null}
-        onOpen={() => {}}
-        onCursor={(pos) => (cursor = { path: ui.drafting!, pos })}
-        onDraft={() => {}}
-        onMoveTo={() => {}}
-        onOpenPiece={() => {}} />
-    </div>
-  </div>
-{:else}
-  <div class="story">
+<div class="story">
+    {#if !ui.full}
     <StorySidebar
       {fs}
       {story}
@@ -326,9 +299,10 @@
         creating = kind;
         problem = '';
       }} />
+    {/if}
     {#if row.length}
-      <Panes {nav} ids={row} {label} onWindow={toWindow}>
-        {#snippet pane(id, i, next)}
+      <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats}>
+        {#snippet pane(id, i, next, full)}
           {#if id.startsWith(SERIES)}
             <SeriesPane
               {fs}
@@ -362,7 +336,7 @@
               jump={jump?.path === id ? jump : null}
               onOpen={(target) => nav.open(target, i)}
               onCursor={(pos) => (cursor = { path: id, pos })}
-              onDraft={() => draft(id)}
+              drafting={full}
               onMoveTo={moveTo}
               onOpenPiece={openPiece}
               onMakeEntry={(name) => (makingEntry = { name, after: i })}
@@ -396,7 +370,6 @@
       </main>
     {/if}
   </div>
-{/if}
 
 {#if makingEntry}
   <CreateDialog {index} kind="entry" startFolder={likelyCategory(index)} startName={makingEntry.name} onCreate={makeEntry} onCancel={() => (makingEntry = null)} />
@@ -472,32 +445,5 @@
     border: 0;
     padding: 10px 16px;
     min-height: 44px;
-  }
-  .drafting {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-  }
-  .page {
-    padding: 12vh 32px 30vh;
-  }
-  .leave {
-    position: fixed;
-    top: 14px;
-    right: 18px;
-    z-index: 2;
-    font-size: 12px;
-    color: var(--muted);
-    background: none;
-    border: 1px solid transparent;
-    padding: 6px 10px;
-    opacity: 0.25;
-    transition: opacity 200ms;
-  }
-  .leave:hover,
-  .leave:focus-visible {
-    opacity: 1;
-    border-color: var(--rule-strong);
   }
 </style>

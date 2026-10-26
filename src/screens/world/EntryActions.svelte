@@ -39,7 +39,7 @@
   const here = $derived(entry.id.slice(0, entry.id.lastIndexOf('/')));
   /** Every category and every folder inside one, in tree order (Mike, October 25). */
   const places = $derived.by(() => {
-    const out: { path: string; label: string; depth: number }[] = [{ path: index.root.path, label: 'Uncategorized', depth: 0 }];
+    const out: { path: string; label: string; depth: number }[] = [{ path: index.root.path, label: 'Unfiled', depth: 0 }];
     const walk = (f: Folder, depth: number) => {
       out.push({ path: f.path, label: folderLabel(f.name), depth });
       for (const c of f.folders) walk(c, depth + 1);

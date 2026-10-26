@@ -277,7 +277,7 @@
           use:grow={200}
           value={card.outline}
           placeholder="What happens in this {unit}?"
-          aria-label="Outline of {card.title}"
+          aria-label="What happens in {card.title}"
           oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value)}
           onblur={flush}></textarea>
         <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>{writeLabel}</button>

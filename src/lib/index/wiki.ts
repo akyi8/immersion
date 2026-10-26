@@ -124,7 +124,7 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         id: childPath,
         name: parsed.name,
         aliases: parsed.aliases,
-        category: category ?? 'Uncategorized',
+        category: category ?? 'Unfiled',
         body: parsed.body,
         summary: parsed.summary,
         imagePath: image ? `${path}/${image}` : null,

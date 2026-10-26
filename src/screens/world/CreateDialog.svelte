@@ -65,7 +65,7 @@
   <div class="chips" role="radiogroup" aria-label={kind === 'entry' ? 'Category' : 'Inside'}>
     {#if kind === 'folder' || !categories.length}
       <button type="button" role="radio" aria-checked={folder === root.path} class:on={folder === root.path} onclick={() => (folder = root.path)}>
-        {kind === 'folder' ? 'Top level' : 'Uncategorized'}
+        {kind === 'folder' ? 'Top level' : 'Unfiled'}
       </button>
     {/if}
     {#each categories as c}

@@ -12,6 +12,7 @@
   import TimelineView from './TimelineView.svelte';
   import CreateDialog from './CreateDialog.svelte';
   import { openInWindow } from '../../lib/windows';
+  import { ui } from '../../lib/ui.svelte';
 
   let {
     index,
@@ -72,6 +73,7 @@
 </script>
 
 <div class="world">
+  {#if !ui.full}
   <Sidebar
     {index}
     {fs}
@@ -87,6 +89,7 @@
       await rebuild();
       nav.replacePrefix(from, to);
     }} />
+  {/if}
   {#if entries.length}
     <Panes
       {nav}

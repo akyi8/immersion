@@ -81,7 +81,7 @@
   let folder = $state('');
   let busy = $state(false);
   let problem = $state('');
-  const places = $derived([{ path: index.root.path, label: 'Uncategorized' }, ...index.root.folders.map((f) => ({ path: f.path, label: folderLabel(f.name) }))]);
+  const places = $derived([{ path: index.root.path, label: 'Unfiled' }, ...index.root.folders.map((f) => ({ path: f.path, label: folderLabel(f.name) }))]);
 
   function startMaking(kind: 'event' | 'era') {
     making = kind;

@@ -98,7 +98,7 @@ class OutlineWidget extends WidgetType {
     el.className = 'cm-outline-fold';
     const label = document.createElement('span');
     label.className = 'cm-outline-label';
-    label.textContent = this.thread || 'Outline';
+    label.textContent = this.thread || 'Beat';
     const text = document.createElement('span');
     text.className = 'cm-outline-text';
     text.textContent = this.summary;

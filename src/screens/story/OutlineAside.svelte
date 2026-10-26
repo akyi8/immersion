@@ -93,10 +93,10 @@
   }
 </script>
 
-<aside class="outline-aside" aria-label="Outline of this chapter" bind:this={panel}>
+<aside class="outline-aside" aria-label="This chapter's beats" bind:this={panel}>
   {#if here}
     {#if threads.length === 1}
-      <div class="label">Outline · {here.chapter.title}</div>
+      <div class="label">Beats · {here.chapter.title}</div>
       <textarea bind:value={texts['']} oninput={() => typed('')} onblur={save} placeholder="What happens in this chapter?"></textarea>
     {:else}
       <div class="label">{here.chapter.title}</div>
@@ -111,10 +111,10 @@
           placeholder="What happens on this thread?"></textarea>
       {/each}
     {/if}
-    <button type="button" class="all" onclick={() => onOpenOutline(here.index)}>All chapters</button>
+    <button type="button" class="all" onclick={() => onOpenOutline(here.index)}>The board</button>
   {:else}
-    <div class="label">Outline</div>
-    <p class="hint">Put the cursor in a chapter to see its outline here.</p>
+    <div class="label">Beats</div>
+    <p class="hint">Put the cursor in a chapter to see its beats here.</p>
   {/if}
   {#if named.length}
     <div class="label named-label">In this chapter</div>

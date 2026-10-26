@@ -8,6 +8,7 @@
   import PieceActions from './PieceActions.svelte';
   import OutlineAside from './OutlineAside.svelte';
   import TitlePage from './TitlePage.svelte';
+  import { beats } from '../../lib/beats.svelte';
   import { onMount } from 'svelte';
   import type { Thread } from '../../lib/story/threads';
   import type { EditorView } from '@codemirror/view';
@@ -28,7 +29,6 @@
     jump = null,
     onOpen,
     onCursor,
-    onDraft,
     onMoveTo,
     onOpenPiece,
     onMakeEntry,
@@ -48,7 +48,6 @@
     jump?: { offset: number; at: number; title?: string } | null;
     onOpen: (id: string) => void;
     onCursor: (pos: number) => void;
-    onDraft: () => void;
     /** Moves a manuscript to the desk, the drawer, or the shelf. */
     onMoveTo: (m: Manuscript, place: Place) => void;
     /** Opens a piece of writing, at a chapter when `offset` is given. */
@@ -77,23 +76,8 @@
   let mode = $state<'write' | 'outline'>('write');
   let outlineFocus = $state<number | null>(null);
 
-  // The outline beside the writing, remembered between sessions (Mike, October 25).
-  function savedAside(): boolean {
-    try {
-      return localStorage.getItem('immersion.outlineAside') !== 'off';
-    } catch {
-      return true;
-    }
-  }
-  let aside = $state(savedAside());
-  function setAside(on: boolean) {
-    aside = on;
-    try {
-      localStorage.setItem('immersion.outlineAside', on ? 'on' : 'off');
-    } catch {
-      // Not remembering the choice is harmless.
-    }
-  }
+  // The beats beside the writing, switched from the document toolbar (Mike, October 26).
+  const aside = $derived(beats.on);
   let editor = $state.raw<EditorView | null>(null);
   let cursor = $state(0);
 
@@ -161,7 +145,7 @@
 
 {#if about}
   <article class:drafting>
-    {#if !drafting}
+    {#if !drafting || mode === 'outline'}
       <header>
         <div class="label">{about.label}</div>
         {#if about.kind !== 'book' || mode === 'outline'}<h1>{about.title}</h1>{/if}
@@ -169,16 +153,10 @@
           {#if source}
             <div class="views" role="group" aria-label="View">
               <button type="button" class:on={mode === 'write'} aria-pressed={mode === 'write'} onclick={() => (mode = 'write')}>Write</button>
-              <button type="button" class:on={mode === 'outline'} aria-pressed={mode === 'outline'} onclick={() => ((outlineFocus = null), (mode = 'outline'))}>Outline</button>
+              <button type="button" class:on={mode === 'outline'} aria-pressed={mode === 'outline'} onclick={() => ((outlineFocus = null), (mode = 'outline'))}>Board</button>
             </div>
           {/if}
           <span class="meta">{about.meta}</span>
-          {#if mode === 'write' && about.kind !== 'book'}<button type="button" class="action" onclick={onDraft}>Drafting mode</button>{/if}
-          {#if mode === 'write' && source && about.kind !== 'book'}
-            <button type="button" class="action" class:on={aside} aria-pressed={aside} onclick={() => setAside(!aside)} title="The outline of the chapter you are in, beside the writing">
-              {aside ? 'Hide outline' : 'Show outline'}
-            </button>
-          {/if}
           {#if owner?.place === 'drawer' && (about.kind === 'manuscript' || about.kind === 'book')}
             <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
           {/if}
@@ -195,7 +173,7 @@
         </div>
       </header>
     {/if}
-    {#if mode === 'outline' && source && !drafting}
+    {#if mode === 'outline' && source}
       <OutlineView
         {fs}
         {source}
@@ -386,10 +364,6 @@
     font-family: var(--font-label);
     font-size: 11px;
     color: var(--muted);
-  }
-  .action.on {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
   }
   .action:hover {
     border-color: var(--structure);

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { tick, type Snippet } from 'svelte';
   import type { Navigator } from '../lib/nav.svelte';
+  import { ui } from '../lib/ui.svelte';
+  import { beats } from '../lib/beats.svelte';
 
   /**
    * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
@@ -8,6 +10,10 @@
    * the panes that slide off the left edge stack into narrow spines with their titles
    * running upward. Clicking a spine brings its pane back into view. Each module decides
    * what its panes hold, through the `pane` snippet.
+   *
+   * Every document carries the same toolbar in its top corner (Mike, October 26): Beats
+   * where the document has them, full screen, a new window, and close. Full screen shows
+   * one pane alone, and the others stay open behind it, so nothing loses its place.
    */
   let {
     nav,
@@ -15,16 +21,27 @@
     label,
     pane,
     onWindow,
+    hasBeats,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
     ids: string[];
     /** The name on a pane's spine and close button. */
     label: (id: string) => string;
-    pane: Snippet<[id: string, i: number, next: string | null]>;
+    pane: Snippet<[id: string, i: number, next: string | null, full: boolean]>;
     /** Moves a pane into a reading window of its own. */
     onWindow?: (id: string) => void;
+    /** Whether a pane's document has beats to show beside it. */
+    hasBeats?: (id: string) => boolean;
   } = $props();
+
+  const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
+
+  function leaveFull() {
+    const was = full;
+    ui.full = null;
+    if (was) tick().then(() => show(panes.indexOf(was), false));
+  }
 
   /** How much of a covered pane still shows: its spine. */
   const SPINE = 44;
@@ -85,13 +102,24 @@
   });
 </script>
 
-<svelte:window onresize={fit} />
+<svelte:window
+  onresize={fit}
+  onkeydown={(e) => {
+    if (e.key === 'Escape' && full) leaveFull();
+  }} />
 
-<div class="strip" bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
+<div class="strip" class:full={!!full} bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
   <div class="row">
     {#each panes as id, i (id)}
       {@const name = label(id)}
-      <section class="pane" class:spined={spined[i]} class:last={i === panes.length - 1} style:left="{i * SPINE}px" aria-label={name}>
+      <section
+        class="pane"
+        class:spined={spined[i] && !full}
+        class:last={i === panes.length - 1}
+        class:alone={full === id}
+        class:hidden={!!full && full !== id}
+        style:left="{full ? 0 : i * SPINE}px"
+        aria-label={name}>
         <div class="spine" aria-hidden={!spined[i]}>
           <button type="button" class="spine-title" tabindex={spined[i] ? 0 : -1} onclick={() => show(i)}>
             <span>{name}</span>
@@ -101,15 +129,31 @@
           </button>
         </div>
         <div class="body">
-          {#if onWindow}
-            <button type="button" class="window" aria-label="Open {name} in a new window" title="Open in a new window" onclick={() => onWindow(id)}>
-              <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M5 2 H11 V8 M11 2 L5.5 7.5 M9 9.5 V11 H2 V4 H3.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
-            </button>
-          {/if}
-          <button type="button" class="close" aria-label="Close {name}" title="Close" onclick={() => nav.close(id)}>
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
-          </button>
-          {@render pane(id, i, panes[i + 1] ?? null)}
+          <div class="tools" role="toolbar" aria-label="{name} tools">
+            {#if hasBeats?.(id)}
+              <button type="button" class="beats" class:on={beats.on} aria-pressed={beats.on} title="This chapter's beats, beside the writing" onclick={() => beats.set(!beats.on)}>Beats</button>
+            {/if}
+            {#if full === id}
+              <button type="button" aria-label="Leave full screen" title="Leave full screen (Esc)" onclick={leaveFull}>
+                <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M5 1.5 V5 H1.5 M8 1.5 V5 H11.5 M5 11.5 V8 H1.5 M8 11.5 V8 H11.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+              </button>
+            {:else}
+              <button type="button" aria-label="Show {name} full screen" title="Full screen" onclick={() => (ui.full = id)}>
+                <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M1.5 5 V1.5 H5 M8 1.5 H11.5 V5 M1.5 8 V11.5 H5 M8 11.5 H11.5 V8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+              </button>
+            {/if}
+            {#if onWindow && !full}
+              <button type="button" aria-label="Open {name} in a new window" title="Open in a new window" onclick={() => onWindow(id)}>
+                <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><path d="M5 2 H11 V8 M11 2 L5.5 7.5 M9 9.5 V11 H2 V4 H3.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+              </button>
+            {/if}
+            {#if !full}
+              <button type="button" aria-label="Close {name}" title="Close" onclick={() => nav.close(id)}>
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
+              </button>
+            {/if}
+          </div>
+          {@render pane(id, i, panes[i + 1] ?? null, full === id)}
         </div>
       </section>
     {/each}
@@ -203,26 +247,71 @@
     text-overflow: ellipsis;
     max-height: 100%;
   }
-  .close,
-  .window {
+  .tools {
     position: absolute;
     top: 14px;
     right: 14px;
-    width: 32px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    z-index: 2;
+  }
+  .tools button {
+    min-width: 32px;
     height: 32px;
     display: grid;
     place-items: center;
     color: var(--muted);
     background: none;
     border: 0;
-    z-index: 1;
   }
-  .window {
-    right: 48px;
+  .tools .beats {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-right: 4px;
+    border: 1px solid var(--rule-strong);
   }
-  .close:hover,
-  .window:hover {
+  .tools .beats.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+  }
+  .tools button:hover {
     color: var(--text);
     background: var(--surface);
+  }
+  /* Full screen: one pane alone, with the others kept open but out of sight. */
+  .pane.hidden {
+    display: none;
+  }
+  .pane.alone {
+    flex: 1 0 100%;
+    width: 100%;
+    border-left: 0;
+    box-shadow: none;
+  }
+  .pane.alone .body {
+    padding: 12vh 32px 30vh;
+  }
+  .pane.alone .tools {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    opacity: 0.25;
+    transition: opacity 200ms;
+  }
+  .pane.alone .tools:hover,
+  .pane.alone .tools:focus-within {
+    opacity: 1;
+  }
+  .pane.alone .body > :global(*:not(.tools)) {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .strip.full {
+    overflow-x: hidden;
   }
 </style>

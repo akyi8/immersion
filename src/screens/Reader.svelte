@@ -110,7 +110,6 @@
               drafting
               onOpen={(target) => nav.open(target, i)}
               onCursor={() => {}}
-              onDraft={() => {}}
               onMoveTo={() => {}}
               onOpenPiece={(path) => nav.open(path, i)} />
           </div>
