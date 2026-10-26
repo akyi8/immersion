@@ -195,7 +195,8 @@
     position: relative;
     height: 100%;
     overflow-y: auto;
-    padding: 32px 40px 60px;
+    /* Room at the top for the document toolbar, so a long label never runs under it. */
+    padding: 56px 40px 60px;
     box-sizing: border-box;
     transition: opacity 120ms;
   }

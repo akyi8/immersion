@@ -17,18 +17,32 @@ test('archiving a piece keeps its folder inside the archive', async () => {
   assert.equal(await archivePiece(fs, 'stories/ideas/salt-ghosts.md', 'stories'), 'stories/archive/ideas/salt-ghosts.md');
 });
 
-test('moving between the desk, the drawer, and the shelf moves the folder', async () => {
-  const fs = new MemoryFs({ 'stories/ideas/salt-ghosts.md': '# Salt Ghosts\n\n## Chapter 1\n\nA seed.\n' });
+test('moving between the desk, the drawer, and the shelf never changes what a piece is', async () => {
+  const fs = new MemoryFs({
+    'stories/ideas/salt-ghosts.md': '# Salt Ghosts\n\n*A long note about where this came from, kept with the text.*\n\nA seed.\n',
+    'stories/ideas/the-crossing/01-chapter-1.md': '# Chapter 1\n',
+  });
   let index = await buildStoryIndex(fs, 'stories');
-  // A file becomes a folder on its way to the desk, and the original goes to the archive.
-  const desk = await moveToPlace(fs, index.manuscripts[0], 'stories', 'desk');
-  assert.equal(desk, 'stories/salt-ghosts');
-  assert.equal(await fs.readText('stories/salt-ghosts/01-chapter-1.md'), '# Chapter 1\n\nA seed.\n');
-  assert.equal(await fs.exists('stories/archive/ideas/salt-ghosts.md'), true);
+  const note = index.manuscripts.find((m) => m.kind === 'file')!;
+  // A note moves as it is, and its text is untouched.
+  const desk = await moveToPlace(fs, note, 'stories', 'desk');
+  assert.equal(desk, 'stories/salt-ghosts.md');
+  assert.match(await fs.readText(desk), /A long note/);
   index = await buildStoryIndex(fs, 'stories');
-  const shelf = await moveToPlace(fs, index.manuscripts[0], 'stories', 'shelf');
-  assert.equal(shelf, 'stories/finished/salt-ghosts');
-  assert.equal(await fs.exists('stories/finished/salt-ghosts/book.md'), true);
+  assert.equal(index.manuscripts.find((m) => m.path === desk)?.place, 'desk');
+  // A manuscript keeps its folder, and gains a title page wherever it goes.
+  const book = index.manuscripts.find((m) => m.kind === 'folder')!;
+  const shelf = await moveToPlace(fs, book, 'stories', 'shelf');
+  assert.equal(shelf, 'stories/finished/the-crossing');
+  assert.equal(await fs.exists('stories/finished/the-crossing/book.md'), true);
+});
+
+test('a manuscript started in a series takes its name and number', async () => {
+  const fs = new MemoryFs({});
+  await newManuscript(fs, 'stories', 'The Long Road', {}, { name: 'Wayfarer Chronicles', number: 1 });
+  const index = await buildStoryIndex(fs, 'stories');
+  assert.equal(index.manuscripts[0].series, 'Wayfarer Chronicles');
+  assert.equal(index.manuscripts[0].number, 1);
 });
 
 test('a new manuscript is a folder with a title page and a first chapter', async () => {

@@ -3,9 +3,10 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import { buildStoryIndex, filesOf, titleFromName, type Manuscript, type Place, type Section, type StoryIndex } from '../../lib/story/index';
+  import { buildStoryIndex, filesOf, placeFolder, titleFromName, type Manuscript, type Place, type Section, type StoryIndex } from '../../lib/story/index';
   import { fileSource, folderSource } from '../../lib/story/outlineSource';
-  import { moveToPlace, newManuscript } from '../../lib/story/manage';
+  import { makeFolder, moveToPlace, newManuscript, newNote } from '../../lib/story/manage';
+  import { fileToFolder, readTitlePage, seriesLine } from '../../lib/story/book';
   import { saveAllUnder, saveNow } from '../../lib/saves';
   import { openInWindow } from '../../lib/windows';
   import { splitHeader } from '../../lib/world';
@@ -88,10 +89,10 @@
     return stop;
   });
 
-  /** Chapters, and manuscripts kept as one file, can show their beats beside the writing. */
+  /** A manuscript's chapters can show their beats beside the writing. Notes have none. */
   function hasBeats(id: string): boolean {
     const m = story?.manuscripts.find((x) => x.path === id || x.sections.some((s) => s.path === id));
-    return !!m && (m.kind === 'folder' ? m.sections.some((s) => s.path === id) : m.sections.some((s) => s.depth === 2));
+    return !!m && m.kind === 'folder' && m.sections.some((s) => s.path === id);
   }
 
   /** Every piece of writing the stories folder holds, which panes may show. */
@@ -142,10 +143,7 @@
       await saveAllUnder(m.path);
       const to = await moveToPlace(fs, m, story.root, place);
       await refresh();
-      if (m.kind === 'file' && to !== m.path && !/\.md$/i.test(to)) {
-        // A file that became a folder: its pane shows the new title page.
-        nav.replace(m.path, `${to}/book.md`);
-      } else if (m.kind === 'folder') nav.replacePrefix(m.path, to);
+      if (m.kind === 'folder') nav.replacePrefix(m.path, to);
       else nav.replace(m.path, to);
     } catch (e) {
       problem = String(e);
@@ -242,34 +240,83 @@
     }
   }
 
-  // Creating a new manuscript on the desk, or a new piece in the drawer.
-  let creating = $state<'desk' | 'drawer' | null>(null);
+  // Starting a manuscript, a note, or a series in the place the sidebar shows (Mike, October 26).
+  type Kind = 'manuscript' | 'note' | 'series';
+  let creating = $state<{ kind: Kind; place: Place } | null>(null);
   let newName = $state('');
+  let seriesName = $state('');
   let busy = $state(false);
+  const NEW_TITLES: Record<Kind, string> = { manuscript: 'New manuscript', note: 'New note', series: 'New series' };
+  const NEW_HINTS: Record<Kind, string> = {
+    manuscript: 'A manuscript has a title page and chapters.',
+    note: 'A note is a single page, for ideas, seeds, and working notes.',
+    series: 'A series starts with its first book. The series board opens beside it.',
+  };
+  const PLACE_NAMES: Record<Place, string> = { desk: 'on the desk', drawer: 'in the drawer', shelf: 'on the shelf' };
+
   async function create() {
-    const slug = slugify(newName);
-    if (!slug || !creating) return;
+    if (!slugify(newName) || !creating) return;
+    if (creating.kind === 'series' && !seriesName.trim()) return;
     busy = true;
     problem = '';
     try {
-      if (creating === 'desk') {
+      const dir = placeFolder(storiesDir, creating.place);
+      if (creating.kind === 'note') {
+        const path = await newNote(fs, dir, newName);
+        await refresh();
+        fresh = path;
+        nav.open(path);
+      } else if (creating.kind === 'manuscript') {
         // A manuscript is a folder with its title page and a first chapter, ready for writing.
-        const made = await newManuscript(fs, storiesDir, newName, defaults);
+        const made = await newManuscript(fs, dir, newName, defaults);
         await refresh();
         fresh = made.chapter;
         nav.open(made.chapter);
       } else {
-        const path = `${storiesDir}/ideas/${slug}.md`;
-        if (await fs.exists(path)) throw new Error(`Something called ${slug} is already in the drawer.`);
-        await fs.writeText(path, `# ${newName.trim()}\n\n`);
+        await newManuscript(fs, dir, newName, defaults, { name: seriesName, number: 1 });
         await refresh();
-        fresh = path;
-        nav.open(path);
+        nav.open(SERIES + seriesName.trim());
       }
       creating = null;
       newName = '';
+      seriesName = '';
     } catch (e) {
-      problem = String(e);
+      problem = e instanceof Error ? e.message : String(e);
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Making a note into a manuscript is its own step, and shows what will change first.
+  let making = $state<{ note: Manuscript; title: string; subtitle: string; series: string; author: string; chapters: string[]; front: string[]; back: string[] } | null>(null);
+  async function startMaking(note: Manuscript) {
+    problem = '';
+    try {
+      await saveNow(note.path);
+      const { title, files } = fileToFolder(await fs.readText(note.path), note.path.split('/').pop()!);
+      const page = readTitlePage(files['book.md'], title);
+      const titles = (prefix: string) =>
+        Object.keys(files)
+          .filter((k) => k !== 'book.md' && (prefix ? k.startsWith(prefix) : !k.includes('/')))
+          .sort()
+          .map((k) => /^#\s+(.+)$/m.exec(files[k])?.[1] ?? k);
+      making = { note, title, subtitle: page.subtitle, series: seriesLine(page), author: page.author, chapters: titles(''), front: titles('front/'), back: titles('back/') };
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+    }
+  }
+  async function makeManuscript() {
+    if (!making || !story) return;
+    busy = true;
+    problem = '';
+    try {
+      const { note } = making;
+      const folder = await makeFolder(fs, note.path, note.path.slice(0, note.path.lastIndexOf('/')), story.root);
+      await refresh();
+      nav.replace(note.path, `${folder}/book.md`);
+      making = null;
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
     } finally {
       busy = false;
     }
@@ -295,10 +342,12 @@
         problem = '';
       }}
       onMoved={followed}
-      onNew={(kind) => {
-        creating = kind;
+      onNew={(kind, place) => {
+        creating = { kind, place };
         problem = '';
-      }} />
+      }}
+      onMakeManuscript={startMaking}
+      onSeries={(name) => nav.open(SERIES + name)} />
     {/if}
     {#if row.length}
       <Panes {nav} ids={row} {label} onWindow={toWindow} {hasBeats}>
@@ -343,6 +392,7 @@
               onMoved={followed}
               onWindow={() => toWindow(id)}
               onSeries={(name) => nav.open(SERIES + name, i)}
+              onMakeManuscript={startMaking}
               {defaults}
               onDefaults={readDefaults} />
           {/if}
@@ -385,23 +435,65 @@
 
 {#if creating}
   <Dialog
-    title={creating === 'desk' ? 'New manuscript' : 'New piece'}
+    title={NEW_TITLES[creating.kind]}
     action="Create"
-    ready={!!slugify(newName)}
+    ready={!!slugify(newName) && (creating.kind !== 'series' || !!seriesName.trim())}
     {busy}
     {problem}
     onSubmit={create}
     onCancel={() => (creating = null)}>
-    <label for="story-new-name" class="label">Title</label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input id="story-new-name" type="text" bind:value={newName} autofocus autocomplete="off" />
-    <p class="hint">
-      {creating === 'desk' ? 'It goes on the desk, with a title page and a first chapter.' : 'It goes in the drawer.'}
-    </p>
+    {#if creating.kind === 'series'}
+      <label for="story-series-name" class="label">Series</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="story-series-name" type="text" bind:value={seriesName} autofocus autocomplete="off" />
+      <label for="story-new-name" class="label">The first book's title</label>
+      <input id="story-new-name" type="text" bind:value={newName} autocomplete="off" />
+    {:else}
+      <label for="story-new-name" class="label">Title</label>
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="story-new-name" type="text" bind:value={newName} autofocus autocomplete="off" />
+    {/if}
+    <p class="hint">{NEW_HINTS[creating.kind]} It goes {PLACE_NAMES[creating.place]}.</p>
+  </Dialog>
+{/if}
+
+{#if making}
+  <Dialog title="Make it a manuscript" action="Make it a manuscript" ready {busy} {problem} onSubmit={makeManuscript} onCancel={() => (making = null)}>
+    <p class="hint">“{making.note.title}” becomes a manuscript folder with a title page and a file for each chapter. The note itself is kept in the archive.</p>
+    <dl class="preview">
+      <dt>Title</dt>
+      <dd>{making.title}</dd>
+      {#if making.subtitle}<dt>Subtitle</dt><dd>{making.subtitle}</dd>{/if}
+      {#if making.series}<dt>Series</dt><dd>{making.series}</dd>{/if}
+      {#if making.author}<dt>Author</dt><dd>{making.author}</dd>{/if}
+      <dt>{making.chapters.length === 1 ? 'Chapter' : `${making.chapters.length} chapters`}</dt>
+      <dd>{making.chapters.join(', ')}</dd>
+      {#if making.front.length}<dt>Before the story</dt><dd>{making.front.join(', ')}</dd>{/if}
+      {#if making.back.length}<dt>After the story</dt><dd>{making.back.join(', ')}</dd>{/if}
+    </dl>
   </Dialog>
 {/if}
 
 <style>
+  .preview {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 14px;
+    margin: 12px 0 0;
+    font-size: 14px;
+  }
+  .preview dt {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .preview dd {
+    margin: 0;
+    color: var(--text);
+  }
   .story {
     flex: 1;
     display: flex;

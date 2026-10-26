@@ -4,7 +4,7 @@ import { withoutOutlines } from './outline.ts';
 
 /**
  * The Story module's view of a world's stories folder (Mike, October 25). Where a piece
- * sits says what it is, so the folders are the whole of the bookkeeping:
+ * sits says how active it is, so the folders are the whole of the bookkeeping:
  *
  * - the desk is the stories folder itself, and holds the manuscripts being worked on;
  * - the drawer is `ideas/`, and holds what might be worked on later;
@@ -13,7 +13,8 @@ import { withoutOutlines } from './outline.ts';
  * A manuscript is a folder. Its `book.md` holds the title page, its files are its
  * chapters in name order, and its `front/` and `back/` folders hold the pages before
  * and after the story, such as a dedication. A folder inside it is a part. A loose file
- * is also read as a manuscript, with its headings as chapters, until it becomes a folder.
+ * is a note (Mike, October 26): one page, wherever it sits, until the writer chooses to
+ * make it a manuscript.
  * `export/` and `archive/` are kept out of the app. Like the wiki index, this can be
  * thrown away and rebuilt from the files at any time.
  */
@@ -46,6 +47,7 @@ export interface Section {
 }
 
 export interface Manuscript {
+  /** A note kept as one file, or a manuscript kept as a folder. */
   kind: 'file' | 'folder';
   /** The manuscript's file, or its folder. */
   path: string;
@@ -62,6 +64,9 @@ export interface Manuscript {
   back: Section[];
   /** The title page, `book.md`, for a folder that has one. */
   book: string | null;
+  /** The series its title page names, and its number in that series. */
+  series: string | null;
+  number: number | null;
 }
 
 export interface StoryIndex {
@@ -171,7 +176,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
   const isPiece = (name: string) => /\.md$/i.test(name) && !SIDECAR.test(name);
 
   async function folderManuscript(dir: string, place: Place): Promise<Manuscript> {
-    const m: Manuscript = { kind: 'folder', path: dir, title: titleFromName(dir.split('/').pop()!), words: 0, modified: null, place, sections: [], front: [], back: [], book: null };
+    const m: Manuscript = { kind: 'folder', path: dir, title: titleFromName(dir.split('/').pop()!), words: 0, modified: null, place, sections: [], front: [], back: [], book: null, series: null, number: null };
     async function read(path: string, name: string, modified: number | null | undefined, part: string | null, into: Section[], counts: boolean) {
       const text = await fs.readText(path);
       const words = countWords(text);
@@ -189,7 +194,11 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
           else await walk(path, titleFromName(e.name), into, counts);
         } else if (folder === dir && /^book\.md$/i.test(e.name)) {
           m.book = path;
-          m.title = titleOf(await fs.readText(path), dir.split('/').pop()!);
+          const text = await fs.readText(path);
+          m.title = titleOf(text, dir.split('/').pop()!);
+          const { header } = splitHeader(text);
+          if (typeof header.series === 'string' && header.series.trim()) m.series = header.series.trim();
+          if (typeof header.number === 'number') m.number = header.number;
           m.modified = Math.max(m.modified ?? 0, e.modified ?? 0) || m.modified;
         } else if (isPiece(e.name)) {
           await read(path, e.name, e.modified, part, into, counts);
@@ -220,6 +229,8 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
           front: [],
           back: [],
           book: null,
+          series: null,
+          number: null,
         });
       }
     }

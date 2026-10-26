@@ -78,27 +78,51 @@ export async function makeFolder(fs: WorldFs, path: string, dir: string, root: s
 }
 
 /**
- * Moves a manuscript to the desk, the drawer, or the shelf. The desk and the shelf hold
- * folders, so a single file becomes a folder on its way there. Returns its new path.
+ * Moves a note or a manuscript to the desk, the drawer, or the shelf. Moving never changes
+ * what it is (Mike, October 26): a note stays a note, and a manuscript stays a folder with
+ * its title page. Returns its new path.
  */
 export async function moveToPlace(fs: WorldFs, m: Manuscript, root: string, place: Place): Promise<string> {
   const dir = placeFolder(root, place);
-  if (m.kind === 'file' && place !== 'drawer') return makeFolder(fs, m.path, dir, root);
   const target = `${dir}/${nameOf(m.path)}`;
   if (target === m.path) return m.path;
   if (await fs.exists(target)) throw new Error(`There is already something called ${nameOf(m.path)} there.`);
   await fs.move(m.path, target);
-  if (m.kind === 'folder' && place !== 'drawer' && !(await fs.exists(`${target}/book.md`))) await fs.writeText(`${target}/book.md`, newBook(blankPage(m.title)));
+  if (m.kind === 'folder' && !(await fs.exists(`${target}/book.md`))) await fs.writeText(`${target}/book.md`, newBook(blankPage(m.title)));
   return target;
 }
 
-/** Starts a manuscript on the desk: a folder with its title page and a first chapter. */
-export async function newManuscript(fs: WorldFs, root: string, title: string, defaults: { author?: string; copyright?: string }): Promise<{ folder: string; chapter: string }> {
+/** Starts a note: a single page in `dir`. Returns its path. */
+export async function newNote(fs: WorldFs, dir: string, title: string): Promise<string> {
+  const slug = slugify(title);
+  if (!slug) throw new Error('That title has no letters or numbers to make a file name from.');
+  const path = `${dir}/${slug}.md`;
+  if ((await fs.exists(path)) || (await fs.exists(`${dir}/${slug}`))) throw new Error(`Something called ${slug} is already there.`);
+  await fs.writeText(path, `# ${title.trim()}\n\n`);
+  return path;
+}
+
+/**
+ * Starts a manuscript in `dir`, the stories folder itself for the desk: a folder with its
+ * title page and a first chapter. A series name makes it the next book in that series.
+ */
+export async function newManuscript(
+  fs: WorldFs,
+  dir: string,
+  title: string,
+  defaults: { author?: string; copyright?: string },
+  series?: { name: string; number: number },
+): Promise<{ folder: string; chapter: string }> {
   const slug = slugify(title);
   if (!slug) throw new Error('That title has no letters or numbers to make a folder name from.');
-  const folder = `${root}/${slug}`;
-  if (await fs.exists(folder)) throw new Error(`Something called ${slug} is already on the desk.`);
-  await fs.writeText(`${folder}/book.md`, newBook(blankPage(title.trim(), defaults)));
+  const folder = `${dir}/${slug}`;
+  if ((await fs.exists(folder)) || (await fs.exists(`${folder}.md`))) throw new Error(`Something called ${slug} is already there.`);
+  const page = blankPage(title.trim(), defaults);
+  if (series) {
+    page.series = series.name.trim();
+    page.number = series.number;
+  }
+  await fs.writeText(`${folder}/book.md`, newBook(page));
   const chapter = `${folder}/01-chapter-1.md`;
   await fs.writeText(chapter, '# Chapter 1\n\n');
   return { folder, chapter };

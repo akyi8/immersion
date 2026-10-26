@@ -9,9 +9,11 @@
 
   /**
    * The shelf, the desk, and the drawer (Mike, October 25), as three tabs over the same
-   * kind of tree. The desk holds the manuscripts being worked on, the drawer what might be
-   * worked on later, and the shelf what is finished. Each manuscript folds to one line.
-   * The writing heatmap sits at the foot.
+   * kind of tree. The desk holds what is being worked on, the drawer what might be worked
+   * on later, and the shelf what is finished. Each tab lists manuscripts, which fold to
+   * their chapters, and notes, which are single pages. The books of a series gather under
+   * the series' name, which opens its board (Mike, October 26). The writing heatmap sits
+   * at the foot.
    */
   let {
     fs,
@@ -27,6 +29,8 @@
     onMoveChapter,
     onRenameChapter,
     onMoved,
+    onMakeManuscript,
+    onSeries,
   }: {
     fs: WorldFs;
     story: StoryIndex | null;
@@ -35,7 +39,7 @@
     open: string[];
     cursor: { path: string; pos: number } | null;
     onOpen: (path: string, offset?: number | null, title?: string) => void;
-    onNew: (place: 'desk' | 'drawer') => void;
+    onNew: (kind: 'manuscript' | 'note' | 'series', place: Place) => void;
     onAddChapter: (m: Manuscript) => void;
     /** Moves a manuscript to the desk, the drawer, or the shelf. */
     onMoveTo: (m: Manuscript, place: Place) => void;
@@ -46,6 +50,10 @@
     onRenameChapter: (m: Manuscript, s: Section) => void;
     /** Called after a piece moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
+    /** Starts making a note into a manuscript. */
+    onMakeManuscript: (note: Manuscript) => void;
+    /** Opens a series' board. */
+    onSeries: (name: string) => void;
   } = $props();
 
   const TABS: [Place, string][] = [
@@ -78,6 +86,48 @@
   }
 
   const shown = $derived((story?.manuscripts ?? []).filter((m) => m.place === tab));
+
+  /** What the tab lists: series with their books, and manuscripts and notes on their own, by name. */
+  type Row = { kind: 'series'; name: string; books: Manuscript[] } | { kind: 'piece'; m: Manuscript };
+  const rows = $derived.by((): Row[] => {
+    const series = new Map<string, Manuscript[]>();
+    const out: Row[] = [];
+    for (const m of shown) {
+      if (m.kind === 'folder' && m.series) {
+        if (!series.has(m.series)) series.set(m.series, []);
+        series.get(m.series)!.push(m);
+      } else out.push({ kind: 'piece', m });
+    }
+    for (const [name, books] of series) out.push({ kind: 'series', name, books: books.sort((a, b) => (a.number ?? 999) - (b.number ?? 999) || a.title.localeCompare(b.title)) });
+    const sortName = (r: Row) => (r.kind === 'series' ? r.name : r.m.title).replace(/^the\s+/i, '');
+    return out.sort((a, b) => sortName(a).localeCompare(sortName(b), undefined, { sensitivity: 'base' }));
+  });
+
+  function seriesOpen(books: Manuscript[]): boolean {
+    return books.some(isOpen);
+  }
+  function seriesUnfolded(name: string, books: Manuscript[]): boolean {
+    return folds[`series:${name}`] ?? true;
+  }
+  function foldSeries(name: string, value: boolean) {
+    folds = { ...folds, [`series:${name}`]: value };
+    remember('immersion.binderFolds', folds);
+  }
+  function seriesMenu(event: MouseEvent, name: string) {
+    const open = seriesUnfolded(name, []);
+    contextMenu.show(event, [
+      { label: 'Open the board', run: () => onSeries(name) },
+      { label: open ? 'Fold' : 'Unfold', run: () => foldSeries(name, !open) },
+    ]);
+  }
+
+  function newMenu(event: MouseEvent) {
+    contextMenu.show(event, [
+      { label: 'Manuscript', run: () => onNew('manuscript', tab) },
+      { label: 'Note', run: () => onNew('note', tab) },
+      { label: 'Series', run: () => onNew('series', tab) },
+    ]);
+  }
   const counts = $derived(Object.fromEntries(TABS.map(([p]) => [p, (story?.manuscripts ?? []).filter((m) => m.place === p).length])) as Record<Place, number>);
 
   // Which manuscripts the writer folded or unfolded. Without a choice, a manuscript is
@@ -124,10 +174,12 @@
     const items: MenuEntry[] = [
       { label: 'Open', run: () => openManuscript(m) },
       { label: 'Open in a new window', run: () => onWindow(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path)) },
-      { label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) },
-      { label: '+ Chapter', run: () => onAddChapter(m) },
-      'separator',
     ];
+    if (m.kind === 'folder') {
+      items.push({ label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) }, { label: '+ Chapter', run: () => onAddChapter(m) });
+      if (m.series) items.push({ label: 'Open the series board', run: () => onSeries(m.series!) });
+    } else items.push({ label: 'Make it a manuscript…', run: () => onMakeManuscript(m) });
+    items.push('separator');
     for (const [p] of TABS) if (p !== m.place) items.push({ label: `Move to ${PLACE_NAMES[p]}`, run: () => onMoveTo(m, p) });
     items.push('separator', { label: 'Rename', run: () => act('rename', m) }, { label: 'Archive', run: () => act('archive', m) });
     contextMenu.show(event, items);
@@ -157,6 +209,51 @@
   }
 </script>
 
+{#snippet manuscript(m: Manuscript)}
+  {@const at = here(m)}
+  {@const unfold = m.kind === 'folder' && unfolded(m)}
+  <div class="manuscript-row" class:current={isOpen(m)} class:note={m.kind === 'file'} oncontextmenu={(e) => manuscriptMenu(e, m)} role="presentation">
+    {#if m.kind === 'folder'}
+      <button type="button" class="fold" aria-label="{unfold ? 'Fold' : 'Unfold'} {m.title}" aria-expanded={unfold} onclick={() => fold(m, !unfold)}>
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:down={unfold}><path d="M3 1.5 L7 5 L3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+      </button>
+    {:else}
+      <span class="fold" aria-hidden="true"></span>
+    {/if}
+    <button type="button" class="manuscript" onclick={() => openManuscript(m)}>
+      <span>{#if m.series && m.number}<span class="number">{m.number}</span>{/if}{m.title}</span><span class="n">{count(m.words)}</span>
+    </button>
+  </div>
+  {#if unfold}
+    <div class="sections">
+      {#each m.front as s}
+        <button type="button" class="section matter" class:here={at === s.path} onclick={() => onOpen(s.path, null, s.title)}>
+          <span>{s.title}</span>
+        </button>
+      {/each}
+      {#each m.sections as s, i}
+        {#if s.part && s.part !== m.sections[i - 1]?.part}
+          <div class="part">{s.part}</div>
+        {/if}
+        <button
+          type="button"
+          class="section depth-{s.depth}"
+          class:here={at === i || at === s.path}
+          onclick={() => onOpen(s.path, s.offset, s.title)}
+          oncontextmenu={(e) => sectionMenu(e, m, s)}>
+          <span>{s.title}</span><span class="n">{count(s.words)}</span>
+        </button>
+      {/each}
+      {#each m.back as s}
+        <button type="button" class="section matter" class:here={at === s.path} onclick={() => onOpen(s.path, null, s.title)}>
+          <span>{s.title}</span>
+        </button>
+      {/each}
+      <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ Chapter</button>
+    </div>
+  {/if}
+{/snippet}
+
 <nav class="sidebar" aria-label="Shelf, desk, and drawer">
   <div class="tabs" role="tablist" aria-label="Places">
     {#each TABS as [p, label]}
@@ -167,62 +264,40 @@
   </div>
 
   <div class="tree" role="tabpanel">
-    {#if tab !== 'shelf'}
-      <div class="head">
-        <button type="button" class="add" onclick={() => onNew(tab === 'desk' ? 'desk' : 'drawer')}>{tab === 'desk' ? '+ New manuscript' : '+ New piece'}</button>
-      </div>
-    {/if}
-    {#each shown as m (m.path)}
-      {@const at = here(m)}
-      {@const unfold = unfolded(m)}
-      <div class="manuscript-row" class:current={isOpen(m)} oncontextmenu={(e) => manuscriptMenu(e, m)} role="presentation">
-        <button type="button" class="fold" aria-label="{unfold ? 'Fold' : 'Unfold'} {m.title}" aria-expanded={unfold} onclick={() => fold(m, !unfold)}>
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:down={unfold}><path d="M3 1.5 L7 5 L3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
-        </button>
-        <button type="button" class="manuscript" onclick={() => openManuscript(m)}>
-          <span>{m.title}</span><span class="n">{count(m.words)}</span>
-        </button>
-      </div>
-      {#if unfold}
-        <div class="sections">
-          {#each m.front as s}
-            <button type="button" class="section matter" class:here={at === s.path} onclick={() => onOpen(s.path, null, s.title)}>
-              <span>{s.title}</span>
-            </button>
-          {/each}
-          {#each m.sections as s, i}
-            {#if s.part && s.part !== m.sections[i - 1]?.part}
-              <div class="part">{s.part}</div>
-            {/if}
-            <button
-              type="button"
-              class="section depth-{s.depth}"
-              class:here={at === i || at === s.path}
-              onclick={() => onOpen(s.path, s.offset, s.title)}
-              oncontextmenu={(e) => sectionMenu(e, m, s)}>
-              <span>{s.title}</span><span class="n">{count(s.words)}</span>
-            </button>
-          {/each}
-          {#each m.back as s}
-            <button type="button" class="section matter" class:here={at === s.path} onclick={() => onOpen(s.path, null, s.title)}>
-              <span>{s.title}</span>
-            </button>
-          {/each}
-          {#if m.place === 'desk'}
-            <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ Chapter</button>
-          {/if}
+    <div class="head">
+      <button type="button" class="add" aria-haspopup="menu" onclick={newMenu}>+ New</button>
+    </div>
+    {#each rows as row (row.kind === 'series' ? `series:${row.name}` : row.m.path)}
+      {#if row.kind === 'series'}
+        {@const unfold = seriesUnfolded(row.name, row.books)}
+        <div class="manuscript-row series-row" class:current={seriesOpen(row.books)} oncontextmenu={(e) => seriesMenu(e, row.name)} role="presentation">
+          <button type="button" class="fold" aria-label="{unfold ? 'Fold' : 'Unfold'} {row.name}" aria-expanded={unfold} onclick={() => foldSeries(row.name, !unfold)}>
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:down={unfold}><path d="M3 1.5 L7 5 L3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+          </button>
+          <button type="button" class="manuscript series" title="Open the {row.name} board" onclick={() => onSeries(row.name)}>
+            <span>{row.name}</span><span class="n">{row.books.length} {row.books.length === 1 ? 'book' : 'books'}</span>
+          </button>
         </div>
+        {#if unfold}
+          <div class="books">
+            {#each row.books as m (m.path)}
+              {@render manuscript(m)}
+            {/each}
+          </div>
+        {/if}
+      {:else}
+        {@render manuscript(row.m)}
       {/if}
     {:else}
       <p class="hint">
         {#if story?.missing}
           The stories folder is missing.
         {:else if tab === 'desk'}
-          Nothing on the desk. Start a new manuscript, or right-click one in the drawer and move it here.
+          Nothing on the desk. Start something new, or right-click anything in the drawer and move it here.
         {:else if tab === 'drawer'}
           The drawer is empty.
         {:else}
-          Nothing on the shelf yet. Finished manuscripts go here.
+          Nothing on the shelf yet. Finished work goes here.
         {/if}
       </p>
     {/each}
@@ -348,6 +423,27 @@
   }
   .manuscript-row.current .manuscript {
     color: var(--selected-fg);
+  }
+  .manuscript-row.note .manuscript {
+    font-weight: 400;
+    color: var(--text-soft);
+  }
+  .manuscript.series {
+    font-family: var(--font-label);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--title);
+  }
+  .books {
+    margin-left: 14px;
+    border-left: 1px solid var(--rule);
+  }
+  .number {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 8px;
   }
   .sections {
     padding-bottom: 6px;

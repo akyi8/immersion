@@ -2,7 +2,7 @@
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Manuscript, Place, StoryIndex } from '../../lib/story/index';
-  import { fileSource, folderSource, type OutlineSource } from '../../lib/story/outlineSource';
+  import { folderSource, type OutlineSource } from '../../lib/story/outlineSource';
   import EntryEditor from '../world/EntryEditor.svelte';
   import OutlineView from './OutlineView.svelte';
   import PieceActions from './PieceActions.svelte';
@@ -15,8 +15,8 @@
 
   /**
    * A piece of writing open in the Story module: a manuscript's title page, one of its
-   * chapters or front and back pages, or a manuscript kept as one file. It uses the same
-   * editor as wiki entries, so names link and open beside it.
+   * chapters or front and back pages, or a note. It uses the same editor as wiki entries,
+   * so names link and open beside it.
    */
   let {
     fs,
@@ -35,6 +35,7 @@
     onMoved,
     onWindow,
     onSeries,
+    onMakeManuscript,
     defaults = { author: '', copyright: '' },
     onDefaults = () => {},
   }: {
@@ -60,6 +61,8 @@
     onWindow?: () => void;
     /** Opens a series board beside this pane. */
     onSeries?: (series: string) => void;
+    /** Starts making a note into a manuscript. */
+    onMakeManuscript?: (note: Manuscript) => void;
     /** The world's author and copyright holder for new manuscripts. */
     defaults?: { author: string; copyright: string };
     onDefaults?: () => void;
@@ -83,8 +86,8 @@
 
   /** The chapters behind outline view: this file's headings, or the files of its folder. */
   const source = $derived.by((): OutlineSource | null => {
-    if (!owner) return null;
-    if (owner.kind === 'file') return fileSource(fs, owner.path);
+    // A note is a single page, so it has no board (Mike, October 26).
+    if (!owner || owner.kind === 'file') return null;
     return id === owner.book || owner.sections.some((s) => s.path === id) ? folderSource(fs, owner) : null;
   });
 
@@ -127,7 +130,7 @@
     const where = PLACE_LABELS[m.place];
     const chapters = m.kind === 'file' ? m.sections.filter((s) => s.depth === 2).length : m.sections.length;
     const summary = `${words(m.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}` : ''}`;
-    if (m.kind === 'file') return { kind: 'manuscript' as const, title: m.title, label: where, meta: summary };
+    if (m.kind === 'file') return { kind: 'note' as const, title: m.title, label: `${where} · Note`, meta: words(m.words) };
     if (id === m.book) return { kind: 'book' as const, title: m.title, label: `${where} · Title page`, meta: summary };
     const i = m.sections.findIndex((s) => s.path === id);
     if (i >= 0) {
@@ -157,8 +160,11 @@
             </div>
           {/if}
           <span class="meta">{about.meta}</span>
-          {#if owner?.place === 'drawer' && (about.kind === 'manuscript' || about.kind === 'book')}
+          {#if owner?.place === 'drawer' && (about.kind === 'note' || about.kind === 'book')}
             <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
+          {/if}
+          {#if about.kind === 'note' && owner && onMakeManuscript}
+            <button type="button" class="action" onclick={() => onMakeManuscript(owner!)}>Make it a manuscript…</button>
           {/if}
           {#if onMoved && story && owner}
             <PieceActions
@@ -210,7 +216,7 @@
                 cursor = pos;
                 onCursor(pos);
               }}
-              onOutline={showOutline}
+              onOutline={source ? showOutline : undefined}
               {onMakeEntry}
               onReady={(v) => (editor = v)} />
           {/key}
@@ -223,9 +229,9 @@
             {fs}
             onOpen={onOpen}
             {cursor}
-            wholeBook={about.kind === 'manuscript'}
+            wholeBook={false}
             onOpenOutline={(i) => {
-              outlineFocus = about.kind === 'manuscript' ? i : (owner?.sections.findIndex((s) => s.path === id) ?? null);
+              outlineFocus = owner?.sections.findIndex((s) => s.path === id) ?? null;
               mode = 'outline';
             }} />
         {/if}
