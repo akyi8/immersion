@@ -17,6 +17,7 @@
   let text = $state('');
   let problem = $state('');
   let input: HTMLInputElement | undefined = $state();
+  let focused = $state(false);
 
   $effect(() => {
     text = entry.when?.text ?? '';
@@ -67,9 +68,11 @@
         bind:this={input}
         type="text"
         bind:value={text}
-        size={Math.max(8, text.length + 1)}
+        size={Math.max(22, text.length + 2)}
         autocomplete="off"
-        placeholder="2057, or 2045 to 2060"
+        placeholder="2057, or 1985 to 2000"
+        aria-describedby="when-help-{entry.id}"
+        onfocus={() => (focused = true)}
         onkeydown={(e) => {
           if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
           if (e.key === 'Escape') {
@@ -77,7 +80,7 @@
             (e.currentTarget as HTMLInputElement).blur();
           }
         }}
-        onblur={commit} />
+        onblur={() => ((focused = false), commit())} />
       {#if isSpan && entry.when}
         <label class="era">
           <input type="checkbox" checked={entry.era} onchange={(e) => write({ era: (e.currentTarget as HTMLInputElement).checked ? true : undefined })} />
@@ -88,6 +91,13 @@
       <span id="when-{entry.id}" class="value">{entry.when?.text}{entry.era ? ' · an era' : ''}</span>
     {/if}
   </div>
+  {#if editable && (focused || problem)}
+    <p class="help" id="when-help-{entry.id}">
+      A year, <code>2057</code>. A day, <code>Aug 8 2020</code>, <code>8 August 2020</code>, <code>2020-08-08</code>, or <code>8/8/2020</code>, month first.
+      A span for an era, <code>1985 to 2000</code> or <code>1985-2000</code>. Also a season, <code>spring 2052</code>, a decade, <code>1920s</code>,
+      <code>5th century BCE</code>, and <code>c. 1200 BCE</code>.
+    </p>
+  {/if}
   {#if problem}<div class="problem" role="alert">{problem}</div>{/if}
 {:else if editable}
   <button type="button" class="add" onclick={start}>+ Date</button>
@@ -140,6 +150,17 @@
   }
   .add:hover {
     color: var(--text);
+  }
+  .help {
+    margin: 6px 0 0;
+    max-width: 520px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .help code {
+    font-family: var(--font-label);
+    color: var(--text-soft);
   }
   .problem {
     margin-top: 6px;

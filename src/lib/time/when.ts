@@ -4,7 +4,8 @@
  * written:
  *
  * - a year, `2954`, `44 BCE`, `10,000 BCE`, or `AD 33`;
- * - a month or a day, `October 1066`, `14 October 1066`, `1066-10-14`;
+ * - a month or a day, `October 1066`, `14 October 1066`, `Oct 14, 1066`, `1066-10-14`, or
+ *   `10/14/1066`, which reads month first, as written in the United States;
  * - a season, `spring 2088`;
  * - a decade or a century, `1920s`, `5th century BCE`;
  * - an approximate date, `c. 1200 BCE` or `around 1200 BCE`;
@@ -43,6 +44,14 @@ function point(raw: string): [number, number] | null {
     const day = m[3] ? Number(m[3]) - 1 : null;
     const at = y + month / 12 + (day ?? 0) / 365;
     return [at, day === null ? y + (month + 1) / 12 : at + 1 / 365];
+  }
+  // 10/14/1066, month first (Mike, October 26)
+  if ((m = /^(\d{1,2})\/(\d{1,2})\/(-?\d{1,6})$/.exec(s))) {
+    const month = Number(m[1]) - 1;
+    const day = Number(m[2]) - 1;
+    if (month > 11 || day > 30) return null;
+    const at = era(Number(m[3]), bce) + month / 12 + day / 365;
+    return [at, at + 1 / 365];
   }
   // 1920s, 1900s
   if ((m = /^(\d{1,5})0s$/.exec(s))) {

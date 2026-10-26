@@ -41,3 +41,14 @@ test('an event falls within an era by its start', () => {
   assert.equal(within(parseWhen('2050')!, era), true);
   assert.equal(within(parseWhen('2061')!, era), false);
 });
+
+test('the same day written several ways sorts to the same place', () => {
+  const day = parseWhen('8 August 2020')!.start;
+  for (const written of ['Aug 8 2020', 'Aug 8, 2020', 'August 8th, 2020', '2020-08-08', '8/8/2020', '08/08/2020']) {
+    assert.equal(parseWhen(written)!.start, day, written);
+  }
+  // Slashes read month first, so 8/5/2020 is the fifth of August.
+  assert.equal(parseWhen('8/5/2020')!.start, parseWhen('August 5 2020')!.start);
+  assert.equal(parseWhen('13/5/2020'), null);
+  for (const span of ['1985 to 2000', '1985-2000', '1985 – 2000', '1985 - 2000']) assert.deepEqual([parseWhen(span)!.start, parseWhen(span)!.end], [1985, 2001], span);
+});

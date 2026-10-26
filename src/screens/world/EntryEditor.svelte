@@ -82,13 +82,20 @@
     timer = setTimeout(save, SAVE_DELAY_MS);
   }
 
+  /**
+   * The editor holds every line ending as a plain newline, so a file written on Windows
+   * is compared the same way. Otherwise its Windows line endings would read as edits
+   * waiting here, and every change from another program would ask which version to keep.
+   */
+  const plain = (text: string) => text.replace(/\r\n?/g, '\n');
+
   // When the file changes in another program, take the new text if nothing is waiting
   // to be saved here. Otherwise ask, because the player's unsaved words come first.
   async function changedElsewhere(paths: string[]) {
     if (!view || !paths.includes(id)) return;
     let text: string;
     try {
-      text = await fs.readText(id);
+      text = plain(await fs.readText(id));
     } catch {
       return;
     }
@@ -125,7 +132,7 @@
   let unregister = () => {};
   onMount(async () => {
     try {
-      lastSaved = await fs.readText(id);
+      lastSaved = plain(await fs.readText(id));
     } catch (e) {
       status = 'error';
       problem = String(e);
