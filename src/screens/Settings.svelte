@@ -64,7 +64,7 @@
   async function chooseLibrary() {
     const lib = account.library;
     if (!lib) return;
-    const path = await lib.pickFolder('Choose your library: the folder that holds your worlds');
+    const path = await lib.pickFolder('Choose your library: the folder that holds your worlds', info?.path);
     if (!path) return;
     await run(async () => {
       await lib.setLibrary(path);

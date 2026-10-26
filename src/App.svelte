@@ -18,6 +18,8 @@
   import { ui } from './lib/ui.svelte';
   import { splitHeader } from './lib/world';
   import Settings from './screens/Settings.svelte';
+  import WorldDetails from './screens/shelf/WorldDetails.svelte';
+  import type { ShelfWorld } from './lib/library/types';
   import { sync } from './lib/sync.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
@@ -115,6 +117,13 @@
     });
   });
 
+  // The open world's name and tagline, from the menu on its name (Mike, October 26).
+  let detailsFor = $state<ShelfWorld | null>(null);
+  async function editDetails() {
+    if (!library) return;
+    detailsFor = (await library.list()).find((w) => w.path === openPath) ?? null;
+  }
+
   // The theme panel for the open world, with the text of its world.md.
   let themeFor = $state<string | null>(null);
   async function editTheme() {
@@ -183,7 +192,18 @@
     onShowLoading={() => (phase = 'loading')}
     onShowShelf={showShelf}
     onTheme={editTheme}
+    onDetails={editDetails}
   />
+  {#if detailsFor && library}
+    <WorldDetails
+      {library}
+      world={detailsFor}
+      onCancel={() => (detailsFor = null)}
+      onSaved={async () => {
+        detailsFor = null;
+        world = await loadWorld(fs!);
+      }} />
+  {/if}
   {#if themeFor !== null}
     <ThemeEditor
       worldMd={themeFor}

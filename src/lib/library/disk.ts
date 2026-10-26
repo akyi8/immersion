@@ -50,8 +50,8 @@ export class DiskLibrary implements Library {
     return invoke('forget_world', { path });
   }
 
-  async pickFolder(title: string): Promise<string | null> {
-    const picked = await open({ directory: true, title });
+  async pickFolder(title: string, start?: string | null): Promise<string | null> {
+    const picked = await open({ directory: true, title, defaultPath: start ?? undefined });
     return typeof picked === 'string' ? picked : null;
   }
 

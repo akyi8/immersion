@@ -30,7 +30,7 @@
   });
 
   async function chooseLocation() {
-    const picked = await library.pickFolder('Where should the new world go?');
+    const picked = await library.pickFolder('Where should the new world go?', location || null);
     if (picked) location = picked;
   }
 

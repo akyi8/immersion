@@ -84,6 +84,10 @@ struct Settings {
     /// Whether worlds in a Git library sync on their own. On unless switched off.
     #[serde(default = "on")]
     git_sync: bool,
+    /// When each world was last opened on this computer, in milliseconds since 1970, so
+    /// the Worlds page shows the most recent first (Mike, October 26).
+    #[serde(default)]
+    opened: std::collections::HashMap<String, u64>,
 }
 
 fn on() -> bool {
@@ -146,7 +150,14 @@ fn shelf_paths(settings: &Settings) -> Vec<(String, bool)> {
             out.push((path.clone(), true));
         }
     }
+    // Most recently opened first. Worlds never opened here keep their order after them.
+    out.sort_by_key(|(p, _)| std::cmp::Reverse(settings.opened.get(p).copied().unwrap_or(0)));
     out
+}
+
+/// Whether a world is on this computer's Worlds page, through the library or added here.
+fn on_shelf(settings: &Settings, path: &str) -> bool {
+    shelf_paths(settings).iter().any(|(p, _)| p == path)
 }
 
 fn load_settings(app: &AppHandle) -> Settings {
@@ -262,6 +273,8 @@ fn open_world(path: String, state: State<OpenWorld>, app: AppHandle) -> Result<(
     watch(&app, folder);
     remember(&app, &path);
     let mut settings = load_settings(&app);
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+    settings.opened.insert(path.clone(), now);
     settings.world = Some(path);
     save_settings(&app, &settings);
     Ok(())
@@ -674,8 +687,8 @@ fn write_you(text: String, app: AppHandle) -> Result<(), String> {
 /// Saves a shelf world's `world.md`, used to change its name and tagline.
 #[tauri::command]
 fn write_world_md(path: String, text: String, app: AppHandle) -> Result<(), String> {
-    if !load_settings(&app).worlds.contains(&path) {
-        return Err("That world is not on the shelf".into());
+    if !on_shelf(&load_settings(&app), &path) {
+        return Err("That world is not on the Worlds page".into());
     }
     let file = PathBuf::from(&path).join("world.md");
     let mut temp = file.clone().into_os_string();
@@ -691,8 +704,8 @@ fn write_world_md(path: String, text: String, app: AppHandle) -> Result<(), Stri
 /// Sets a shelf world's cover by copying a picture in as its `world` image.
 #[tauri::command]
 fn set_world_cover(path: String, source: String, app: AppHandle) -> Result<(), String> {
-    if !load_settings(&app).worlds.contains(&path) {
-        return Err("That world is not on the shelf".into());
+    if !on_shelf(&load_settings(&app), &path) {
+        return Err("That world is not on the Worlds page".into());
     }
     place_image(&PathBuf::from(&path).join("world"), Path::new(&source)).map(|_| ())
 }
@@ -968,7 +981,12 @@ mod tests {
             hidden: vec![lib.join("games").join("ashfall").to_string_lossy().into_owned()],
             ..Default::default()
         };
-        assert_eq!(shelf_paths(&settings), vec![(lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere, true)]);
+        assert_eq!(shelf_paths(&settings), vec![(lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere.clone(), true)]);
+        // The world opened most recently comes first.
+        let mut recent = settings;
+        recent.opened.insert(elsewhere.clone(), 5);
+        assert_eq!(shelf_paths(&recent)[0], (elsewhere.clone(), true));
+        assert!(super::on_shelf(&recent, &lib.join("project-sc").to_string_lossy()));
         let _ = std::fs::remove_dir_all(&lib);
     }
 

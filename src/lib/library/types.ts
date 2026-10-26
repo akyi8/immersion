@@ -47,7 +47,8 @@ export interface Library {
   /** Takes a world off the shelf. Its files are untouched. */
   forget(path: string): Promise<void>;
 
-  pickFolder(title: string): Promise<string | null>;
+  /** Asks for a folder, starting in `start` when given, such as the library. */
+  pickFolder(title: string, start?: string | null): Promise<string | null>;
   pickImage(): Promise<ImageSource | null>;
   inspect(path: string): Promise<FolderShape>;
   /** Puts a folder on the shelf, writing `worldMd` into it when it has no world.md. */

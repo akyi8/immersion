@@ -53,7 +53,7 @@
   const info = $derived(account.info);
   async function chooseLibrary() {
     problem = '';
-    const path = await library.pickFolder('Choose your library: the folder that holds your worlds');
+    const path = await library.pickFolder('Choose your library: the folder that holds your worlds', info?.path);
     if (!path) return;
     try {
       await library.setLibrary(path);
@@ -75,7 +75,8 @@
 
   async function add() {
     problem = '';
-    const path = await library.pickFolder('Choose a folder that holds a world');
+    // The picker starts in the library, where most worlds live (Mike, October 26).
+    const path = await library.pickFolder('Choose a folder that holds a world', account.info?.path);
     if (!path) return;
     try {
       const shape = await library.inspect(path);

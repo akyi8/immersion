@@ -21,6 +21,7 @@
     onShowLoading,
     onShowShelf,
     onTheme,
+    onDetails,
   }: {
     index: WikiIndex | null;
     fs: WorldFs;
@@ -31,6 +32,8 @@
     onShowShelf: () => void;
     /** Opens the theme panel for this world. */
     onTheme: () => void;
+    /** Opens the world's name and tagline. */
+    onDetails: () => void;
   } = $props();
 
   const nav = new Navigator();
@@ -119,6 +122,7 @@
         oncontextmenu={(e) =>
           contextMenu.show(e, [
             { label: 'Show the loading screen', run: onShowLoading },
+            { label: 'Edit details', run: onDetails },
             { label: 'Theme', run: onTheme },
             'separator',
             { label: 'All worlds', run: onShowShelf },
