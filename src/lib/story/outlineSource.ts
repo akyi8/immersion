@@ -331,13 +331,13 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     },
     async add() {
       const list = await books();
-      // A new book takes its author and copyright from the latest book that has them.
-      const last = [...list].reverse().find((b) => b.page.author || b.page.copyright)?.page ?? list[list.length - 1]?.page;
+      // A new book takes its author profile, or its author and copyright, from the latest book that has them.
+      const last = [...list].reverse().find((b) => b.page.profile || b.page.author || b.page.copyright)?.page ?? list[list.length - 1]?.page;
       const word = list[list.length - 1]?.page.seriesWord || 'Story';
       let n = list.length + 1;
       let title = `${word} ${n}`;
       while (await fs.exists(`${root}/${slugify(title)}`)) title = `${word} ${++n}`;
-      const made = await newManuscript(fs, root, title, { author: last?.author, copyright: last?.copyright });
+      const made = await newManuscript(fs, root, title, { profile: last?.profile, author: last?.author, copyright: last?.copyright });
       const book = `${made.folder}/book.md`;
       const page = readTitlePage(await fs.readText(book), title);
       await fs.writeText(book, withTitlePage(await fs.readText(book), { ...page, series, number: list.length + 1, seriesWord: word, year: last?.year ?? page.year }));

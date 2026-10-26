@@ -16,8 +16,15 @@ export interface TitlePage {
   number: number | null;
   /** What one installment of the series is called: Story, Book, Novel, or Tale. */
   seriesWord: string;
+  /**
+   * The author profile the book is linked to (Mike, October 26), by its id in the
+   * library's `immersion.md`. While it is set, the profile's names are the book's, and
+   * `author` and `copyright` are not kept in the book.
+   */
+  profile: string;
+  /** The author written out by hand, for a book with no profile. */
   author: string;
-  /** Who holds the copyright. */
+  /** Who holds the copyright, written out by hand. */
   copyright: string;
   year: number | null;
 }
@@ -59,6 +66,7 @@ export function readTitlePage(bookText: string, fallbackTitle: string): TitlePag
     series: text(header.series),
     number: whole(header.number),
     seriesWord: text(header.series_word) || 'Story',
+    profile: text(header.profile),
     author: text(header.author),
     copyright: text(header.copyright),
     year: whole(header.year),
@@ -73,8 +81,9 @@ export function withTitlePage(bookText: string, page: TitlePage): string {
     series: blank(page.series),
     number: page.series.trim() && page.number ? page.number : undefined,
     series_word: page.series.trim() && page.seriesWord.trim() && page.seriesWord !== 'Story' ? page.seriesWord.trim() : undefined,
-    author: blank(page.author),
-    copyright: blank(page.copyright),
+    profile: blank(page.profile),
+    author: page.profile.trim() ? undefined : blank(page.author),
+    copyright: page.profile.trim() ? undefined : blank(page.copyright),
     year: page.year ?? undefined,
   });
   const { body } = splitHeader(out);
@@ -89,8 +98,16 @@ export function newBook(page: TitlePage): string {
   return withTitlePage(`# ${page.title.trim()}\n`, page);
 }
 
-export function blankPage(title: string, defaults: { author?: string; copyright?: string } = {}): TitlePage {
-  return { title, subtitle: '', series: '', number: null, seriesWord: 'Story', author: defaults.author ?? '', copyright: defaults.copyright ?? '', year: defaults.copyright ? new Date().getFullYear() : null };
+/** What a new book's title page starts with: a profile to link to, or names written out. */
+export interface PageDefaults {
+  profile?: string;
+  author?: string;
+  copyright?: string;
+}
+
+export function blankPage(title: string, defaults: PageDefaults = {}): TitlePage {
+  const named = !!(defaults.profile || defaults.copyright);
+  return { title, subtitle: '', series: '', number: null, seriesWord: 'Story', profile: defaults.profile ?? '', author: defaults.author ?? '', copyright: defaults.copyright ?? '', year: named ? new Date().getFullYear() : null };
 }
 
 const FRONT = /^(dedication|epigraph|foreword|preface|contents|table of contents|copyright)$/i;

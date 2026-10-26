@@ -67,6 +67,7 @@ test('a typed-out title page becomes fields, and chapters become files', () => {
     series: 'Wayfarer Chronicles',
     number: 1,
     seriesWord: 'Story',
+    profile: '',
     author: 'Mara Vell',
     copyright: 'Ada Lane',
     year: 2026,
@@ -105,4 +106,17 @@ test('a long italic note under the title stays with the text instead of becoming
   assert.ok(files['01-chapter-1.md'].includes(note));
   const short = fileToFolder('# The Campaign\n\n*A ghost story*\n\nThe docks.\n', 'campaign.md').files['book.md'];
   assert.match(short, /subtitle: A ghost story/);
+});
+
+test('a title page linked to a profile keeps the link and not the names', () => {
+  const page = { ...blankPage('The Long Road', { profile: 'mara-vell' }) };
+  assert.equal(page.year, new Date().getFullYear());
+  const text = newBook({ ...page, author: 'Stale Name', copyright: 'Stale Holder' });
+  assert.match(text, /profile: mara-vell/);
+  assert.doesNotMatch(text, /author:|copyright:/);
+  assert.equal(readTitlePage(text, 'x').profile, 'mara-vell');
+  // Unlinking writes the names out by hand again.
+  const unlinked = withTitlePage(text, { ...readTitlePage(text, 'x'), profile: '', author: 'Mara Vell', copyright: 'Ada Lane' });
+  assert.match(unlinked, /author: Mara Vell\ncopyright: Ada Lane/);
+  assert.doesNotMatch(unlinked, /profile:/);
 });

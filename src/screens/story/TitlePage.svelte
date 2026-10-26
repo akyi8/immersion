@@ -4,11 +4,16 @@
   import { readTitlePage, seriesLine, withTitlePage, type TitlePage } from '../../lib/story/book';
   import { renamePiece } from '../../lib/story/manage';
   import { withHeader } from '../../lib/world';
+  import { account } from '../../lib/account.svelte';
+  import { newProfileId, profileLabel } from '../../lib/you';
+  import { ui } from '../../lib/ui.svelte';
 
   /**
    * A manuscript's title page (Mike, October 25), drawn from the fields in its `book.md`.
    * Choosing Edit title page opens a small form, and the series line and the copyright
-   * line are written from what is filled in.
+   * line are written from what is filled in. The author comes from an author profile
+   * (Mike, October 26), which the book links to, so a profile changed in Settings
+   * changes every book that uses it.
    */
   let {
     fs,
@@ -24,8 +29,8 @@
     book: string;
     /** The manuscript's folder, which follows a new title. */
     folder: string;
-    /** The world's author and copyright holder for new manuscripts. */
-    defaults: { author: string; copyright: string };
+    /** The world's author profile, or author and copyright holder, for new manuscripts. */
+    defaults: { profile: string; author: string; copyright: string };
     onMoved: (from: string, to: string) => void;
     /** Called after the world's defaults change. */
     onDefaults: () => void;
@@ -36,6 +41,17 @@
   let page = $state<TitlePage | null>(null);
   let editing = $state<TitlePage | null>(null);
   let useAsDefault = $state(false);
+  /** Who the book is by, in the form: a profile's id, 'new' for a profile made here, or 'hand' for names typed out. */
+  let who = $state('');
+  let newAuthor = $state('');
+  let newCopyright = $state('');
+
+  const hasLibrary = $derived(!!account.info?.path);
+  /** The names the title page shows: its profile's, or those written out by hand. */
+  const linked = $derived(page?.profile ? account.profile(page.profile) : null);
+  const names = $derived(page ? (page.profile ? { author: linked?.author ?? '', copyright: linked?.copyright ?? '' } : { author: page.author, copyright: page.copyright }) : null);
+  /** Written-out names are offered for a book that already has them, or when there is no library to keep profiles. */
+  const offerHand = $derived(!hasLibrary || !!(page && !page.profile && (page.author || page.copyright)));
   let problem = $state('');
   let busy = $state(false);
 
@@ -59,6 +75,12 @@
     editing = { ...page };
     useAsDefault = false;
     problem = '';
+    newAuthor = '';
+    newCopyright = '';
+    if (page.profile && account.profile(page.profile)) who = page.profile;
+    else if (offerHand && (page.author || page.copyright || !hasLibrary)) who = 'hand';
+    else if (account.profiles.length) who = account.profiles[0].id;
+    else who = 'new';
   }
 
   async function save(event: SubmitEvent) {
@@ -67,10 +89,18 @@
     busy = true;
     problem = '';
     try {
-      const next = { ...editing, title: page.title };
+      let profile = '';
+      if (who === 'new') {
+        if (!newAuthor.trim()) throw new Error('A new author profile needs an author.');
+        const made = { id: newProfileId(newAuthor, account.profiles), author: newAuthor.trim(), copyright: newCopyright.trim() };
+        await account.saveProfiles([...account.profiles, made]);
+        profile = made.id;
+      } else if (who !== 'hand') profile = who;
+      const next = { ...editing, title: page.title, profile };
       await fs.writeText(book, withTitlePage(await fs.readText(book), next));
       if (useAsDefault) {
-        await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { author: next.author.trim() || undefined, copyright: next.copyright.trim() || undefined }));
+        const changes = profile ? { profile, author: undefined, copyright: undefined } : { profile: undefined, author: next.author.trim() || undefined, copyright: next.copyright.trim() || undefined };
+        await fs.writeText('world.md', withHeader(await fs.readText('world.md'), changes));
         onDefaults();
       }
       if (editing.title.trim() !== page.title) {
@@ -86,7 +116,9 @@
     }
   }
 
-  const differs = $derived(!!editing && (editing.author.trim() !== defaults.author || editing.copyright.trim() !== defaults.copyright));
+  const differs = $derived(
+    !!editing && (who === 'new' || (who === 'hand' ? editing.author.trim() !== defaults.author || editing.copyright.trim() !== defaults.copyright || !!defaults.profile : who !== defaults.profile)),
+  );
 </script>
 
 {#if page && !editing}
@@ -94,9 +126,12 @@
     <h2 class="title">{page.title}</h2>
     {#if page.subtitle}<p class="subtitle">{page.subtitle}</p>{/if}
     {#if seriesLine(page)}<p class="series">{seriesLine(page)}</p>{/if}
-    {#if page.author}<p class="author">by {page.author}</p>{/if}
-    {#if page.copyright || page.year}
-      <p class="copyright">Copyright © {[page.year, page.copyright].filter(Boolean).join(' ')}<br />All rights reserved.</p>
+    {#if names?.author}<p class="author">by {names.author}</p>{/if}
+    {#if page.profile && !linked && account.info}
+      <p class="gone">{hasLibrary ? 'This book’s author profile is gone. Edit the title page to choose another.' : 'This book uses an author profile, which lives in your library. Choose a library in Settings to see it.'}</p>
+    {/if}
+    {#if names?.copyright || page.year}
+      <p class="copyright">Copyright © {[page.year, names?.copyright].filter(Boolean).join(' ')}<br />All rights reserved.</p>
     {/if}
     <div class="buttons">
       <button type="button" class="edit" onclick={edit}>Edit title page</button>
@@ -133,12 +168,16 @@
       </div>
     </div>
     {#if seriesLine(editing)}<p class="preview">{seriesLine(editing)}</p>{/if}
-    <label for="tp-author" class="label">Author</label>
-    <input id="tp-author" type="text" bind:value={editing.author} autocomplete="off" />
     <div class="pair">
       <div class="grow">
-        <label for="tp-copyright" class="label">Copyright holder</label>
-        <input id="tp-copyright" type="text" bind:value={editing.copyright} autocomplete="off" />
+        <label for="tp-who" class="label">Author profile</label>
+        {#if hasLibrary || offerHand}
+          <select id="tp-who" bind:value={who}>
+            {#each account.profiles as p (p.id)}<option value={p.id}>{profileLabel(p)}</option>{/each}
+            {#if offerHand}<option value="hand">Written out by hand</option>{/if}
+            {#if hasLibrary}<option value="new">Create an author profile…</option>{/if}
+          </select>
+        {/if}
       </div>
       <div>
         <label for="tp-year" class="label">Year</label>
@@ -149,8 +188,31 @@
           oninput={(e) => (editing!.year = Number((e.currentTarget as HTMLInputElement).value) || null)} />
       </div>
     </div>
+    {#if who === 'new'}
+      <div class="sub">
+        <label for="tp-new-author" class="label">Author</label>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input id="tp-new-author" type="text" bind:value={newAuthor} autocomplete="off" placeholder="The name on the cover" autofocus />
+        <label for="tp-new-copyright" class="label">Copyright holder</label>
+        <input id="tp-new-copyright" type="text" bind:value={newCopyright} autocomplete="off" placeholder="Often your legal name" />
+        <p class="hint">The profile is kept in your library, and you can change it later in Settings.</p>
+      </div>
+    {:else if who === 'hand'}
+      <div class="sub">
+        <label for="tp-author" class="label">Author</label>
+        <input id="tp-author" type="text" bind:value={editing.author} autocomplete="off" />
+        <label for="tp-copyright" class="label">Copyright holder</label>
+        <input id="tp-copyright" type="text" bind:value={editing.copyright} autocomplete="off" />
+        {#if !hasLibrary}
+          <p class="hint">
+            Author profiles live in your library, so every computer has them.
+            <button type="button" class="link" onclick={() => (ui.settings = 'computer')}>Choose a library</button>
+          </p>
+        {/if}
+      </div>
+    {/if}
     {#if differs}
-      <label class="check"><input type="checkbox" bind:checked={useAsDefault} /> Use this author and copyright holder for new manuscripts in this world</label>
+      <label class="check"><input type="checkbox" bind:checked={useAsDefault} /> Use this author for new manuscripts in this world</label>
     {/if}
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <div class="actions">
@@ -279,6 +341,31 @@
   .problem {
     color: var(--danger);
     font-size: 14px;
+  }
+  .sub {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 14px;
+    border-left: 2px solid var(--rule-strong);
+  }
+  .hint {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .link {
+    font-size: 13px;
+    color: var(--structure);
+    background: none;
+    border: 0;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .gone {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--muted);
   }
   .actions {
     display: flex;

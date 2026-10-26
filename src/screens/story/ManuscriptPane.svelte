@@ -36,7 +36,7 @@
     onWindow,
     onSeries,
     onMakeManuscript,
-    defaults = { author: '', copyright: '' },
+    defaults = { profile: '', author: '', copyright: '' },
     onDefaults = () => {},
   }: {
     fs: WorldFs;
@@ -63,8 +63,8 @@
     onSeries?: (series: string) => void;
     /** Starts making a note into a manuscript. */
     onMakeManuscript?: (note: Manuscript) => void;
-    /** The world's author and copyright holder for new manuscripts. */
-    defaults?: { author: string; copyright: string };
+    /** The world's author profile, or author and copyright holder, for new manuscripts. */
+    defaults?: { profile: string; author: string; copyright: string };
     onDefaults?: () => void;
   } = $props();
 

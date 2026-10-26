@@ -2,7 +2,7 @@ import type { WorldFs } from '../fs/types.ts';
 import { slugify } from '../slug.ts';
 import { splitHeader, withHeader } from '../world.ts';
 import { placeFolder, titleOf, titleFromName, type Manuscript, type Place } from './index.ts';
-import { blankPage, fileToFolder, newBook, readTitlePage, withTitlePage } from './book.ts';
+import { blankPage, fileToFolder, newBook, readTitlePage, withTitlePage, type PageDefaults } from './book.ts';
 
 /**
  * Renaming, archiving, and moving pieces of writing between the desk, the drawer, and
@@ -110,7 +110,7 @@ export async function newManuscript(
   fs: WorldFs,
   dir: string,
   title: string,
-  defaults: { author?: string; copyright?: string },
+  defaults: PageDefaults,
   series?: { name: string; number: number },
 ): Promise<{ folder: string; chapter: string }> {
   const slug = slugify(title);

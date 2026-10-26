@@ -60,14 +60,16 @@
     }
   }
 
-  // The world's author and copyright holder, which new manuscripts start with.
-  let defaults = $state({ author: '', copyright: '' });
+  // The world's author profile, or the author and copyright holder written into world.md
+  // before profiles, which new manuscripts start with.
+  let defaults = $state({ profile: '', author: '', copyright: '' });
   async function readDefaults() {
     try {
       const { header } = splitHeader(await fs.readText('world.md'));
-      defaults = { author: typeof header.author === 'string' ? header.author : '', copyright: typeof header.copyright === 'string' ? header.copyright : '' };
+      const str = (v: unknown) => (typeof v === 'string' ? v : '');
+      defaults = { profile: str(header.profile), author: str(header.author), copyright: str(header.copyright) };
     } catch {
-      defaults = { author: '', copyright: '' };
+      defaults = { profile: '', author: '', copyright: '' };
     }
   }
 
