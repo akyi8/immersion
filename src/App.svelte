@@ -18,6 +18,7 @@
   import { ui } from './lib/ui.svelte';
   import { splitHeader } from './lib/world';
   import Settings from './screens/Settings.svelte';
+  import { sync } from './lib/sync.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -46,6 +47,7 @@
       // The index builds while the loading screen is up.
       index = await buildWikiIndex(source, world);
       watchWorld(source);
+      sync.start(source, world.name);
     } catch (e) {
       problem = String(e);
       phase = 'error';
@@ -88,6 +90,7 @@
 
   async function showShelf() {
     stopWatching();
+    sync.stop();
     await library?.close();
     fs = null;
     world = null;

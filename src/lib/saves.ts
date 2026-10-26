@@ -16,6 +16,11 @@ export async function saveNow(path: string): Promise<void> {
   await savers.get(path)?.();
 }
 
+/** Saves every open editor, before the world syncs. */
+export async function saveAll(): Promise<void> {
+  await Promise.all([...savers.values()].map((save) => save()));
+}
+
 /** Saves every open editor whose file is inside `folder`, before the folder moves. */
 export async function saveAllUnder(folder: string): Promise<void> {
   await Promise.all([...savers].filter(([path]) => path.startsWith(folder + '/')).map(([, save]) => save()));

@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { DirEntry, ImageSource, WorldFs } from './types';
+import type { DirEntry, ImageSource, SyncReport, WorldFs } from './types';
 
 /** The real world folder on disk, reached through the Rust backend. */
 export class DiskFs implements WorldFs {
@@ -61,6 +61,10 @@ export class DiskFs implements WorldFs {
 
   writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null> {
     return invoke('writing_activity', { dir, days });
+  }
+
+  sync(name: string): Promise<SyncReport> {
+    return invoke<SyncReport>('sync_world', { name });
   }
 
   onChange(callback: (paths: string[]) => void): () => void {

@@ -4,6 +4,7 @@
   import { account } from '../lib/account.svelte';
   import { newProfileId, profileLabel, type Profile } from '../lib/you';
   import ModeToggle from './ModeToggle.svelte';
+  import { sync } from '../lib/sync.svelte';
 
   /**
    * Settings (Mike, October 26), at three levels. You holds what follows the writer to
@@ -145,10 +146,29 @@
         <h3 class="label">Sync</h3>
         {#if info.isGit}
           <label class="check">
-            <input type="checkbox" checked={info.gitSync} onchange={(e) => run(async () => (await account.library?.setGitSync((e.currentTarget as HTMLInputElement).checked), await account.refresh()))} />
+            <input
+              type="checkbox"
+              checked={info.gitSync}
+              onchange={(e) =>
+                run(async () => {
+                  await account.library?.setGitSync((e.currentTarget as HTMLInputElement).checked);
+                  await account.refresh();
+                  sync.retry();
+                })} />
             Sync with Git on its own
           </label>
           <p class="hint">Pulls when a world opens and every ten minutes, and commits and pushes a few minutes after you stop typing and when you close the world. It only ever commits the world's own folder.</p>
+          {#if world && sync.state !== 'idle' && sync.state !== 'not-git'}
+            <div class="status {sync.state}">
+              <p>
+                {#if sync.state === 'syncing'}Syncing now.
+                {:else if sync.state === 'synced'}Synced{sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}.
+                {:else if sync.state === 'off'}Syncing is off on this computer.
+                {:else}{sync.message}{/if}
+              </p>
+              {#if info.gitSync}<button type="button" onclick={() => sync.now()} disabled={sync.state === 'syncing'}>Sync now</button>{/if}
+            </div>
+          {/if}
         {:else}
           <p class="hint">This library is not a Git repository, so it syncs however its folder does, such as through Dropbox.</p>
         {/if}
@@ -338,6 +358,23 @@
   }
   .offer p {
     margin: 0 0 10px;
+  }
+  .status {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--rule-strong);
+    background: var(--bg);
+  }
+  .status p {
+    margin: 0 0 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    white-space: pre-wrap;
+  }
+  .status.problem {
+    border-color: var(--danger);
   }
   .check {
     display: flex;

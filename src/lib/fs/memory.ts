@@ -1,4 +1,4 @@
-import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs } from './types.ts';
+import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs, type SyncReport } from './types.ts';
 
 /**
  * An in-memory world for browser testing. Paths use forward slashes and are
@@ -89,6 +89,11 @@ export class MemoryFs implements WorldFs {
 
   async writingActivity(): Promise<{ days: [string, number][]; uncommitted: number } | null> {
     return { days: [], uncommitted: this.writtenToday };
+  }
+
+  // The browser test world pretends to sync, so the status can be seen.
+  async sync(): Promise<SyncReport> {
+    return { state: 'synced', message: '' };
   }
 
   onChange(callback: (paths: string[]) => void): () => void {

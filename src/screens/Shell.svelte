@@ -8,6 +8,7 @@
   import StoryModule from './story/StoryModule.svelte';
   import { ui } from '../lib/ui.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
+  import SyncStatus from './SyncStatus.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import UpdateButton from './UpdateButton.svelte';
 
@@ -129,6 +130,7 @@
       </nav>
     </div>
     <div class="right">
+      <SyncStatus />
       <UpdateButton />
       {#if nav.current.module === 'world'}
         <div class="toggle" role="group" aria-label="Wiki view">

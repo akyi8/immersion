@@ -54,4 +54,14 @@ export interface WorldFs {
    * heatmap. Null when there is no history to read, such as a world outside git.
    */
   writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null>;
+  /**
+   * Syncs the world through Git (Mike, October 26): commits its own folder, brings in
+   * what other computers pushed, and pushes.
+   */
+  sync(name: string): Promise<SyncReport>;
+}
+
+export interface SyncReport {
+  state: 'synced' | 'local' | 'waiting' | 'off' | 'not-git' | 'problem';
+  message: string;
 }
