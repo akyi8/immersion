@@ -13,6 +13,7 @@ import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemi
 import { livePreview } from './livepreview';
 import { selectionToolbar, type ToolbarOptions } from './toolbar';
 import { tags } from '@lezer/highlight';
+import { smallestChange } from './diff';
 import type { MentionScanner } from '../index/scanner';
 
 /**
@@ -339,6 +340,8 @@ export function jumpTo(view: EditorView, pos: number) {
 }
 
 /** Replaces the whole document, used when a file changes in another program. */
+/** Brings in text changed elsewhere, touching only what differs so the cursor stays put. */
 export function replaceDoc(view: EditorView, doc: string) {
-  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: doc } });
+  const change = smallestChange(view.state.doc.toString(), doc);
+  if (change) view.dispatch({ changes: change });
 }
