@@ -157,7 +157,7 @@
       {/if}
       <ModeToggle />
       <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="M8 1.2 V3 M8 13 V14.8 M1.2 8 H3 M13 8 H14.8 M3.2 3.2 L4.5 4.5 M11.5 11.5 L12.8 12.8 M3.2 12.8 L4.5 11.5 M11.5 4.5 L12.8 3.2" stroke="currentColor" stroke-width="1.4" /></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.97 6.46 L14.90 6.82 L14.90 9.18 L12.97 9.54 L12.60 10.43 L13.72 12.04 L12.04 13.72 L10.43 12.60 L9.54 12.97 L9.18 14.90 L6.82 14.90 L6.46 12.97 L5.57 12.60 L3.96 13.72 L2.28 12.04 L3.40 10.43 L3.03 9.54 L1.10 9.18 L1.10 6.82 L3.03 6.46 L3.40 5.57 L2.28 3.96 L3.96 2.28 L5.57 3.40 L6.46 3.03 L6.82 1.10 L9.18 1.10 L9.54 3.03 L10.43 3.40 L12.04 2.28 L13.72 3.96 L12.60 5.57 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
       </button>
       <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
