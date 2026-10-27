@@ -24,7 +24,8 @@
 <style>
   .portrait {
     background: var(--surface);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -50,11 +51,11 @@
   }
   span {
     font-family: var(--font-display);
-    font-size: 34px;
+    font-size: calc(34px * var(--type));
     letter-spacing: 0.04em;
     color: var(--muted);
   }
   .face span {
-    font-size: 26px;
+    font-size: calc(26px * var(--type));
   }
 </style>

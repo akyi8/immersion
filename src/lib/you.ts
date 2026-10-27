@@ -14,14 +14,38 @@ export interface Profile {
   copyright: string;
 }
 
+/**
+ * The writer's layout (Mike, October 27), which is theirs on every world rather than a
+ * world's. Classic is the app as it began, ruled with lines. Soft trades the lines for
+ * space, rounds the corners, sets the type a step smaller, and lets things settle into
+ * place, and its desk can show the open world's picture through frosted glass.
+ */
+export type Layout = 'classic' | 'soft';
+
+export interface Look {
+  layout: Layout;
+  /** In Soft, whether the world's picture glows through behind the desk. */
+  backdrop: boolean;
+}
+
+export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true };
+
 export interface You {
   profiles: Profile[];
+  look: Look;
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+export function readLook(header: Record<string, unknown>): Look {
+  return {
+    layout: header.layout === 'soft' ? 'soft' : 'classic',
+    backdrop: header.backdrop !== false,
+  };
+}
+
 export function readYou(source: string | null): You {
-  if (!source) return { profiles: [] };
+  if (!source) return { profiles: [], look: { ...DEFAULT_LOOK } };
   const { header } = splitHeader(source);
   const list = Array.isArray(header.profiles) ? header.profiles : [];
   const profiles: Profile[] = [];
@@ -32,7 +56,15 @@ export function readYou(source: string | null): You {
     const id = text(r.id) || slugify(author);
     if (id && !profiles.some((x) => x.id === id)) profiles.push({ id, author, copyright: text(r.copyright) });
   }
-  return { profiles };
+  return { profiles, look: readLook(header) };
+}
+
+/** The new text of `immersion.md` with this layout, keeping anything else in it. */
+export function withLook(source: string | null, look: Look): string {
+  return withHeader(source ?? withProfiles(null, []), {
+    layout: look.layout === 'classic' ? undefined : look.layout,
+    backdrop: look.backdrop ? undefined : false,
+  });
 }
 
 /** The new text of `immersion.md` with these profiles, keeping anything else in it. */

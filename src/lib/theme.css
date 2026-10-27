@@ -95,11 +95,74 @@
   color-scheme: light;
 }
 
+/* The layout (Mike, October 27), the writer's own and separate from any world's theme.
+   Components draw their lines, corners, fields, and type through these tokens. Classic
+   keeps the app as it was first drawn, ruled with lines. */
+:root {
+  /* Lines between regions, such as under the header and beside a sidebar. */
+  --line: var(--rule);
+  /* Outlines around controls: buttons, fields, menus. */
+  --edge: var(--rule-strong);
+  /* The colored outline of a box that asks for attention, such as an offer. */
+  --callout-edge: var(--structure);
+  /* What a control's outline turns to under the pointer. */
+  --hover-edge: var(--structure);
+  /* The fill of an outlined control that had none. */
+  --well: transparent;
+  /* The fill of a field the writer types into. */
+  --field: var(--bg);
+  --round: 0px;
+  --round-box: 0px;
+  /* Every size of interface type is multiplied by this. */
+  --type: 1;
+  /* What the app sits on, and the paper the work is laid out on. */
+  --desk: var(--bg);
+  --paper: var(--bg);
+  --lift: none;
+  /* What a bar that stays put while things scroll beneath it is made of. */
+  --veil: var(--bg);
+  --frost: none;
+  --glide: 0ms;
+  --ease: ease;
+}
+
+/* Soft (Mike, October 27): clean, spacious, cozy. Lines become space, the work lies on
+   rounded sheets of paper on a desk, controls are soft fills with no outline, the type
+   is a step smaller so the extra air costs no information, and things settle into
+   place slowly, like honey finding its level. */
+:root[data-layout='soft'] {
+  --line: transparent;
+  --edge: transparent;
+  --hover-edge: transparent;
+  --callout-edge: transparent;
+  --well: color-mix(in oklab, var(--text) 7%, transparent);
+  --field: color-mix(in oklab, var(--text) 6%, var(--bg));
+  --round: 10px;
+  --round-box: 16px;
+  --type: 0.93;
+  --prose-size: 17px;
+  --desk: color-mix(in oklab, var(--bg) 72%, black);
+  --paper: var(--bg);
+  --lift: 0 24px 60px -28px var(--shadow), 0 2px 10px -6px var(--shadow);
+  --hover-wash: color-mix(in oklab, var(--text) 6%, transparent);
+  --veil: transparent;
+  --frost: blur(18px) saturate(1.2);
+  --glide: 320ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root[data-layout='soft'][data-mode='light'] {
+  --desk: color-mix(in oklab, var(--bg) 93%, var(--text));
+  --field: color-mix(in oklab, var(--text) 5%, var(--bg));
+}
+
+html {
+  background: var(--desk);
+}
+
 html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
@@ -201,4 +264,95 @@ button {
 .mention:hover,
 .mention.active {
   background: var(--accent-wash);
+}
+
+/* The paper: the open work lies on a rounded sheet, set off from the header and the
+   sidebar by space rather than a line. */
+:root[data-layout='soft'] .sheet {
+  margin: 0 14px 14px 0;
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: var(--lift);
+}
+:root[data-layout='soft'] .sheet:first-child {
+  margin-left: 14px;
+}
+/* Full screen hides the header, so the sheet keeps its space from the window's top. */
+:root[data-layout='soft'] .shell > :first-child .sheet {
+  margin-top: 14px;
+}
+:root[data-layout='soft'] :is(.menu, .dialog, .confirm, [role='menu'], [role='dialog'], [role='alertdialog']) {
+  border-radius: var(--round-box);
+  box-shadow: var(--lift), 0 0 0 1px color-mix(in oklab, var(--text) 6%, transparent);
+}
+
+/* The world's picture behind the desk, through frosted glass: so blurred that only its
+   colors arrive, and toned toward the desk so everything on it stays readable. */
+.backdrop-glass {
+  position: fixed;
+  inset: -12vmax;
+  z-index: -1;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  filter: blur(72px) saturate(1.25);
+  opacity: 0.5;
+  animation: backdrop-in 1.2s var(--ease) both;
+}
+:root[data-mode='light'] .backdrop-glass {
+  opacity: 0.3;
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A sidebar's rows sit inside it, so a highlighted row is a soft shape and not a bar. */
+:root[data-layout='soft'] .sidebar {
+  box-sizing: border-box;
+  padding-inline: 8px;
+}
+
+/* Every control is soft-cornered in Soft, including those that draw their own colors. */
+:root[data-layout='soft'] :is(button, input, select, textarea) {
+  border-radius: var(--round);
+}
+
+/* Motion, kept subtle everywhere rather than grand in a few places. Controls ease in
+   and out of hover, and a pane, a menu, or a dialog settles into place as it opens. */
+:root[data-layout='soft'] :is(button, a, input, select, textarea, summary) {
+  transition:
+    background-color var(--glide) var(--ease),
+    color var(--glide) var(--ease),
+    box-shadow var(--glide) var(--ease),
+    opacity var(--glide) var(--ease);
+}
+:root[data-layout='soft'] :is(button, summary):not(:disabled):hover {
+  box-shadow: inset 0 0 0 100vmax var(--hover-wash);
+}
+:root[data-layout='soft'] .pane {
+  animation: settle-in 420ms var(--ease) both;
+}
+:root[data-layout='soft'] :is(.menu, [role='menu'], .dialog, .confirm, [role='dialog'], [role='alertdialog']) {
+  animation: settle-up 300ms var(--ease) both;
+}
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    translate: 18px 0;
+  }
+}
+@keyframes settle-up {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+    scale: 0.985;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-layout='soft'] * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

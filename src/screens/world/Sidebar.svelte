@@ -333,7 +333,7 @@
   .sidebar {
     width: 290px;
     flex-shrink: 0;
-    border-right: 1px solid var(--rule);
+    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -345,15 +345,17 @@
     padding: 16px 16px 8px;
     position: sticky;
     top: 0;
-    background: var(--bg);
+    background: var(--veil);
+    backdrop-filter: var(--frost);
     z-index: 1;
   }
   .modes button {
     flex: 1;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
-    background: transparent;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 4px;
     min-height: 38px;
   }
@@ -369,7 +371,7 @@
   }
   .group {
     padding: 16px 18px 6px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   .folder-row {
     position: relative;
@@ -394,7 +396,7 @@
   .item,
   .folder {
     text-align: left;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: transparent;
     border: 0;
@@ -425,7 +427,7 @@
     position: fixed;
     z-index: 40;
     pointer-events: none;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text);
     background: var(--surface);
     border: 1px solid var(--selected-border);
@@ -448,17 +450,17 @@
   .count {
     margin-left: auto;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     font-weight: 400;
     color: var(--muted);
   }
   .kind {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
   .hint {
     margin: 12px 18px;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     line-height: 1.5;
     color: var(--muted);
   }
@@ -469,10 +471,11 @@
   }
   .create button {
     flex: 1;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 6px;
     min-height: 38px;
   }
@@ -491,7 +494,7 @@
     background: none;
     border: 0;
     padding: 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     line-height: 1.3;
   }
   .face.current :global(.portrait) {

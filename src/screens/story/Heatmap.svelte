@@ -62,14 +62,14 @@
     column-gap: 3px;
     margin-bottom: 4px;
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     color: var(--muted);
     white-space: nowrap;
   }
   .day {
     border-radius: 2px;
     background: var(--surface);
-    outline: 1px solid var(--rule);
+    outline: 1px solid var(--line);
     outline-offset: -1px;
   }
   .day.future {
@@ -97,7 +97,7 @@
     flex-wrap: wrap;
     gap: 4px 14px;
     margin-top: 8px;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
   b {

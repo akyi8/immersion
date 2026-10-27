@@ -142,7 +142,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -154,20 +154,20 @@
     inset: auto 0 0 0;
     display: flex;
     background: color-mix(in srgb, var(--bg) 80%, transparent);
-    border-top: 1px solid var(--rule-strong);
+    border-top: 1px solid var(--edge);
     opacity: 0;
     transition: opacity 150ms;
   }
   .change button {
     flex: 1;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
     padding: 6px 4px;
   }
   .change button + button {
-    border-left: 1px solid var(--rule-strong);
+    border-left: 1px solid var(--edge);
   }
   .change button:hover {
     color: var(--structure-soft);
@@ -187,7 +187,7 @@
     border: 1px solid var(--structure);
     color: var(--structure-soft);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
@@ -196,13 +196,13 @@
   }
   .problem {
     margin-top: 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--danger);
   }
   .meta {
     margin-top: 8px;
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
 </style>

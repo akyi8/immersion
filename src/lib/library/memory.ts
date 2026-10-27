@@ -1,5 +1,5 @@
 import { MemoryFs } from '../fs/memory';
-import { imageExtension, type ImageSource, type WorldFs } from '../fs/types';
+import { imageExtension, type ImageSource, type SyncReport, type WorldFs } from '../fs/types';
 import { describeWorld } from '../world';
 import { pickImage } from '../pickImage';
 import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
@@ -137,6 +137,10 @@ export class MemoryLibrary implements Library {
   async writeYou(text: string): Promise<void> {
     if (!this.library.path) throw new Error('There is no library on this computer yet.');
     this.you = text;
+  }
+
+  async syncYou(): Promise<SyncReport> {
+    return { state: 'not-git', message: 'A library held in memory has no Git.' };
   }
 
   // Vaults held in memory: world path to file name to encrypted text.

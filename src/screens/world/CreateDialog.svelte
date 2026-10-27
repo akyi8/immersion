@@ -104,7 +104,8 @@
     width: min(480px, calc(100vw - 32px));
     box-sizing: border-box;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -115,20 +116,21 @@
     margin: 0 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 34px;
+    font-size: calc(34px * var(--type));
     letter-spacing: 0.02em;
   }
   .label {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     margin-top: 6px;
   }
   input,
   select {
     font: inherit;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 10px 12px;
   }
   .chips {
@@ -137,10 +139,11 @@
     gap: 6px;
   }
   .chips button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text-soft);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 12px;
     min-height: 36px;
   }
@@ -152,7 +155,7 @@
   .problem {
     margin: 4px 0 0;
     color: var(--danger);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .actions {
     display: flex;
@@ -161,15 +164,16 @@
     margin-top: 14px;
   }
   .actions button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 10px 16px;
     min-height: 44px;
     border: 0;
   }
   .cancel {
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong) !important;
+    background: var(--well);
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--round);
   }
   .create {
     font-weight: 700;

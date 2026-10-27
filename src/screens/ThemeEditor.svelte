@@ -250,7 +250,7 @@
     overflow-y: auto;
     z-index: 25;
     background: var(--surface);
-    border-left: 1px solid var(--rule-strong);
+    border-left: 1px solid var(--edge);
     box-shadow: -12px 0 32px var(--shadow);
     padding: 24px 24px 32px;
     display: flex;
@@ -261,18 +261,18 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 40px;
+    font-size: calc(40px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
   .for {
     margin: 0 0 8px;
     color: var(--muted);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   h3 {
     margin: 18px 0 2px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     font-weight: 400;
   }
   .choice {
@@ -281,10 +281,11 @@
   }
   .choice button {
     flex: 1;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
-    background: transparent;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 4px;
     min-height: 38px;
   }
@@ -303,27 +304,29 @@
     width: 44px;
     height: 36px;
     padding: 0;
-    border: 1px solid var(--rule-strong);
-    background: none;
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    background: var(--well);
   }
   .name {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .about {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
     line-height: 1.4;
   }
   .night {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     margin: 8px 0;
   }
   .hex {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 7px 8px;
     width: 100%;
     box-sizing: border-box;
@@ -332,19 +335,19 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text-soft);
     margin-top: 4px;
   }
   .warning {
     margin: 4px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.45;
     color: var(--danger);
   }
   .kind {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
@@ -363,19 +366,19 @@
     padding: 6px 10px;
   }
   .font:hover {
-    border-color: var(--rule-strong);
+    border-color: var(--edge);
   }
   .font.on {
     border-color: var(--structure);
     background: var(--structure-deep);
   }
   .heading {
-    font-size: 24px;
+    font-size: calc(24px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.15;
   }
   .prose-font {
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
   }
   .prose-font em {
     color: var(--text-soft);
@@ -383,12 +386,13 @@
   .sample {
     margin-top: 18px;
     padding: 16px;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     background: var(--bg);
   }
   .sample-title {
     font-family: var(--font-display);
-    font-size: 34px;
+    font-size: calc(34px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.05;
     margin: 6px 0 8px;
@@ -396,7 +400,7 @@
   .sample p {
     margin: 0 0 12px;
     font-family: var(--font-body);
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     line-height: 1.6;
   }
   .sample-name {
@@ -406,7 +410,7 @@
   .sample-button {
     display: inline-block;
     font-weight: 700;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--accent-ink);
     background: var(--accent);
     padding: 8px 14px;
@@ -418,15 +422,16 @@
     margin-top: 16px;
   }
   .actions button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 10px 16px;
     min-height: 44px;
     border: 0;
   }
   .cancel {
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong) !important;
+    background: var(--well);
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--round);
   }
   .save {
     font-weight: 700;

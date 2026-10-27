@@ -325,7 +325,7 @@
   .sidebar {
     width: 290px;
     flex-shrink: 0;
-    border-right: 1px solid var(--rule);
+    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -341,10 +341,11 @@
     justify-content: center;
     align-items: baseline;
     gap: 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
-    background: transparent;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 4px;
     min-height: 38px;
   }
@@ -355,7 +356,7 @@
   }
   .count {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     opacity: 0.7;
   }
   .tree {
@@ -366,14 +367,14 @@
   }
   .activity {
     padding: 14px 18px 16px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--line);
   }
   .vault {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-right: auto;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -389,7 +390,7 @@
     padding: 4px 18px 6px;
   }
   .add {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--structure);
     background: none;
     border: 0;
@@ -413,6 +414,7 @@
   .manuscript-row {
     display: flex;
     align-items: stretch;
+    border-radius: var(--round);
   }
   .manuscript-row:hover,
   .section:hover {
@@ -440,7 +442,7 @@
   .manuscript {
     flex: 1;
     min-width: 0;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     font-weight: 700;
     padding: 8px 18px 8px 4px;
     min-height: 36px;
@@ -454,18 +456,18 @@
   }
   .manuscript.series {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--title);
   }
   .books {
     margin-left: 14px;
-    border-left: 1px solid var(--rule);
+    border-left: 1px solid var(--line);
   }
   .number {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
     margin-right: 8px;
   }
@@ -475,20 +477,20 @@
   .part {
     padding: 8px 18px 2px 38px;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
   }
   .section {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 5px 18px 5px 38px;
     min-height: 30px;
     color: var(--text-soft);
   }
   .section.depth-3 {
     padding-left: 54px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
   }
   .section.matter {
     font-style: italic;
@@ -504,13 +506,13 @@
   }
   .n {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
     flex-shrink: 0;
   }
   .hint {
     margin: 8px 18px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--muted);
   }

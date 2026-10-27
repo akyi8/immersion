@@ -159,7 +159,8 @@
     bottom: 14px;
     z-index: 3;
     display: flex;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     opacity: 0.22;
     transition: opacity 200ms;
   }
@@ -168,7 +169,7 @@
     opacity: 1;
   }
   .view button {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
     background: var(--bg);
     border: 0;

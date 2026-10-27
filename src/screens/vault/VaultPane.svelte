@@ -296,19 +296,21 @@
   select,
   input[type='password'] {
     font: inherit;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 10px;
   }
   button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 8px 14px;
     min-height: 38px;
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .primary {
     font-weight: 700;
@@ -317,7 +319,7 @@
     border-color: var(--accent);
   }
   .quiet {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
     border-color: transparent;
     padding: 6px 8px;
@@ -335,7 +337,7 @@
     margin: 0 0 4px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 40px;
+    font-size: calc(40px * var(--type));
     color: var(--title);
   }
   .gate p {
@@ -348,7 +350,7 @@
   }
   .gate .label {
     margin-top: 6px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   .check {
     display: flex;
@@ -379,10 +381,11 @@
     gap: 14px;
     text-align: left;
     padding: 8px;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
   }
   .item:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .item img,
   .blank {
@@ -398,11 +401,11 @@
     gap: 4px;
   }
   .title {
-    font-size: 17px;
+    font-size: calc(17px * var(--type));
   }
   .date {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
   }
   .title-field {
@@ -410,7 +413,7 @@
     box-sizing: border-box;
     margin: 0 0 14px;
     font-family: var(--font-display);
-    font-size: 48px;
+    font-size: calc(48px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.1;
     color: var(--title);
@@ -421,7 +424,7 @@
   }
   .title-field:focus {
     outline: none;
-    border-bottom-color: var(--rule-strong);
+    border-bottom-color: var(--edge);
   }
   .picture img {
     display: block;
@@ -439,7 +442,8 @@
   .confirm {
     padding: 12px;
     margin-bottom: 12px;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     background: var(--surface);
   }
   .confirm p {

@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Condvar, Mutex};
 use tauri::http::{header, Response, StatusCode};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -286,10 +286,36 @@ fn sync_in_background(app: &AppHandle, root: Option<PathBuf>) {
     if !load_settings(app).git_sync {
         return;
     }
-    std::thread::spawn(move || {
+    let you = you_file(app);
+    in_background(move || {
         let name = root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        let _ = sync_folder(&root, &name);
+        let _ = sync_folder(&root, &name, you.as_deref());
     });
+}
+
+/// Syncs started in the background and not finished yet. Closing the app waits for them,
+/// because a sync cut off by the app closing never reaches GitHub (Mike, October 27).
+static PENDING: Mutex<usize> = Mutex::new(0);
+static PENDING_DONE: Condvar = Condvar::new();
+
+fn in_background(job: impl FnOnce() + Send + 'static) {
+    *PENDING.lock().unwrap_or_else(|e| e.into_inner()) += 1;
+    std::thread::spawn(move || {
+        job();
+        *PENDING.lock().unwrap_or_else(|e| e.into_inner()) -= 1;
+        PENDING_DONE.notify_all();
+    });
+}
+
+/// Waits for the background syncs to finish, for no longer than `limit`.
+fn wait_for_background(limit: std::time::Duration) {
+    let count = PENDING.lock().unwrap_or_else(|e| e.into_inner());
+    let _ = PENDING_DONE.wait_timeout_while(count, limit, |n| *n > 0);
+}
+
+/// The library's `immersion.md`, when this computer has a library.
+fn you_file(app: &AppHandle) -> Option<PathBuf> {
+    load_settings(app).library.map(|lib| Path::new(&lib).join(YOU_FILE))
 }
 
 /// Closes every reading window. They show pages of the open world, so they close when
@@ -476,35 +502,74 @@ fn report(state: &str, message: impl Into<String>) -> SyncReport {
     SyncReport { state: state.to_string(), message: message.into() }
 }
 
+/// Only one sync runs at a time, so two never trip over each other in the same repository.
+static SYNCING: Mutex<()> = Mutex::new(());
+
+/// A pathspec for `file` from the top of the repository that `dir` is in, when the file
+/// exists and belongs to that same repository.
+fn repo_spec(dir: &Path, file: &Path) -> Option<String> {
+    if !file.is_file() {
+        return None;
+    }
+    let top = fs::canonicalize(git_run(dir, &["rev-parse", "--show-toplevel"]).ok()?.trim()).ok()?;
+    let rel = fs::canonicalize(file).ok()?.strip_prefix(&top).ok()?.to_path_buf();
+    let parts: Vec<String> = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
+    Some(format!(":(top,literal){}", parts.join("/")))
+}
+
 /// Syncs one world through Git (Mike, October 26): commits the world's own folder and
-/// nothing else, brings in what other computers pushed, and pushes. Other files in the
+/// nothing else, brings in what other computers pushed, and pushes. The library's
+/// `immersion.md` rides along when it is in the same repository, because it holds the
+/// vault's key settings and the author profiles (Mike, October 27). Other files in the
 /// repository, such as a Claude session's unfinished work, are never committed. A
 /// conflict stops the sync and is reported, and nothing is merged by guesswork.
-fn sync_folder(root: &Path, name: &str) -> SyncReport {
-    if git_run(root, &["rev-parse", "--is-inside-work-tree"]).map(|o| o.trim() == "true") != Ok(true) {
+fn sync_folder(root: &Path, name: &str, you: Option<&Path>) -> SyncReport {
+    let mut specs = vec![".".to_string()];
+    specs.extend(you.and_then(|f| repo_spec(root, f)));
+    sync_paths(root, &specs, &format!("Immersion: {name}"))
+}
+
+/// Syncs the library's `immersion.md` alone, for when it changes with no world open, and
+/// before a vault passphrase is chosen, so one chosen on another computer arrives first.
+fn sync_you_file(file: &Path) -> SyncReport {
+    let Some(dir) = file.parent() else { return report("not-git", "") };
+    let specs: Vec<String> = repo_spec(dir, file).into_iter().collect();
+    sync_paths(dir, &specs, "Immersion: you")
+}
+
+/// Commits these paths in the repository `dir` is in, then pulls and pushes.
+fn sync_paths(dir: &Path, specs: &[String], message: &str) -> SyncReport {
+    let _turn = SYNCING.lock().unwrap_or_else(|e| e.into_inner());
+    if git_run(dir, &["rev-parse", "--is-inside-work-tree"]).map(|o| o.trim() == "true") != Ok(true) {
         return report("not-git", "This world is not in a Git repository.");
     }
-    if git_run(root, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_ok() {
+    if git_run(dir, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_ok() {
         return report("problem", "Git is in the middle of a merge in this repository. Once it is finished or abandoned, syncing starts again.");
     }
-    let changed = match git_run(root, &["status", "--porcelain", "--", "."]) {
-        Ok(c) => c,
-        Err(e) => return report("problem", e),
-    };
-    if !changed.trim().is_empty() {
-        if let Err(e) = git_run(root, &["add", "-A", "--", "."]) {
-            return report("problem", e);
-        }
-        if let Err(e) = git_run(root, &["commit", "-m", &format!("Immersion: {name}"), "--", "."]) {
-            return report("problem", e);
+    if !specs.is_empty() {
+        let with = |first: &[&str]| -> Vec<String> {
+            first.iter().map(|s| s.to_string()).chain(["--".to_string()]).chain(specs.iter().cloned()).collect()
+        };
+        let run = |args: Vec<String>| git_run(dir, &args.iter().map(String::as_str).collect::<Vec<_>>());
+        let changed = match run(with(&["status", "--porcelain"])) {
+            Ok(c) => c,
+            Err(e) => return report("problem", e),
+        };
+        if !changed.trim().is_empty() {
+            if let Err(e) = run(with(&["add", "-A"])) {
+                return report("problem", e);
+            }
+            if let Err(e) = run(with(&["commit", "-m", message])) {
+                return report("problem", e);
+            }
         }
     }
-    if git_run(root, &["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).is_err() {
+    if git_run(dir, &["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).is_err() {
         return report("local", "Saved in Git on this computer. This branch has nowhere to push to, so other computers will not see it yet.");
     }
-    if let Err(e) = git_run(root, &["pull", "--no-rebase", "--no-edit"]) {
-        if git_run(root, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_ok() {
-            let _ = git_run(root, &["merge", "--abort"]);
+    if let Err(e) = git_run(dir, &["pull", "--no-rebase", "--no-edit"]) {
+        if git_run(dir, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_ok() {
+            let _ = git_run(dir, &["merge", "--abort"]);
             return report(
                 "problem",
                 "Another computer changed the same lines as this one, so Git could not bring its changes in. Nothing was lost, and syncing has stopped until the two versions are put together by hand.",
@@ -518,7 +583,7 @@ fn sync_folder(root: &Path, name: &str) -> SyncReport {
         }
         return report("problem", e);
     }
-    if let Err(e) = git_run(root, &["push"]) {
+    if let Err(e) = git_run(dir, &["push"]) {
         return report("problem", e);
     }
     report("synced", "")
@@ -531,7 +596,18 @@ async fn sync_world(name: String, state: State<'_, OpenWorld>, app: AppHandle) -
         return Ok(report("off", "Syncing is switched off on this computer."));
     }
     let root = root(&state)?;
-    tauri::async_runtime::spawn_blocking(move || sync_folder(&root, &name)).await.map_err(|e| e.to_string())
+    let you = you_file(&app);
+    tauri::async_runtime::spawn_blocking(move || sync_folder(&root, &name, you.as_deref())).await.map_err(|e| e.to_string())
+}
+
+/// Syncs `immersion.md` now and says how it went.
+#[tauri::command]
+async fn sync_you(app: AppHandle) -> Result<SyncReport, String> {
+    if !load_settings(&app).git_sync {
+        return Ok(report("off", "Syncing is switched off on this computer."));
+    }
+    let Some(file) = you_file(&app) else { return Ok(report("not-git", "There is no library on this computer.")) };
+    tauri::async_runtime::spawn_blocking(move || sync_you_file(&file)).await.map_err(|e| e.to_string())
 }
 
 /// Runs git inside a folder without flashing a console window on Windows.
@@ -681,7 +757,13 @@ fn write_you(text: String, app: AppHandle) -> Result<(), String> {
     fs::rename(&temp, &target).map_err(|e| {
         let _ = fs::remove_file(&temp);
         format!("Could not save {YOU_FILE}: {e}")
-    })
+    })?;
+    if load_settings(&app).git_sync {
+        in_background(move || {
+            let _ = sync_you_file(&target);
+        });
+    }
+    Ok(())
 }
 
 /// The folder in each world that holds its vault, hidden so Obsidian and the index pass it by.
@@ -951,12 +1033,14 @@ pub fn run() {
             if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
                 let app = window.app_handle();
                 close_readers(app);
-                // The last of the day's writing syncs as the app closes.
+                // The last of the day's writing syncs as the app closes, after any sync
+                // still running from a world just closed.
+                wait_for_background(std::time::Duration::from_secs(60));
                 let open = app.state::<OpenWorld>().0.lock().unwrap().clone();
                 if let Some(root) = open {
                     if load_settings(app).git_sync {
                         let name = root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                        let _ = sync_folder(&root, &name);
+                        let _ = sync_folder(&root, &name, you_file(app).as_deref());
                     }
                 }
             }
@@ -993,6 +1077,7 @@ pub fn run() {
             skip_library,
             set_git_sync,
             read_you,
+            sync_you,
             write_you,
             set_world_cover,
             write_world_md,
@@ -1120,7 +1205,7 @@ mod tests {
         std::fs::write(here.join("notes.md"), "a session's unfinished work, changed\n").unwrap();
         g(&here, &["add", "notes.md"]);
 
-        assert_eq!(sync_folder(&world, "Ashfall").state, "synced");
+        assert_eq!(sync_folder(&world, "Ashfall", None).state, "synced");
         let last = g(&here, &["show", "--name-only", "--pretty=format:%s", "HEAD"]);
         assert!(last.starts_with("Immersion: Ashfall"));
         assert!(last.contains("ashfall/world.md") && !last.contains("notes.md"));
@@ -1137,10 +1222,10 @@ mod tests {
         g(&early, &["commit", "-q", "-m", "early"]);
         g(&early, &["push", "-q"]);
         std::fs::write(world.join("wiki").join("ash.md"), "# Ash\n").unwrap();
-        assert_eq!(sync_folder(&world, "Ashfall").state, "waiting");
+        assert_eq!(sync_folder(&world, "Ashfall", None).state, "waiting");
         // Once the session commits its work, syncing goes through.
         g(&here, &["commit", "-q", "-m", "session", "--", "notes.md"]);
-        assert_eq!(sync_folder(&world, "Ashfall").state, "synced");
+        assert_eq!(sync_folder(&world, "Ashfall", None).state, "synced");
         // An unstaged change elsewhere does not stop a sync.
         std::fs::write(here.join("notes.md"), "still being written\n").unwrap();
 
@@ -1155,7 +1240,7 @@ mod tests {
         g(&there, &["commit", "-q", "-m", "there"]);
         g(&there, &["push", "-q"]);
         std::fs::write(world.join("wiki").join("cinder.md"), "# Cinder\n").unwrap();
-        assert_eq!(sync_folder(&world, "Ashfall"), super::report("synced", ""));
+        assert_eq!(sync_folder(&world, "Ashfall", None), super::report("synced", ""));
         assert!(world.join("wiki").join("ember.md").is_file());
 
         // The same line changed on both computers stops the sync without losing either.
@@ -1164,10 +1249,59 @@ mod tests {
         g(&there, &["commit", "-q", "-am", "there again"]);
         g(&there, &["push", "-q"]);
         std::fs::write(world.join("world.md"), "# Ashfall, here\n").unwrap();
-        let clash = sync_folder(&world, "Ashfall");
+        let clash = sync_folder(&world, "Ashfall", None);
         assert_eq!(clash.state, "problem");
         assert_eq!(std::fs::read_to_string(world.join("world.md")).unwrap(), "# Ashfall, here\n");
         assert!(git_run(&here, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_err());
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn the_you_file_rides_along_and_syncs_on_its_own() {
+        let base = std::env::temp_dir().join(format!("immersion-you-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let remote = base.join("remote.git");
+        let here = base.join("here");
+        std::fs::create_dir_all(&base).unwrap();
+        let g = |dir: &std::path::Path, args: &[&str]| git_run(dir, args).unwrap();
+        g(&base, &["init", "-q", "--bare", "-b", "main", remote.to_str().unwrap()]);
+        g(&base, &["clone", "-q", remote.to_str().unwrap(), here.to_str().unwrap()]);
+        g(&here, &["config", "user.email", "test@example.com"]);
+        g(&here, &["config", "user.name", "Test"]);
+        g(&here, &["checkout", "-q", "-b", "main"]);
+        std::fs::write(here.join("notes.md"), "start\n").unwrap();
+        g(&here, &["add", "notes.md"]);
+        g(&here, &["commit", "-q", "-m", "start"]);
+        g(&here, &["push", "-q", "-u", "origin", "main"]);
+        let world = here.join("project-ash").join("ashfall");
+        std::fs::create_dir_all(&world).unwrap();
+        std::fs::write(world.join("world.md"), "# Ashfall\n").unwrap();
+        let you = here.join("immersion.md");
+        std::fs::write(&you, "---\nlayout: soft\n---\n").unwrap();
+        std::fs::write(here.join("notes.md"), "a session's unfinished work\n").unwrap();
+
+        // A world's sync carries immersion.md, and still leaves other work alone.
+        assert_eq!(sync_folder(&world, "Ashfall", Some(&you)).state, "synced");
+        let last = g(&here, &["show", "--name-only", "--pretty=format:%s", "HEAD"]);
+        assert!(last.contains("immersion.md") && last.contains("ashfall/world.md") && !last.contains("notes.md"));
+
+        // With no world open, immersion.md syncs alone.
+        std::fs::write(&you, "---\nlayout: classic\n---\n").unwrap();
+        assert_eq!(super::sync_you_file(&you).state, "synced");
+        let last = g(&here, &["show", "--name-only", "--pretty=format:%s", "HEAD"]);
+        assert!(last.starts_with("Immersion: you") && last.contains("immersion.md") && !last.contains("notes.md"));
+        assert!(g(&here, &["status", "--porcelain"]).contains("notes.md"));
+
+        // A world outside the library's repository leaves immersion.md to the library.
+        let alone = base.join("alone");
+        std::fs::create_dir_all(&alone).unwrap();
+        g(&alone, &["init", "-q", "-b", "main"]);
+        g(&alone, &["config", "user.email", "test@example.com"]);
+        g(&alone, &["config", "user.name", "Test"]);
+        std::fs::write(alone.join("world.md"), "# Alone\n").unwrap();
+        std::fs::write(&you, "---\nlayout: soft\n---\n").unwrap();
+        assert_eq!(sync_folder(&alone, "Alone", Some(&you)).state, "local");
+        assert!(g(&here, &["status", "--porcelain"]).contains("immersion.md"));
         let _ = std::fs::remove_dir_all(&base);
     }
 

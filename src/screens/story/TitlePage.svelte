@@ -229,7 +229,8 @@
     align-items: center;
     text-align: center;
     padding: 48px 24px 36px;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     background: var(--surface);
   }
   .title {
@@ -237,7 +238,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 64px;
+    font-size: calc(64px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -245,17 +246,17 @@
   .series {
     margin: 14px 0 0;
     font-style: italic;
-    font-size: 18px;
+    font-size: calc(18px * var(--type));
     color: var(--text-soft);
   }
   .author {
     margin: 28px 0 0;
     font-weight: 700;
-    font-size: 17px;
+    font-size: calc(17px * var(--type));
   }
   .copyright {
     margin: 56px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.6;
     color: var(--muted);
   }
@@ -267,27 +268,29 @@
     margin-top: 28px;
   }
   .edit {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 12px;
     min-height: 32px;
   }
   .edit:hover {
     color: var(--text);
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .form {
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: 24px;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     background: var(--surface);
   }
   .label {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     margin-top: 8px;
   }
   .optional {
@@ -299,10 +302,11 @@
   input[type='number'],
   select {
     font: inherit;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 9px 11px;
     width: 100%;
     box-sizing: border-box;
@@ -328,34 +332,34 @@
     margin: 4px 0 0;
     font-style: italic;
     color: var(--text-soft);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .check {
     display: flex;
     gap: 8px;
     align-items: center;
     margin-top: 10px;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text-soft);
   }
   .problem {
     color: var(--danger);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .sub {
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding-left: 14px;
-    border-left: 2px solid var(--rule-strong);
+    border-left: 2px solid var(--edge);
   }
   .hint {
     margin: 4px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
   }
   .link {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
     background: none;
     border: 0;
@@ -364,7 +368,7 @@
   }
   .gone {
     margin: 12px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
   }
   .actions {
@@ -374,15 +378,16 @@
     margin-top: 14px;
   }
   .actions button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 10px 16px;
     min-height: 44px;
     border: 0;
   }
   .cancel {
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong) !important;
+    background: var(--well);
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--round);
   }
   .save {
     font-weight: 700;

@@ -1,4 +1,4 @@
-import type { ImageSource, WorldFs } from '../fs/types';
+import type { ImageSource, SyncReport, WorldFs } from '../fs/types';
 
 /**
  * The shelf of worlds this machine knows (design: the world shelf). Like the world's
@@ -73,6 +73,8 @@ export interface Library {
   /** The library's `immersion.md`, which holds what follows the writer everywhere. */
   readYou(): Promise<string | null>;
   writeYou(text: string): Promise<void>;
+  /** Syncs `immersion.md` through Git now, bringing in what other computers saved there. */
+  syncYou(): Promise<SyncReport>;
 
   /** The encrypted stories in a world's vault, by their random file names (Mike, October 26). */
   vaultList(world: string): Promise<string[]>;

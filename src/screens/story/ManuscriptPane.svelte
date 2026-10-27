@@ -271,10 +271,11 @@
   }
   .views {
     display: flex;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .views button {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -296,7 +297,7 @@
     margin: 4px 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -308,7 +309,7 @@
   }
   .meta {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
   /* In a book, chapters and scenes read as headings, not as the wiki's small labels. */
@@ -332,9 +333,10 @@
     padding-top: 1.2em !important;
   }
   .action {
-    font-size: 13px;
-    background: none;
-    border: 1px solid var(--rule-strong);
+    font-size: calc(13px * var(--type));
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 10px;
     min-height: 32px;
   }
@@ -345,18 +347,18 @@
     display: flex;
     flex-direction: column;
     margin-top: 24px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--line);
   }
   .contents button {
     display: flex;
     justify-content: space-between;
     gap: 12px;
     text-align: left;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--line);
     padding: 10px 4px;
   }
   .contents button:hover {
@@ -368,11 +370,11 @@
   }
   .contents .n {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
   }
   .action:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
     color: var(--text);
   }
 </style>

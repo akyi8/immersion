@@ -74,24 +74,25 @@
     display: flex;
     align-items: baseline;
     gap: 8px;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 10px 16px;
     min-height: 44px;
   }
   .timeline:hover {
     color: var(--text);
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .timeline span {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
   }
   .new {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     font-weight: 700;
     color: var(--accent-ink);
     background: var(--accent);
@@ -104,7 +105,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 72px;
+    font-size: calc(72px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -125,15 +126,16 @@
     gap: 6px;
   }
   .chips button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: var(--surface);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     padding: 7px 12px;
     min-height: 36px;
   }
   .chips button:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .chips .add {
     color: var(--structure);

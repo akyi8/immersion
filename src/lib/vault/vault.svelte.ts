@@ -48,8 +48,15 @@ class Vault {
     this.idle = null;
   }
 
-  /** Chooses the passphrase for this library's vaults. */
+  /**
+   * Chooses the passphrase for this library's vaults. Another computer may have chosen
+   * one already that has not arrived here yet, and two passphrases would split the vault
+   * in two, so `immersion.md` is synced and read again first (Mike, October 27).
+   */
   async create(passphrase: string, remember: boolean) {
+    await account.library?.syncYou().catch(() => null);
+    await account.refresh();
+    if (account.vaultParams) throw new Error('This library already has a passphrase, chosen on another computer. Unlock the vault with that one.');
     const { params, raw } = await newParams(passphrase);
     await account.saveVaultParams(params);
     if (remember) await account.library?.vaultRemember(toBase64(raw));

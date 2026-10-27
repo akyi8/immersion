@@ -259,8 +259,9 @@
     display: grid;
     place-items: center;
     color: var(--muted);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .gear:hover {
     color: var(--text);
@@ -287,7 +288,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 72px;
+    font-size: calc(72px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -302,7 +303,8 @@
     gap: 16px 32px;
     margin: 0 0 28px;
     padding: 20px 24px;
-    border: 1px solid var(--structure);
+    border: 1px solid var(--callout-edge);
+    border-radius: var(--round-box);
     background: var(--surface);
   }
   .ask > div:first-child {
@@ -312,7 +314,7 @@
     margin: 0 0 6px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 28px;
+    font-size: calc(28px * var(--type));
     color: var(--title);
   }
   .ask p {
@@ -326,12 +328,13 @@
     gap: 10px;
   }
   .ask-buttons button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 10px 16px;
     min-height: 44px;
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .ask-buttons .primary {
     font-weight: 700;
@@ -343,7 +346,7 @@
     align-self: flex-start;
     margin-top: 6px;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #d8d2cb;
@@ -359,12 +362,13 @@
     position: relative;
     aspect-ratio: 16 / 10;
     overflow: hidden;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     background: var(--surface);
   }
   .card:hover,
   .card:focus-within {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .cover {
     position: absolute;
@@ -405,14 +409,14 @@
   }
   .tagline {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-soft);
   }
   .name {
     font-family: var(--font-display);
-    font-size: 46px;
+    font-size: calc(46px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }
@@ -435,15 +439,16 @@
     opacity: 1;
   }
   .tools button {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text);
     background: color-mix(in srgb, var(--bg) 75%, transparent);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 10px;
     min-height: 32px;
   }
   .tools button:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .drop-hint {
     display: none;
@@ -454,7 +459,7 @@
     background: color-mix(in srgb, var(--structure-deep) 85%, transparent);
     color: var(--structure-soft);
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -470,8 +475,9 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    background: transparent;
-    border: 1px dashed var(--rule-strong);
+    background: var(--well);
+    border: 1px dashed var(--edge);
+    border-radius: var(--round);
     color: var(--text);
     padding: 20px;
     text-align: center;
@@ -480,14 +486,14 @@
     border-style: solid;
   }
   .blank .name {
-    font-size: 36px;
+    font-size: calc(36px * var(--type));
   }
   .plus {
     height: 44px;
     display: flex;
     align-items: center;
     font-family: var(--font-display);
-    font-size: 64px;
+    font-size: calc(64px * var(--type));
     line-height: 1;
     color: var(--accent);
   }
@@ -495,7 +501,7 @@
     color: var(--structure);
   }
   .blank .hint {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--muted);
     max-width: 260px;
   }

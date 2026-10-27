@@ -140,10 +140,10 @@
     flex-direction: column;
     gap: 8px;
     padding: 12px 0 12px 16px;
-    border-left: 1px solid var(--rule);
+    border-left: 1px solid var(--line);
   }
   .label {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -151,7 +151,7 @@
   .thread {
     margin-top: 6px;
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -164,7 +164,7 @@
     max-height: 60vh;
     resize: vertical;
     font: inherit;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     line-height: 1.55;
     color: var(--text-soft);
     background: none;
@@ -180,7 +180,7 @@
   }
   .all {
     align-self: flex-start;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--structure);
     background: none;
     border: 0;
@@ -188,7 +188,7 @@
   }
   .hint {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
   }
   .named-label {
@@ -208,13 +208,13 @@
     background: none;
     border: 0;
     padding: 0;
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     line-height: 1.2;
   }
   .face:hover {
     color: var(--name);
   }
   .face :global(.portrait span) {
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
   }
 </style>

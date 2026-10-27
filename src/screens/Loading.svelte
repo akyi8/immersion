@@ -122,7 +122,8 @@
     justify-content: center;
     gap: 14px;
     text-align: center;
-    border: 1px dashed var(--rule-strong);
+    border: 1px dashed var(--edge);
+    border-radius: var(--round);
     color: var(--text-soft);
   }
   :global(.invite.drop-over) {
@@ -131,14 +132,15 @@
   }
   .invite p {
     margin: 0;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
   }
   .invite .choose {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     font-weight: 400;
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 14px;
     min-height: 40px;
   }
@@ -158,7 +160,7 @@
   }
   .tagline {
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     font-weight: 500;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -179,14 +181,14 @@
   }
   .version {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     opacity: 0.75;
   }
   button {
     font-weight: 700;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--ink-inverse);
     background: var(--ink);
     border: 0;

@@ -43,7 +43,7 @@
 
 <style>
   .update {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     font-weight: 700;
     color: var(--accent-ink);
     background: var(--accent);

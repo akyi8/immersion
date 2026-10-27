@@ -111,7 +111,7 @@
     if (e.key === 'Escape' && full) leaveFull();
   }} />
 
-<div class="strip" class:full={!!full} bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
+<div class="strip sheet" class:full={!!full} bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
   <div class="row">
     {#each panes as id, i (id)}
       {@const name = label(id)}
@@ -183,7 +183,7 @@
     height: 100%;
     box-sizing: border-box;
     background: var(--bg);
-    border-left: 1px solid var(--rule);
+    border-left: 1px solid var(--line);
     box-shadow: -10px 0 18px -14px var(--shadow);
   }
   .pane:first-child {
@@ -243,7 +243,7 @@
   .spine span {
     writing-mode: vertical-rl;
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     white-space: nowrap;
@@ -271,12 +271,13 @@
   }
   .tools .beats {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 0 8px;
     margin-right: 4px;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .tools .beats.on {
     color: var(--selected-fg);

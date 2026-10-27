@@ -106,7 +106,7 @@
   .more:hover,
   .more[aria-expanded='true'] {
     color: var(--text);
-    border-color: var(--rule-strong);
+    border-color: var(--edge);
   }
   .menu {
     position: absolute;
@@ -117,13 +117,14 @@
     flex-direction: column;
     min-width: 190px;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     box-shadow: 0 8px 24px var(--shadow);
     padding: 4px;
   }
   .menu button {
     text-align: left;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: none;
     border: 0;

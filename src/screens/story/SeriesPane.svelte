@@ -67,14 +67,14 @@
     margin: 4px 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
     color: var(--title);
   }
   .about {
     margin: 0;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--muted);
   }
 </style>

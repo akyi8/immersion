@@ -206,7 +206,7 @@
     margin: 4px 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
     color: var(--title);
@@ -219,20 +219,21 @@
   }
   .meta {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
   .tool {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 10px;
     min-height: 32px;
   }
   .tool:hover {
     color: var(--text);
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .tool.strong {
     color: var(--accent-ink);
@@ -242,7 +243,7 @@
   }
   .problem {
     color: var(--danger);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .empty {
     max-width: 560px;
@@ -266,7 +267,7 @@
     margin: 2px;
     padding: 8px 4px;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--selected-fg);
@@ -297,13 +298,13 @@
   .date {
     padding: 14px 14px 14px 12px;
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--line);
   }
   .grid.across .date {
     border-top: 0;
-    border-left: 1px solid var(--rule);
+    border-left: 1px solid var(--line);
     padding: 10px 12px 6px;
   }
   .events {
@@ -311,12 +312,12 @@
     flex-direction: column;
     gap: 12px;
     padding: 12px 0 16px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--line);
     min-height: 24px;
   }
   .grid.across .events {
     border-top: 0;
-    border-left: 1px solid var(--rule);
+    border-left: 1px solid var(--line);
     padding: 6px 12px 16px;
   }
   .event {
@@ -331,7 +332,7 @@
     background: none;
   }
   .face :global(.portrait span) {
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
   }
   .about {
     min-width: 0;
@@ -340,7 +341,7 @@
     display: block;
     text-align: left;
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: calc(24px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.1;
     color: var(--title);
@@ -350,7 +351,7 @@
   }
   .when {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -359,7 +360,7 @@
     width: 100%;
   }
   .when:hover {
-    border-bottom-color: var(--rule-strong);
+    border-bottom-color: var(--edge);
   }
   .when:focus {
     outline: none;
@@ -368,7 +369,7 @@
   }
   .summary {
     margin: 4px 0 0;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     line-height: 1.5;
     color: var(--text-soft);
     display: -webkit-box;
@@ -380,10 +381,11 @@
   select,
   input[type='text'] {
     font: inherit;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 10px 12px;
   }
 </style>

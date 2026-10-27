@@ -60,7 +60,8 @@
     overflow-y: auto;
     box-sizing: border-box;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 26px;
     display: flex;
     flex-direction: column;
@@ -71,40 +72,42 @@
     margin: 0 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 38px;
+    font-size: calc(38px * var(--type));
     letter-spacing: 0.02em;
   }
   .dialog :global(.label) {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     margin-top: 8px;
   }
   .dialog :global(input[type='text']),
   .dialog :global(select) {
     font: inherit;
-    font-size: 16px;
+    font-size: calc(16px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 10px 12px;
   }
   .dialog :global(.hint) {
     margin: 0;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     line-height: 1.5;
     color: var(--muted);
   }
   .dialog :global(.secondary) {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 12px;
     min-height: 40px;
   }
   .problem {
     margin: 4px 0 0;
     color: var(--danger);
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .actions {
     display: flex;
@@ -113,15 +116,16 @@
     margin-top: 16px;
   }
   .actions button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 10px 18px;
     min-height: 44px;
     border: 0;
   }
   .cancel {
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong) !important;
+    background: var(--well);
+    border: 1px solid var(--edge) !important;
+    border-radius: var(--round);
   }
   .go {
     font-weight: 700;

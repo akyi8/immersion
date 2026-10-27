@@ -112,15 +112,15 @@
     margin-top: 10px;
   }
   .label {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   input[type='text'] {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
-    border-bottom: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--edge);
     padding: 3px 2px;
     min-width: 0;
   }
@@ -130,19 +130,19 @@
   }
   .value {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text-soft);
   }
   .era {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text-soft);
   }
   .add {
     margin-top: 8px;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--structure);
     background: none;
     border: 0;
@@ -154,7 +154,7 @@
   .help {
     margin: 6px 0 0;
     max-width: 520px;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     line-height: 1.6;
     color: var(--muted);
   }
@@ -164,7 +164,7 @@
   }
   .problem {
     margin-top: 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--danger);
   }
 </style>

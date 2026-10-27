@@ -154,7 +154,7 @@
       {/snippet}
     </Panes>
   {:else}
-    <main class="home">
+    <main class="home sheet">
       <h1>Boards</h1>
       <p>Every board in {worldName}: the timeline of its history, each series, and each manuscript, with When along one side and threads along the other.</p>
       <div class="cards">
@@ -186,12 +186,12 @@
     width: 290px;
     flex-shrink: 0;
     overflow-y: auto;
-    border-right: 1px solid var(--rule);
+    border-right: 1px solid var(--line);
     padding: 12px 0 24px;
   }
   .sidebar .label {
     margin: 16px 18px 6px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   .board {
     width: 100%;
@@ -200,7 +200,7 @@
     align-items: baseline;
     gap: 8px;
     text-align: left;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
@@ -217,13 +217,13 @@
   }
   .n {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
     flex-shrink: 0;
   }
   .hint {
     margin: 2px 18px 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--muted);
   }
@@ -237,7 +237,7 @@
     margin: 0 0 12px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
   }
   .home p {
@@ -259,21 +259,22 @@
     min-height: 120px;
     color: var(--text);
     background: var(--surface);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
   }
   .card:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .kind {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--structure);
   }
   .name {
     font-family: var(--font-display);
-    font-size: 30px;
+    font-size: calc(30px * var(--type));
     line-height: 1.05;
     color: var(--title);
   }

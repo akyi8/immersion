@@ -418,7 +418,7 @@
         {/snippet}
       </Panes>
     {:else}
-      <main class="home">
+      <main class="home sheet">
         <h1>Story</h1>
         {#if story?.missing}
           <p class="problem" role="alert">
@@ -499,11 +499,11 @@
     grid-template-columns: max-content 1fr;
     gap: 6px 14px;
     margin: 12px 0 0;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
   }
   .preview dt {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -527,7 +527,7 @@
     margin: 0 0 12px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
   }
   .home p {
@@ -538,7 +538,7 @@
   }
   .home h2 {
     margin: 36px 0 12px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     font-weight: 400;
   }
   .year {
@@ -549,7 +549,7 @@
     color: var(--danger) !important;
   }
   .make {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     font-weight: 700;
     color: var(--accent-ink);
     background: var(--accent);

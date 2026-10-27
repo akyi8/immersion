@@ -42,6 +42,21 @@
     else applyTheme(phase === 'shelf' ? null : (world?.theme ?? null), mode.current);
   });
 
+  // The writer's layout, the same on every world (Mike, October 27). In Soft, the open
+  // world's picture can glow through the desk.
+  $effect(() => {
+    document.documentElement.dataset.layout = account.look.layout;
+  });
+  const backdrop = $derived(
+    account.look.layout === 'soft' && account.look.backdrop && fs && world && (phase === 'loading' || phase === 'inside')
+      ? world.imagePath
+        ? fs.imageUrl(world.imagePath)
+        : world.journal
+          ? realWorld
+          : null
+      : null,
+  );
+
   async function enter(source: WorldFs) {
     try {
       fs = source;
@@ -164,6 +179,8 @@
         fs = await sample.open((await sample.list())[0].path);
       }
       phase = 'reader';
+      // A reading window wears the writer's layout too.
+      if (inDesktopApp) void import('./lib/library/disk').then(({ DiskLibrary }) => account.attach(new DiskLibrary())).catch(() => {});
       return;
     }
     if (inDesktopApp) {
@@ -174,6 +191,9 @@
       library = new MemoryLibrary(sampleWorld());
     }
     await account.attach(library);
+    // At launch the library brings in what other computers saved to immersion.md, so a
+    // vault passphrase or a layout chosen there is here before it is needed.
+    void library.syncYou().then((r) => (r.state === 'synced' ? account.refresh() : undefined)).catch(() => {});
     const last = await library.last();
     if (last) {
       try {
@@ -188,6 +208,10 @@
     phase = 'shelf';
   });
 </script>
+
+{#if backdrop}
+  <div class="backdrop-glass" style:background-image={`url("${backdrop}")`} aria-hidden="true"></div>
+{/if}
 
 {#if phase === 'reader' && fs}
   <Reader {fs} id={readerId} />

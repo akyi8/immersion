@@ -65,12 +65,13 @@
     min-width: 200px;
     padding: 4px;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     box-shadow: 0 10px 28px var(--scrim);
   }
   button {
     text-align: left;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: none;
     border: 0;

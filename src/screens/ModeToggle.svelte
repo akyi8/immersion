@@ -30,7 +30,8 @@
 <style>
   .mode {
     display: flex;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   button {
     width: 36px;

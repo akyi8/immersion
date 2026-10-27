@@ -93,7 +93,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     min-height: 32px;
   }
   .check input {
@@ -109,7 +109,7 @@
   }
   .path {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     overflow-wrap: anywhere;
   }
 </style>

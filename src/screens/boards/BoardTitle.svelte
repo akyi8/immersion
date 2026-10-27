@@ -50,7 +50,7 @@
     padding: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 60px;
+    font-size: calc(60px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
     color: var(--title);
@@ -59,15 +59,15 @@
     border-bottom: 1px solid transparent;
   }
   .board-title:hover {
-    border-bottom-color: var(--rule);
+    border-bottom-color: var(--line);
   }
   .board-title:focus {
     outline: none;
-    border-bottom-color: var(--rule-strong);
+    border-bottom-color: var(--edge);
   }
   .problem {
     margin: 0 0 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--danger);
   }
 </style>

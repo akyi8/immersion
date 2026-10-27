@@ -121,7 +121,7 @@
       {/snippet}
     </Panes>
   {:else}
-    <main>
+    <main class="sheet">
       <WorldHome {index} {nav} {worldName} onTimeline={() => nav.openIn('boards', TIMELINE)} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
     </main>
   {/if}

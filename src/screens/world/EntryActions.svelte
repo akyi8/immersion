@@ -191,7 +191,7 @@
   .more:hover,
   .more[aria-expanded='true'] {
     color: var(--text);
-    border-color: var(--rule-strong);
+    border-color: var(--edge);
   }
   .menu {
     position: absolute;
@@ -202,13 +202,14 @@
     flex-direction: column;
     min-width: 220px;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     box-shadow: 0 8px 24px var(--shadow);
     padding: 4px;
   }
   .menu button {
     text-align: left;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
@@ -225,10 +226,11 @@
     gap: 6px;
   }
   .chips button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text-soft);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 12px;
     min-height: 36px;
   }
@@ -236,9 +238,10 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 4px 4px 4px 10px;
   }
   .name-chip button {
@@ -260,14 +263,15 @@
     flex-direction: column;
     max-height: 46vh;
     overflow-y: auto;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
   }
   .places button {
     display: flex;
     justify-content: space-between;
     gap: 12px;
     text-align: left;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
     background: none;
     border: 0;
@@ -282,7 +286,7 @@
     background: var(--selected-bg);
   }
   .now {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
   }
 </style>

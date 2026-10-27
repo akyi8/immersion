@@ -199,7 +199,7 @@
 <style>
   .status {
     margin-bottom: 14px;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     min-height: 14px;
   }
   .editor {
@@ -219,10 +219,11 @@
     gap: 8px;
   }
   .conflict button {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 12px;
     min-height: 40px;
   }

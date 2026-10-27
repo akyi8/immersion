@@ -1,5 +1,6 @@
 import type { SyncReport, WorldFs } from './fs/types';
 import { saveAll } from './saves';
+import { account } from './account.svelte';
 
 /**
  * When the open world syncs through Git (Mike, October 26): as it opens, a few minutes
@@ -62,6 +63,8 @@ class Sync {
       this.state = r.state;
       this.message = r.message;
       if (r.state === 'synced' || r.state === 'local') this.at = Date.now();
+      // A pull can bring in another computer's immersion.md: profiles, layout, the vault.
+      if (r.state === 'synced') await account.refresh().catch(() => {});
     } catch (e) {
       this.state = 'problem';
       this.message = e instanceof Error ? e.message : String(e);

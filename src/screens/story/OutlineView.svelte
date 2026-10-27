@@ -393,13 +393,14 @@
     flex-direction: column;
     gap: 6px;
     background: var(--surface);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     padding: 14px 16px 12px;
     min-height: 320px;
     box-sizing: border-box;
   }
   .card:focus-within {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .card.over {
     border-color: var(--structure);
@@ -411,7 +412,7 @@
     gap: 8px;
     justify-content: space-between;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
   }
   .n {
@@ -436,7 +437,7 @@
   }
   .move button:hover:not(:disabled) {
     color: var(--text);
-    border-color: var(--rule-strong);
+    border-color: var(--edge);
   }
   .move button:disabled {
     opacity: 0.25;
@@ -444,7 +445,7 @@
   }
   .title {
     font-family: var(--font-display);
-    font-size: 30px;
+    font-size: calc(30px * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.1;
     color: var(--text);
@@ -466,7 +467,7 @@
     resize: none;
     overflow: hidden;
     font: inherit;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     line-height: 1.55;
     color: var(--text);
     background: none;
@@ -481,7 +482,7 @@
   }
   .write {
     align-self: flex-start;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
     background: none;
     border: 0;
@@ -497,15 +498,15 @@
     border-style: dashed;
     color: var(--text);
     font-family: var(--font-display);
-    font-size: 30px;
+    font-size: calc(30px * var(--type));
     letter-spacing: 0.02em;
   }
   .add:hover {
     border-style: solid;
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .plus {
-    font-size: 56px;
+    font-size: calc(56px * var(--type));
     line-height: 1;
     color: var(--accent);
   }
@@ -517,16 +518,17 @@
     margin-bottom: 14px;
   }
   .tool {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 10px;
     min-height: 32px;
   }
   .tool:hover:not(:disabled) {
     color: var(--text);
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .tool.strong {
     color: var(--accent-ink);
@@ -543,16 +545,17 @@
   }
   .name-thread input {
     font: inherit;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 6px 10px;
     width: 220px;
   }
   .axes {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     color: var(--muted);
   }
   /* The plot grid. Its headers stay in view while the cells scroll under them. */
@@ -561,12 +564,13 @@
     gap: 0;
     overflow: auto;
     max-height: 78vh;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
     align-items: stretch;
   }
   .board > * {
-    border-right: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
     box-sizing: border-box;
   }
   .corner,
@@ -583,7 +587,7 @@
     align-items: flex-end;
     padding: 10px 12px;
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -618,7 +622,7 @@
   .thread-name {
     font: inherit;
     font-weight: 700;
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     color: var(--title);
     background: none;
     border: 0;
@@ -645,11 +649,11 @@
     background: none;
     border: 1px solid transparent;
     padding: 0 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
   }
   .thread-tools button:hover:not(:disabled) {
     color: var(--text);
-    border-color: var(--rule-strong);
+    border-color: var(--edge);
   }
   .thread-tools button:disabled {
     opacity: 0.25;
@@ -658,7 +662,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--danger);
   }
   .thread-tools .yes {
@@ -666,11 +670,11 @@
   }
   .main-note {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--type));
     color: var(--muted);
   }
   .title.small {
-    font-size: 22px;
+    font-size: calc(22px * var(--type));
   }
   .cell {
     background: var(--bg);
@@ -685,7 +689,7 @@
     resize: none;
     overflow: hidden;
     font: inherit;
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     line-height: 1.5;
     color: var(--text);
     background: none;
@@ -700,7 +704,7 @@
   }
   .add-when {
     font-family: var(--font-display);
-    font-size: 22px;
+    font-size: calc(22px * var(--type));
     color: var(--text);
     background: none;
     border-style: dashed !important;

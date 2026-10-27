@@ -194,8 +194,9 @@
     display: grid;
     place-items: center;
     color: var(--muted);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .gear:hover {
     color: var(--text);
@@ -213,7 +214,7 @@
     gap: 12px;
     min-height: 60px;
     padding: 8px 16px;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--line);
     box-sizing: border-box;
   }
   .left,
@@ -242,7 +243,7 @@
   }
   .world-name {
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: calc(26px * var(--type));
     letter-spacing: 0.02em;
     color: var(--text);
     background: none;
@@ -254,7 +255,7 @@
     gap: 4px;
   }
   nav button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -268,10 +269,11 @@
   }
   .toggle {
     display: flex;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   .toggle button {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -283,10 +285,11 @@
     background: var(--selected-bg);
   }
   .quiet {
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     color: var(--muted);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 9px 12px;
     min-height: 40px;
   }

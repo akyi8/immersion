@@ -33,6 +33,10 @@
     ['computer', 'This computer'],
   ];
   const tab = $derived(ui.settings ?? 'you');
+  const LAYOUTS: ['classic' | 'soft', string, string][] = [
+    ['classic', 'Classic', 'Ruled with fine lines, every edge drawn.'],
+    ['soft', 'Soft', 'Space instead of lines, rounded paper on a desk, and things that settle gently into place.'],
+  ];
   const info = $derived(account.info);
   let problem = $state('');
   let busy = $state(false);
@@ -97,7 +101,30 @@
   <div class="body" role="tabpanel">
     {#if tab === 'you'}
       <p class="lead">What follows you to every computer, kept in <code>immersion.md</code> in your library.</p>
+      <h3 class="label">Layout</h3>
+      <div class="layouts" role="radiogroup" aria-label="Layout">
+        {#each LAYOUTS as [id, name, about]}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={account.look.layout === id}
+            class="layout {id}"
+            class:on={account.look.layout === id}
+            onclick={() => run(() => account.saveLook({ ...account.look, layout: id }))}>
+            <span class="layout-name">{name}</span>
+            <span class="layout-about">{about}</span>
+          </button>
+        {/each}
+      </div>
+      {#if account.look.layout === 'soft'}
+        <label class="check">
+          <input type="checkbox" checked={account.look.backdrop} onchange={(e) => run(() => account.saveLook({ ...account.look, backdrop: (e.currentTarget as HTMLInputElement).checked }))} />
+          The world's picture behind the desk
+        </label>
+        <p class="hint">Seen through frosted glass, so only its colors come through.</p>
+      {/if}
       {#if !info?.path}
+        <h3 class="label">Author profiles</h3>
         <p>Author profiles live in your library, so every computer has them. Choose your library first.</p>
         <button type="button" class="primary" onclick={() => (ui.settings = 'computer')}>Choose a library</button>
       {:else}
@@ -170,7 +197,7 @@
                 })} />
             Sync with Git on its own
           </label>
-          <p class="hint">Pulls when a world opens and every ten minutes, and commits and pushes a few minutes after you stop typing and when you close the world. It only ever commits the world's own folder.</p>
+          <p class="hint">Pulls when a world opens and every ten minutes, and commits and pushes a few minutes after you stop typing and when you close the world. It only ever commits the world's own folder and your <code>immersion.md</code>.</p>
           {#if world && sync.state !== 'idle' && sync.state !== 'not-git'}
             <div class="status {sync.state}">
               <p>
@@ -231,7 +258,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface);
-    border-left: 1px solid var(--rule-strong);
+    border-left: 1px solid var(--edge);
     z-index: 21;
   }
   header {
@@ -244,7 +271,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 38px;
+    font-size: calc(38px * var(--type));
     letter-spacing: 0.02em;
     color: var(--title);
   }
@@ -261,10 +288,10 @@
     display: flex;
     gap: 4px;
     padding: 8px 26px 0;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--line);
   }
   .tabs button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
@@ -293,31 +320,32 @@
   }
   h3.label {
     margin: 18px 0 0;
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   .hint {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--muted);
   }
   .path {
     margin: 0;
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--text-soft);
     word-break: break-all;
   }
   button {
-    font-size: 14px;
+    font-size: calc(14px * var(--type));
     padding: 8px 14px;
     min-height: 38px;
     color: var(--text);
-    background: none;
-    border: 1px solid var(--rule-strong);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
   }
   button:hover {
-    border-color: var(--structure);
+    border-color: var(--hover-edge);
   }
   .primary {
     font-weight: 700;
@@ -334,7 +362,7 @@
     border-style: dashed;
   }
   .quiet {
-    font-size: 12px;
+    font-size: calc(12px * var(--type));
     color: var(--muted);
     border-color: transparent;
   }
@@ -344,7 +372,7 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 0 14px;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--line);
   }
   .fields {
     flex: 1;
@@ -353,20 +381,22 @@
     gap: 4px;
   }
   .fields .label {
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
   }
   input[type='text'] {
-    font-size: 15px;
+    font-size: calc(15px * var(--type));
     color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--rule-strong);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     padding: 8px 10px;
   }
   .offer {
     width: 100%;
     box-sizing: border-box;
     padding: 12px 14px;
-    border: 1px solid var(--structure);
+    border: 1px solid var(--callout-edge);
+    border-radius: var(--round-box);
     background: var(--bg);
   }
   .offer p {
@@ -376,18 +406,51 @@
     width: 100%;
     box-sizing: border-box;
     padding: 10px 12px;
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     background: var(--bg);
   }
   .status p {
     margin: 0 0 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--text-soft);
     white-space: pre-wrap;
   }
   .status.problem {
     border-color: var(--danger);
+  }
+  .layouts {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: left;
+    padding: 12px 14px 14px;
+  }
+  .layout.on {
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+  }
+  .layout-name {
+    font-weight: 700;
+  }
+  .layout.on .layout-name {
+    color: var(--selected-fg);
+  }
+  .layout-about {
+    font-size: calc(12.5px * var(--type));
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .layout.soft {
+    border-radius: 14px;
   }
   .check {
     display: flex;
@@ -409,7 +472,8 @@
     width: min(440px, calc(100vw - 32px));
     padding: 22px;
     background: var(--surface);
-    border: 1px solid var(--rule-strong);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
     z-index: 23;
   }
   .confirm p {

@@ -22,7 +22,7 @@
     align-items: center;
     gap: 6px;
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--type));
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
