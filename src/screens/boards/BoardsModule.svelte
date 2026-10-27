@@ -114,9 +114,26 @@
         {#if id === TIMELINE}
           <TimelineView {index} {fs} {rebuild} onOpen={(target) => nav.open(target, i)} />
         {:else if id.startsWith(SERIES)}
-          <SeriesPane {fs} root={storiesDir} series={id.slice(SERIES.length)} onOpenBook={(book) => nav.open(book, i)} onChanged={refresh} />
+          <SeriesPane
+            {fs}
+            root={storiesDir}
+            series={id.slice(SERIES.length)}
+            onOpenBook={(book) => nav.open(book, i)}
+            onChanged={refresh}
+            onRenamed={async (name) => {
+              await refresh();
+              nav.replace(id, SERIES + name);
+            }} />
         {:else if manuscriptOf(id)}
-          <ManuscriptBoard {fs} manuscript={manuscriptOf(id)!} onWrite={(path) => nav.open(path, i)} />
+          <ManuscriptBoard
+            {fs}
+            manuscript={manuscriptOf(id)!}
+            onWrite={(path) => nav.open(path, i)}
+            onRenamed={async (from, to) => {
+              await refresh();
+              nav.replace(id, BOARD + to);
+              nav.replacePrefix(from, to);
+            }} />
         {:else if index.get(id)}
           <EntryView {index} {fs} {id} view="narrator" {next} fresh={false} onOpen={(target) => nav.open(target, i)} onWindow={() => toWindow(id)} />
         {:else}

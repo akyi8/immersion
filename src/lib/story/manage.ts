@@ -1,7 +1,7 @@
 import type { WorldFs } from '../fs/types.ts';
 import { slugify } from '../slug.ts';
 import { splitHeader, withHeader } from '../world.ts';
-import { placeFolder, titleOf, titleFromName, type Manuscript, type Place } from './index.ts';
+import { buildStoryIndex, placeFolder, titleOf, titleFromName, type Manuscript, type Place } from './index.ts';
 import { blankPage, fileToFolder, newBook, readTitlePage, withTitlePage, type PageDefaults } from './book.ts';
 
 /**
@@ -127,3 +127,29 @@ export async function newManuscript(
   await fs.writeText(chapter, '# Chapter 1\n\n');
   return { folder, chapter };
 }
+
+/**
+ * Renames a series (Mike, October 27): every book that names it takes the new name on its
+ * title page, wherever the book sits, and the series' threads in `world.md` move with it.
+ */
+export async function renameSeries(fs: WorldFs, root: string, from: string, to: string): Promise<void> {
+  const name = to.trim();
+  if (!name) throw new Error('A series needs a name.');
+  if (name === from) return;
+  const index = await buildStoryIndex(fs, root);
+  if (index.manuscripts.some((m) => m.series === name)) throw new Error(`There is already a series called ${name}.`);
+  for (const m of index.manuscripts) {
+    if (m.series !== from || !m.book) continue;
+    await fs.writeText(m.book, withHeader(await fs.readText(m.book), { series: name }));
+  }
+  if (await fs.exists('world.md')) {
+    const text = await fs.readText('world.md');
+    const all = splitHeader(text).header.series_threads;
+    if (all && typeof all === 'object' && from in (all as Record<string, unknown>)) {
+      const moved: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(all as Record<string, unknown>)) moved[k === from ? name : k] = v;
+      await fs.writeText('world.md', withHeader(text, { series_threads: moved }));
+    }
+  }
+}
+

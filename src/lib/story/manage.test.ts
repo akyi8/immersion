@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
-import { archivePiece, moveToPlace, newManuscript, renamePiece } from './manage.ts';
+import { archivePiece, moveToPlace, newManuscript, renamePiece, renameSeries } from './manage.ts';
 import { buildStoryIndex } from './index.ts';
 
 test('renaming a piece changes its title and its file name', async () => {
@@ -56,4 +56,19 @@ test('renaming a manuscript folder renames its title page and its folder', async
   const fs = new MemoryFs({ 'stories/salt/book.md': '---\nauthor: Wren\n---\n\n# Salt\n', 'stories/salt/01-chapter-1.md': '# Chapter 1\n' });
   assert.equal(await renamePiece(fs, 'stories/salt', 'Salt Ghosts'), 'stories/salt-ghosts');
   assert.equal(await fs.readText('stories/salt-ghosts/book.md'), '---\nauthor: Wren\n---\n\n# Salt Ghosts\n');
+});
+
+test('renaming a series renames it on every book and keeps its threads', async () => {
+  const fs = new MemoryFs({
+    'world.md': '---\nname: W\nseries_threads:\n  Wayfarer Chronicles:\n    - Main plot\n    - Mara\n---\n\n# W\n',
+    'stories/the-crossing/book.md': '---\nseries: Wayfarer Chronicles\nnumber: 2\n---\n\n# The Crossing\n',
+    'stories/finished/the-long-road/book.md': '---\nseries: Wayfarer Chronicles\nnumber: 1\n---\n\n# The Long Road\n',
+    'stories/other/book.md': '---\nseries: Another\n---\n\n# Other\n',
+  });
+  await renameSeries(fs, 'stories', 'Wayfarer Chronicles', 'The Long Coast');
+  assert.match(await fs.readText('stories/the-crossing/book.md'), /series: The Long Coast\nnumber: 2/);
+  assert.match(await fs.readText('stories/finished/the-long-road/book.md'), /series: The Long Coast/);
+  assert.match(await fs.readText('stories/other/book.md'), /series: Another/);
+  assert.match(await fs.readText('world.md'), /series_threads:\n {2}The Long Coast:\n {4}- Main plot\n {4}- Mara/);
+  await assert.rejects(renameSeries(fs, 'stories', 'The Long Coast', 'Another'));
 });

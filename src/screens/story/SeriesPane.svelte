@@ -2,6 +2,8 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { seriesSource } from '../../lib/story/outlineSource';
   import OutlineView from './OutlineView.svelte';
+  import BoardTitle from '../boards/BoardTitle.svelte';
+  import { renameSeries } from '../../lib/story/manage';
 
   /**
    * A series board (Mike, October 25): the books of one series along When, in the order
@@ -13,6 +15,7 @@
     series,
     onOpenBook,
     onChanged,
+    onRenamed,
   }: {
     fs: WorldFs;
     /** The stories folder. */
@@ -22,6 +25,8 @@
     onOpenBook: (bookMd: string) => void;
     /** Called after a book is added, so the shelf, desk, and drawer show it. */
     onChanged: () => void;
+    /** Called after the series is renamed, with its new name. */
+    onRenamed?: (name: string) => void;
   } = $props();
 
   const source = $derived(seriesSource(fs, root, series));
@@ -30,10 +35,21 @@
 <article class="series">
   <header>
     <div class="label">Series</div>
-    <h1>{series}</h1>
+    {#if onRenamed}
+      <BoardTitle
+        name={series}
+        label="Series name"
+        onRename={async (name) => {
+          await renameSeries(fs, root, series, name);
+          onRenamed(name);
+        }} />
+    {:else}
+      <h1>{series}</h1>
+    {/if}
     <p class="about">Each book's beats on the series threads are kept in its title page file, under its title.</p>
   </header>
-  {#key source}
+  <!-- Rebuilt only for another series: the world reloading after a save is not a new board. -->
+  {#key series}
     <OutlineView
       {fs}
       {source}
