@@ -515,10 +515,147 @@ fn repo_spec(dir: &Path, file: &Path) -> Option<String> {
     if !file.is_file() {
         return None;
     }
+    Some(format!(":(top,literal){}", repo_relative(dir, file)?))
+}
+
+/// Where an existing file or folder is from the top of the repository that `dir` is in,
+/// written with forward slashes, when it is in that same repository.
+fn repo_relative(dir: &Path, path: &Path) -> Option<String> {
     let top = fs::canonicalize(git_run(dir, &["rev-parse", "--show-toplevel"]).ok()?.trim()).ok()?;
-    let rel = fs::canonicalize(file).ok()?.strip_prefix(&top).ok()?.to_path_buf();
+    let rel = fs::canonicalize(path).ok()?.strip_prefix(&top).ok()?.to_path_buf();
     let parts: Vec<String> = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect();
-    Some(format!(":(top,literal){}", parts.join("/")))
+    Some(parts.join("/"))
+}
+
+/// What waits to sync (Mike, October 28): the files that would go out to other computers,
+/// changed here or committed and not yet pushed, and the files that would come in.
+#[derive(Serialize, Debug, PartialEq)]
+struct Pending {
+    /// `git` when it syncs, `local` with nowhere to push, `not-git`, or `off`.
+    state: String,
+    out: usize,
+    incoming: usize,
+}
+
+fn pending(state: &str) -> Pending {
+    Pending { state: state.to_string(), out: 0, incoming: 0 }
+}
+
+/// Counts what waits to sync for these paths. Fetching asks the other computers' remote
+/// what it holds now, which needs the network; without it, the count of incoming files
+/// is as of the last pull or fetch. `keep` says which incoming paths count.
+fn count_pending(dir: &Path, specs: &[String], fetch: bool, keep: &dyn Fn(&str) -> bool) -> Pending {
+    if git_run(dir, &["rev-parse", "--is-inside-work-tree"]).map(|o| o.trim() == "true") != Ok(true) {
+        return pending("not-git");
+    }
+    let with = |first: &[&str]| -> Vec<String> {
+        first.iter().map(|s| s.to_string()).chain(["--".to_string()]).chain(specs.iter().cloned()).collect()
+    };
+    let run = |args: Vec<String>| git_run(dir, &args.iter().map(String::as_str).collect::<Vec<_>>());
+    let mut out = std::collections::BTreeSet::new();
+    if !specs.is_empty() {
+        // Paths in this listing are always from the top of the repository.
+        for line in run(with(&["--no-optional-locks", "status", "--porcelain", "--untracked-files=all"])).unwrap_or_default().lines() {
+            if let Some(path) = line.get(3..) {
+                let path = path.rsplit(" -> ").next().unwrap_or(path).trim_matches('"');
+                out.insert(path.to_string());
+            }
+        }
+    }
+    if git_run(dir, &["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).is_err() {
+        return Pending { state: "local".into(), out: out.len(), incoming: 0 };
+    }
+    if fetch {
+        let _turn = SYNCING.lock().unwrap_or_else(|e| e.into_inner());
+        let _ = git_run(dir, &["fetch", "--quiet"]);
+    }
+    if !specs.is_empty() {
+        out.extend(run(with(&["diff", "--name-only", "@{u}...HEAD"])).unwrap_or_default().lines().map(str::to_string));
+    }
+    let incoming = git_run(dir, &["diff", "--name-only", "HEAD...@{u}"])
+        .unwrap_or_default()
+        .lines()
+        .filter(|p| keep(p))
+        .count();
+    Pending { state: "git".into(), out: out.len(), incoming }
+}
+
+/// What waits to sync for the open world and `immersion.md`.
+#[tauri::command]
+async fn world_pending(fetch: bool, state: State<'_, OpenWorld>, app: AppHandle) -> Result<Pending, String> {
+    if !load_settings(&app).git_sync {
+        return Ok(pending("off"));
+    }
+    let root = root(&state)?;
+    let you = you_file(&app);
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut specs = vec![".".to_string()];
+        specs.extend(you.as_deref().and_then(|f| repo_spec(&root, f)));
+        let world = repo_relative(&root, &root).unwrap_or_default();
+        let you_rel = you.as_deref().and_then(|f| repo_relative(&root, f));
+        count_pending(&root, &specs, fetch, &|p| (world.is_empty() || p.starts_with(&format!("{world}/"))) || Some(p) == you_rel.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// The library's worlds and `immersion.md`, as pathspecs from the top of its repository.
+fn library_specs(lib: &Path) -> (Vec<String>, Vec<String>) {
+    let mut specs = Vec::new();
+    let mut folders = Vec::new();
+    for world in library_worlds(lib) {
+        if let Some(rel) = repo_relative(lib, &world) {
+            specs.push(format!(":(top,literal){rel}"));
+            folders.push(rel);
+        }
+    }
+    specs.extend(repo_spec(lib, &lib.join(YOU_FILE)));
+    (specs, folders)
+}
+
+/// What waits to sync across the whole library: every world in it, and `immersion.md`.
+/// Coming in counts only files of worlds, including worlds this computer has not seen yet.
+#[tauri::command]
+async fn library_pending(fetch: bool, app: AppHandle) -> Result<Pending, String> {
+    let settings = load_settings(&app);
+    let Some(lib) = settings.library.map(PathBuf::from) else { return Ok(pending("not-git")) };
+    if !settings.git_sync {
+        return Ok(pending("off"));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let (specs, mut folders) = library_specs(&lib);
+        let you_rel = repo_relative(&lib, &lib.join(YOU_FILE));
+        let mut probe = count_pending(&lib, &[], fetch, &|_| false);
+        if probe.state != "git" {
+            probe = count_pending(&lib, &specs, false, &|_| false);
+            return probe;
+        }
+        // Worlds that exist on the other computers but not yet here.
+        let lib_rel = repo_relative(&lib, &lib).unwrap_or_default();
+        for path in git_run(&lib, &["ls-tree", "-r", "--name-only", "@{u}"]).unwrap_or_default().lines() {
+            if let Some(folder) = path.strip_suffix("/world.md") {
+                if lib_rel.is_empty() || folder.starts_with(&format!("{lib_rel}/")) {
+                    folders.push(folder.to_string());
+                }
+            }
+        }
+        count_pending(&lib, &specs, false, &|p| {
+            folders.iter().any(|f| p.starts_with(&format!("{f}/"))) || Some(p) == you_rel.as_deref()
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// Syncs every world in the library and `immersion.md` at once, from the Worlds page.
+#[tauri::command]
+async fn sync_library(app: AppHandle) -> Result<SyncReport, String> {
+    let settings = load_settings(&app);
+    let Some(lib) = settings.library.map(PathBuf::from) else { return Ok(report("not-git", "There is no library on this computer.")) };
+    if !settings.git_sync {
+        return Ok(report("off", "Syncing is switched off on this computer."));
+    }
+    tauri::async_runtime::spawn_blocking(move || sync_paths(&lib, &library_specs(&lib).0, "Immersion: library")).await.map_err(|e| e.to_string())
 }
 
 /// Syncs one world through Git (Mike, October 26): commits the world's own folder and
@@ -1082,6 +1219,9 @@ pub fn run() {
             set_git_sync,
             read_you,
             sync_you,
+            world_pending,
+            library_pending,
+            sync_library,
             write_you,
             set_world_cover,
             write_world_md,
@@ -1307,6 +1447,55 @@ mod tests {
         std::fs::write(&you, "---\nlayout: soft\n---\n").unwrap();
         assert_eq!(sync_folder(&alone, "Alone", Some(&you)).state, "local");
         assert!(g(&here, &["status", "--porcelain"]).contains("immersion.md"));
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn pending_counts_what_goes_out_and_what_comes_in() {
+        let base = std::env::temp_dir().join(format!("immersion-pending-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let remote = base.join("remote.git");
+        let (here, there) = (base.join("here"), base.join("there"));
+        std::fs::create_dir_all(&base).unwrap();
+        let g = |dir: &std::path::Path, args: &[&str]| git_run(dir, args).unwrap();
+        g(&base, &["init", "-q", "--bare", "-b", "main", remote.to_str().unwrap()]);
+        for dir in [&here, &there] {
+            g(&base, &["clone", "-q", remote.to_str().unwrap(), dir.to_str().unwrap()]);
+            g(dir, &["config", "user.email", "test@example.com"]);
+            g(dir, &["config", "user.name", "Test"]);
+            g(dir, &["checkout", "-q", "-B", "main"]);
+        }
+        let world = here.join("ashfall");
+        std::fs::create_dir_all(world.join("wiki")).unwrap();
+        std::fs::write(world.join("world.md"), "# Ashfall\n").unwrap();
+        g(&here, &["add", "-A"]);
+        g(&here, &["commit", "-q", "-m", "start"]);
+        g(&here, &["push", "-q", "-u", "origin", "main"]);
+        let all = |_: &str| true;
+        assert_eq!(super::count_pending(&world, &[".".into()], false, &all), super::Pending { state: "git".into(), out: 0, incoming: 0 });
+
+        // Two new files in a new folder count as two, and a commit not yet pushed still counts.
+        std::fs::write(world.join("wiki").join("ash.md"), "# Ash\n").unwrap();
+        std::fs::write(world.join("wiki").join("ember.md"), "# Ember\n").unwrap();
+        std::fs::write(here.join("notes.md"), "a session's work\n").unwrap();
+        assert_eq!(super::count_pending(&world, &[".".into()], false, &all).out, 2);
+        g(&here, &["add", "-A", "--", "ashfall"]);
+        g(&here, &["commit", "-q", "-m", "ash"]);
+        std::fs::write(world.join("world.md"), "# Ashfall, changed\n").unwrap();
+        assert_eq!(super::count_pending(&world, &[".".into()], false, &all).out, 3);
+
+        // What another computer pushed counts once it is fetched.
+        g(&there, &["pull", "-q", "origin", "main"]);
+        std::fs::create_dir_all(there.join("cinder")).unwrap();
+        std::fs::write(there.join("cinder").join("world.md"), "# Cinder\n").unwrap();
+        std::fs::write(there.join("readme.md"), "not a world\n").unwrap();
+        g(&there, &["add", "-A"]);
+        g(&there, &["commit", "-q", "-m", "there"]);
+        g(&there, &["push", "-q", "origin", "main"]);
+        assert_eq!(super::count_pending(&world, &[".".into()], false, &all).incoming, 0);
+        assert_eq!(super::count_pending(&world, &[".".into()], true, &all).incoming, 2);
+        let worlds_only = |p: &str| p.starts_with("cinder/");
+        assert_eq!(super::count_pending(&world, &[".".into()], false, &worlds_only).incoming, 1);
         let _ = std::fs::remove_dir_all(&base);
     }
 

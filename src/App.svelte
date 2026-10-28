@@ -201,17 +201,8 @@
         account.pulled++;
       })
       .catch(() => {});
-    const last = await library.last();
-    if (last) {
-      try {
-        setWindowWorld(last);
-        openPath = last;
-        await enter(await library.open(last));
-        return;
-      } catch {
-        // Fall through to the shelf.
-      }
-    }
+    // The app opens on the Worlds page, where the library's sync and every world can be
+    // seen before one is chosen (Mike, October 28).
     phase = 'shelf';
   });
 </script>

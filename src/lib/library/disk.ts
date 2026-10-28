@@ -1,7 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { DiskFs } from '../fs/disk';
-import type { ImageSource, SyncReport, WorldFs } from '../fs/types';
+import type { ImageSource, Pending, SyncReport, WorldFs } from '../fs/types';
 import { pickImage } from '../pickImage';
 import { describeWorld } from '../world';
 import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
@@ -112,6 +112,14 @@ export class DiskLibrary implements Library {
 
   syncYou(): Promise<SyncReport> {
     return invoke<SyncReport>('sync_you');
+  }
+
+  pending(fetch: boolean): Promise<Pending> {
+    return invoke<Pending>('library_pending', { fetch });
+  }
+
+  syncLibrary(): Promise<SyncReport> {
+    return invoke<SyncReport>('sync_library');
   }
 
   vaultList(world: string): Promise<string[]> {

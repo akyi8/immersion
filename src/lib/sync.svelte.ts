@@ -1,4 +1,4 @@
-import type { SyncReport, WorldFs } from './fs/types';
+import type { Pending, SyncReport, WorldFs } from './fs/types';
 import { saveAll } from './saves';
 import { account } from './account.svelte';
 
@@ -16,7 +16,10 @@ class Sync {
   state = $state<SyncReport['state'] | 'idle' | 'syncing'>('idle');
   message = $state('');
   at = $state<number | null>(null);
+  /** What waits to go out and come in, recounted soon after every change. */
+  counts = $state.raw<Pending | null>(null);
   private fs: WorldFs | null = null;
+  private recount: ReturnType<typeof setTimeout> | null = null;
   private name = '';
   private busy = false;
   private quietUntil = 0;
@@ -30,9 +33,14 @@ class Sync {
     this.name = name;
     this.state = 'idle';
     this.message = '';
+    this.counts = null;
+    void this.count();
     void this.now();
     this.every = setInterval(() => void this.now(), EVERY_MS);
     this.stopWatching = fs.onChange(() => {
+      // A save shows in the count within a couple of seconds, without waiting for a sync.
+      if (this.recount) clearTimeout(this.recount);
+      this.recount = setTimeout(() => void this.count(), 1500);
       if (this.busy || Date.now() < this.quietUntil) return;
       if (this.afterWriting) clearTimeout(this.afterWriting);
       this.afterWriting = setTimeout(() => void this.now(), AFTER_WRITING_MS);
@@ -44,6 +52,8 @@ class Sync {
     this.stopWatching = () => {};
     if (this.afterWriting) clearTimeout(this.afterWriting);
     if (this.every) clearInterval(this.every);
+    if (this.recount) clearTimeout(this.recount);
+    this.recount = null;
     this.afterWriting = null;
     this.every = null;
     this.fs = null;
@@ -72,6 +82,19 @@ class Sync {
       this.busy = false;
       this.quietUntil = Date.now() + ITS_OWN_MS;
       if (this.state === 'syncing') this.state = was;
+      void this.count();
+    }
+  }
+
+  /** Counts what waits to sync, from Git on this computer alone. */
+  async count() {
+    const fs = this.fs;
+    if (!fs) return;
+    try {
+      const counts = await fs.pending(false);
+      if (fs === this.fs) this.counts = counts;
+    } catch {
+      // A count that cannot be made leaves the last one showing.
     }
   }
 

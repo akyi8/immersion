@@ -59,6 +59,18 @@ export interface WorldFs {
    * what other computers pushed, and pushes.
    */
   sync(name: string): Promise<SyncReport>;
+  /** What waits to sync for this world and `immersion.md`, from Git on this computer. */
+  pending(fetch: boolean): Promise<Pending>;
+}
+
+/**
+ * What waits to sync (Mike, October 28): files that would go out to other computers, and
+ * files that would come in. `local` means Git with nowhere to push to.
+ */
+export interface Pending {
+  state: 'git' | 'local' | 'not-git' | 'off';
+  out: number;
+  incoming: number;
 }
 
 export interface SyncReport {

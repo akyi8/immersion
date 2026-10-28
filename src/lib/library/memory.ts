@@ -1,5 +1,5 @@
 import { MemoryFs } from '../fs/memory';
-import { imageExtension, type ImageSource, type SyncReport, type WorldFs } from '../fs/types';
+import { imageExtension, type ImageSource, type Pending, type SyncReport, type WorldFs } from '../fs/types';
 import { describeWorld } from '../world';
 import { pickImage } from '../pickImage';
 import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
@@ -141,6 +141,17 @@ export class MemoryLibrary implements Library {
 
   async syncYou(): Promise<SyncReport> {
     return { state: 'not-git', message: 'A library held in memory has no Git.' };
+  }
+
+  // The browser test pretends two files are waiting to come in, so the count can be seen.
+  private incoming = 2;
+  async pending(): Promise<Pending> {
+    return this.library.path ? { state: 'git', out: 0, incoming: this.incoming } : { state: 'not-git', out: 0, incoming: 0 };
+  }
+
+  async syncLibrary(): Promise<SyncReport> {
+    this.incoming = 0;
+    return { state: 'synced', message: '' };
   }
 
   // Vaults held in memory: world path to file name to encrypted text.

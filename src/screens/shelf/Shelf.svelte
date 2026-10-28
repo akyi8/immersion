@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { FolderShape, Library, ShelfWorld } from '../../lib/library/types';
-  import type { ImageSource } from '../../lib/fs/types';
+  import type { ImageSource, Pending, SyncReport } from '../../lib/fs/types';
+  import SyncCount from '../SyncCount.svelte';
   import { dropImage } from '../../lib/drop';
   import { appVersion } from '../../lib/version';
   import { contextMenu } from '../../lib/contextMenu.svelte';
@@ -50,6 +51,42 @@
     worlds = await library.list();
   }
 
+  // The whole library's sync (Mike, October 28): what waits to go out from every world
+  // and immersion.md, what other computers have that has not come in, and a button that
+  // syncs it all and brings in new worlds. Asking the remote needs the network, so it
+  // happens at most every two minutes; counting what is here is instant.
+  let libraryCounts = $state.raw<Pending | null>(null);
+  let librarySyncing = $state(false);
+  let libraryState = $state<SyncReport['state'] | null>(null);
+  let fetchedAt = 0;
+  async function countLibrary(ask = false) {
+    const fetch = ask && Date.now() - fetchedAt > 2 * 60 * 1000;
+    if (fetch) fetchedAt = Date.now();
+    try {
+      libraryCounts = await library.pending(fetch);
+    } catch {
+      // The last count stays.
+    }
+  }
+  async function syncLibrary() {
+    librarySyncing = true;
+    problem = '';
+    try {
+      const r = await library.syncLibrary();
+      libraryState = r.state;
+      if (r.state === 'problem' || r.state === 'waiting') problem = r.message;
+      if (r.state === 'synced') await account.refresh();
+      await refresh();
+    } catch (e) {
+      libraryState = 'problem';
+      problem = e instanceof Error ? e.message : String(e);
+    } finally {
+      librarySyncing = false;
+      fetchedAt = Date.now();
+      void countLibrary();
+    }
+  }
+
   // The library (Mike, October 26): asked once on each computer, and never again after
   // an answer or "Not now".
   const info = $derived(account.info);
@@ -94,15 +131,22 @@
   onMount(() => {
     appVersion().then((v) => (version = v));
     refresh();
+    void countLibrary().then(() => countLibrary(true));
     // Worlds arrive from other computers and from Claude sessions while the app is open,
     // so the page looks again whenever the app comes back to the front (Mike, October 28).
-    const again = () => void refresh();
+    const again = () => {
+      void refresh();
+      void countLibrary(true);
+    };
     window.addEventListener('focus', again);
     return () => window.removeEventListener('focus', again);
   });
   // The pull at launch can bring in worlds made on another computer.
   $effect(() => {
-    if (account.pulled) void refresh();
+    if (account.pulled) {
+      void refresh();
+      void countLibrary();
+    }
   });
 
   async function add() {
@@ -156,6 +200,13 @@
     <h1>Worlds</h1>
     <div class="corner">
       {#if version}<div class="label">Immersion {version}</div>{/if}
+      <SyncCount
+        counts={libraryCounts}
+        busy={librarySyncing}
+        tone={libraryState === 'problem' ? 'problem' : libraryState === 'waiting' ? 'quiet' : 'calm'}
+        note={libraryState === 'waiting' ? 'Waiting' : libraryState === 'problem' ? 'Problem' : ''}
+        onSync={syncLibrary}
+        onDetails={() => (ui.settings = 'computer')} />
       <UpdateButton />
       <ModeToggle />
       <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>

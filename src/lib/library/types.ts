@@ -1,4 +1,4 @@
-import type { ImageSource, SyncReport, WorldFs } from '../fs/types';
+import type { ImageSource, Pending, SyncReport, WorldFs } from '../fs/types';
 
 /**
  * The shelf of worlds this machine knows (design: the world shelf). Like the world's
@@ -75,6 +75,10 @@ export interface Library {
   writeYou(text: string): Promise<void>;
   /** Syncs `immersion.md` through Git now, bringing in what other computers saved there. */
   syncYou(): Promise<SyncReport>;
+  /** What waits to sync across every world in the library and `immersion.md`. */
+  pending(fetch: boolean): Promise<Pending>;
+  /** Syncs every world in the library and `immersion.md` at once (Mike, October 28). */
+  syncLibrary(): Promise<SyncReport>;
 
   /** The encrypted stories in a world's vault, by their random file names (Mike, October 26). */
   vaultList(world: string): Promise<string[]>;

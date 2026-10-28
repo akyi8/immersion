@@ -1,4 +1,4 @@
-import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs, type SyncReport } from './types.ts';
+import { imageExtension, IMAGE_EXTENSIONS, type DirEntry, type ImageSource, type WorldFs, type SyncReport, type Pending } from './types.ts';
 
 /**
  * An in-memory world for browser testing. Paths use forward slashes and are
@@ -52,6 +52,7 @@ export class MemoryFs implements WorldFs {
     this.writtenToday += Math.max(0, words(content) - words(this.files[normalize(path)]));
     this.files[normalize(path)] = content;
     this.modified[normalize(path)] = Date.now();
+    this.unsynced.add(normalize(path));
     this.notify([normalize(path)]);
   }
 
@@ -91,9 +92,16 @@ export class MemoryFs implements WorldFs {
     return { days: [], uncommitted: this.writtenToday };
   }
 
-  // The browser test world pretends to sync, so the status can be seen.
+  // The browser test world pretends to sync, so the status can be seen: each file
+  // written waits to go out until the next sync.
+  private unsynced = new Set<string>();
   async sync(): Promise<SyncReport> {
+    this.unsynced.clear();
     return { state: 'synced', message: '' };
+  }
+
+  async pending(): Promise<Pending> {
+    return { state: 'git', out: this.unsynced.size, incoming: 0 };
   }
 
   onChange(callback: (paths: string[]) => void): () => void {
