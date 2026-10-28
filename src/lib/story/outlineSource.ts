@@ -8,6 +8,7 @@ import { buildStoryIndex } from './index.ts';
 import { readTitlePage, withTitlePage } from './book.ts';
 import { newManuscript, renamePiece } from './manage.ts';
 import { namesIn } from './threads.ts';
+import { readStages, STRUCTURE_IDS, withStage } from './structures.ts';
 
 /** One card in outline view: a chapter, its outline, and where it is written. */
 export interface Card {
@@ -21,6 +22,8 @@ export interface Card {
   path: string;
   /** Where its heading starts in that file, or null when the chapter is the whole file. */
   offset: number | null;
+  /** The part it holds in each story structure, by structure id. */
+  stages: Record<string, string>;
 }
 
 /**
@@ -44,6 +47,13 @@ export interface OutlineSource {
   moveThread(key: string, by: -1 | 1): Promise<void>;
   /** Removes a thread and every beat on it. The main thread cannot be removed. */
   removeThread(key: string): Promise<void>;
+  /** The board's story structure (Mike, October 28), on boards that can carry one. */
+  structure?(): Promise<string | null>;
+  setStructure?(id: string | null): Promise<void>;
+  /** Records the part card `i` holds in a structure, or clears it with null. */
+  setStage?(i: number, structure: string, part: string | null): Promise<void>;
+  /** Puts the cards in this reading order, given as their current positions. */
+  reorder?(order: number[]): Promise<void>;
 }
 
 const beatMap = (beats: Beat[]) => Object.fromEntries(beats.map((b) => [b.thread, b.text]));
@@ -133,7 +143,7 @@ export function fileSource(fs: WorldFs, path: string): OutlineSource {
       const { text, chapters: list } = await chapters();
       return list.map((c, i) => {
         const end = list[i + 1]?.offset ?? text.length;
-        return { title: c.title, outline: c.outline, beats: beatMap(c.beats), words: countWords(text.slice(c.offset, end)) - countWords(c.title), path, offset: c.offset };
+        return { title: c.title, outline: c.outline, beats: beatMap(c.beats), words: countWords(text.slice(c.offset, end)) - countWords(c.title), path, offset: c.offset, stages: {} };
       });
     },
     async setOutline(i, outline) {
@@ -175,6 +185,8 @@ const EPILOGUE = /^epilogue\b/i;
 /** A manuscript kept as a folder, whose chapters are its files in name order. */
 export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource {
   const files = manuscript.sections.map((s) => s.path);
+  const bookPath = `${manuscript.path}/book.md`;
+  const bookText = async () => ((await fs.exists(bookPath)) ? await fs.readText(bookPath) : `# ${manuscript.title}\n`);
 
   /**
    * Renumbers chapter files in the given order. Each moves to a temporary name first, so
@@ -188,6 +200,8 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
     });
     for (const f of named) if (f.path !== f.target) await fs.move(f.path, f.temp);
     for (const f of named) if (f.path !== f.target) await fs.move(f.temp, f.target);
+    // The board reads the chapters again at once, so this source follows them to their new names.
+    files.splice(0, files.length, ...named.map((f) => f.target));
     return new Map(named.map((f) => [f.path, f.target]));
   }
   async function chapter(i: number) {
@@ -215,6 +229,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
           words: countWords(text) - countWords(head?.title ?? ''),
           path: files[i],
           offset: null,
+          stages: readStages(text),
         });
       }
       return cards;
@@ -239,6 +254,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
         const moved = await renumber(order);
         return { path: moved.get(path) ?? path, offset: null };
       }
+      files.push(path);
       return { path, offset: null };
     },
     async move(from, to) {
@@ -251,6 +267,21 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
     async setBeat(i, thread, beat) {
       const { path, text, head } = await chapter(i);
       await fs.writeText(path, setBeat(text, head.offset, thread, beat));
+    },
+    async structure() {
+      return knownStructure(splitHeader(await bookText()).header.structure);
+    },
+    async setStructure(id) {
+      await fs.writeText(bookPath, withHeader(await bookText(), { structure: id ?? undefined }));
+    },
+    async setStage(i, structure, part) {
+      const path = files[i];
+      if (!path) throw new Error('That chapter is gone. The board has been reloaded.');
+      await fs.writeText(path, withStage(await fs.readText(path), structure, part));
+    },
+    async reorder(order) {
+      if (order.length !== files.length || order.some((i) => !files[i])) throw new Error('The chapters have changed. The board has been reloaded.');
+      await renumber(order.map((i) => files[i]));
     },
     ...threadOps(
       fs,
@@ -314,7 +345,7 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     async load() {
       return (await books()).map(({ m, text, page }) => {
         const head = fileTitle(splitHeader(text).body);
-        return { title: page.title, outline: head?.outline ?? '', beats: beatMap(head?.beats ?? []), words: m.words, path: m.book!, offset: null };
+        return { title: page.title, outline: head?.outline ?? '', beats: beatMap(head?.beats ?? []), words: m.words, path: m.book!, offset: null, stages: readStages(text, 'series_stages') };
       });
     },
     async setOutline(i, outline) {
@@ -350,6 +381,29 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
       list.splice(to, 0, moved);
       await renumber(list);
     },
+    // A series' structure is kept in world.md beside its threads, and each book's part
+    // in its own book.md, apart from the structure of its chapters.
+    async structure() {
+      const all = splitHeader(await fs.readText('world.md')).header.series_structures;
+      return knownStructure(all && typeof all === 'object' ? (all as Record<string, unknown>)[series] : null);
+    },
+    async setStructure(id) {
+      const text = await fs.readText('world.md');
+      const { header } = splitHeader(text);
+      const all = { ...(header.series_structures && typeof header.series_structures === 'object' ? (header.series_structures as Record<string, unknown>) : {}) };
+      if (id) all[series] = id;
+      else delete all[series];
+      await fs.writeText('world.md', withHeader(text, { series_structures: Object.keys(all).length ? all : undefined }));
+    },
+    async setStage(i, structure, part) {
+      const { b } = await at(i);
+      await fs.writeText(b.book, withStage(b.text, structure, part, 'series_stages'));
+    },
+    async reorder(order) {
+      const list = await books();
+      if (order.length !== list.length || order.some((i) => !list[i])) throw new Error('The books have changed. The board has been reloaded.');
+      await renumber(order.map((i) => list[i]));
+    },
     ...threadOps(
       fs,
       store,
@@ -361,6 +415,11 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
       },
     ),
   };
+}
+
+/** A structure's id, when it is one Immersion knows. */
+function knownStructure(id: unknown): string | null {
+  return typeof id === 'string' && STRUCTURE_IDS.includes(id) ? id : null;
 }
 
 /** Sets a beat under a `book.md`'s title heading, keeping its header. */

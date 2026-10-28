@@ -121,13 +121,14 @@ class OutlineWidget extends WidgetType {
  * Header keys the app writes for itself or shows in a place of its own, such as an entry's
  * date under its name, which the writer never needs to see as raw header lines.
  */
-const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era']);
+const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era', 'stages']);
 
 /** True when every key in the YAML header is one the app keeps for itself. */
 function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {
   const lines = state.doc.sliceString(header.from, header.to).split('\n').slice(1, -1);
   const keys = lines.map((l) => /^([\w-]+)\s*:/.exec(l)?.[1]).filter((k): k is string => !!k);
-  return keys.length > 0 && keys.every((k) => MACHINE_KEYS.has(k)) && lines.every((l) => l.trim() === '' || /^[\w-]+\s*:/.test(l));
+  // Indented lines belong to the key above them, such as the parts under `stages:`.
+  return keys.length > 0 && keys.every((k) => MACHINE_KEYS.has(k)) && lines.every((l) => l.trim() === '' || /^[\w-]+\s*:/.test(l) || /^\s+\S/.test(l));
 }
 
 /**
