@@ -1189,6 +1189,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // The main window opens maximized the first time, and after that where and how
+        // large it was left on this computer (Mike, October 28). Reading windows are
+        // left to open fresh.
+        .plugin(tauri_plugin_window_state::Builder::new().with_filter(|label| label == "main").build())
         .manage(OpenWorld::default())
         .manage(WorldWatcher::default())
         .register_uri_scheme_protocol("world", |ctx, request| {
