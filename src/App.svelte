@@ -193,7 +193,14 @@
     await account.attach(library);
     // At launch the library brings in what other computers saved to immersion.md, so a
     // vault passphrase or a layout chosen there is here before it is needed.
-    void library.syncYou().then((r) => (r.state === 'synced' ? account.refresh() : undefined)).catch(() => {});
+    void library
+      .syncYou()
+      .then(async (r) => {
+        if (r.state !== 'synced') return;
+        await account.refresh();
+        account.pulled++;
+      })
+      .catch(() => {});
     const last = await library.last();
     if (last) {
       try {

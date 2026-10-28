@@ -94,6 +94,15 @@
   onMount(() => {
     appVersion().then((v) => (version = v));
     refresh();
+    // Worlds arrive from other computers and from Claude sessions while the app is open,
+    // so the page looks again whenever the app comes back to the front (Mike, October 28).
+    const again = () => void refresh();
+    window.addEventListener('focus', again);
+    return () => window.removeEventListener('focus', again);
+  });
+  // The pull at launch can bring in worlds made on another computer.
+  $effect(() => {
+    if (account.pulled) void refresh();
   });
 
   async function add() {

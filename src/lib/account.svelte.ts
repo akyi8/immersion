@@ -36,6 +36,8 @@ class Account {
   vaultParams = $state.raw<KeyParams | null>(null);
   /** The writer's layout. Without a library it is kept by this computer alone. */
   look = $state.raw<Look>({ ...DEFAULT_LOOK });
+  /** Counts the pulls that may have brought in worlds from other computers. */
+  pulled = $state(0);
   private source: string | null = null;
 
   async attach(library: Library) {

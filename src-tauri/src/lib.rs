@@ -100,7 +100,11 @@ const YOU_FILE: &str = "immersion.md";
 /// Folders the library scan never enters, because they hold code, builds, or old work.
 const NOT_WORLDS: [&str; 7] = ["node_modules", "target", "dist", "build", "archive", "old", "export"];
 
-/// Every world in the library: any folder up to two levels down with a `world.md`. A
+/// How many folders down the library is searched for worlds. Mike keeps some worlds
+/// inside project folders, such as The M Files four folders down (Mike, October 28).
+const LIBRARY_DEPTH: usize = 6;
+
+/// Every world in the library: any folder up to six levels down with a `world.md`. A
 /// world's own folders are not searched for more worlds.
 fn library_worlds(library: &Path) -> Vec<PathBuf> {
     fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
@@ -127,7 +131,7 @@ fn library_worlds(library: &Path) -> Vec<PathBuf> {
         }
     }
     let mut out = Vec::new();
-    walk(library, 2, &mut out);
+    walk(library, LIBRARY_DEPTH, &mut out);
     out
 }
 
@@ -1150,17 +1154,17 @@ mod tests {
     }
 
     #[test]
-    fn the_library_finds_worlds_two_levels_down_and_skips_the_rest() {
+    fn the_library_finds_worlds_deep_down_and_skips_the_rest() {
         let lib = std::env::temp_dir().join(format!("immersion-library-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&lib);
-        for dir in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", ".git/x", "deep/a/b", "notes"] {
+        for dir in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", ".git/x", "bear/oddfish/leviathan/m-files", "deep/a/b/c/d/e/f", "notes"] {
             std::fs::create_dir_all(lib.join(dir)).unwrap();
         }
-        for world in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", "deep/a/b"] {
+        for world in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", "bear/oddfish/leviathan/m-files", "deep/a/b/c/d/e/f"] {
             std::fs::write(lib.join(world).join("world.md"), "# A world\n").unwrap();
         }
         let found = library_worlds(&lib);
-        assert_eq!(found, vec![lib.join("games").join("ashfall"), lib.join("project-sc")]);
+        assert_eq!(found, vec![lib.join("bear/oddfish/leviathan/m-files"), lib.join("games").join("ashfall"), lib.join("project-sc")]);
 
         let elsewhere = "/somewhere/else/world".to_string();
         let settings = Settings {
@@ -1169,7 +1173,8 @@ mod tests {
             hidden: vec![lib.join("games").join("ashfall").to_string_lossy().into_owned()],
             ..Default::default()
         };
-        assert_eq!(shelf_paths(&settings), vec![(lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere.clone(), true)]);
+        let m_files = lib.join("bear/oddfish/leviathan/m-files").to_string_lossy().into_owned();
+        assert_eq!(shelf_paths(&settings), vec![(m_files, false), (lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere.clone(), true)]);
         // The world opened most recently comes first.
         let mut recent = settings;
         recent.opened.insert(elsewhere.clone(), 5);
