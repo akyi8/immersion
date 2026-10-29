@@ -10,40 +10,41 @@ The guidance draws on the Shine Storytelling Engine and on Radiance's stage card
 
 ## Kishōtenketsu
 
-Kishōtenketsu is a four-part structure from East Asian storytelling, built around a situation to be understood rather than a problem to be beaten. It needs no conflict and no villain. Its drama comes from pacing and from a great twist that arrives in the middle of the story rather than near the end. The characters do not have to change, because the change can happen in the reader instead.
+Kishōtenketsu is a four-part structure from East Asian storytelling, built around understanding rather than conflict. It needs no villain and no problem to beat. Its meaning comes from relation: the story presents something, develops it, turns to something new, and then lets the two meet. The structure's traditional, spare form shows the whole movement in four images. Ki presents lit apartment windows at night. Shō follows their scattered patterns across the city. Ten turns offshore to fishing boats and their lamps. Ketsu brings both into one image of people working through the darkness. A longer story makes the same four moves with characters and events, and the characters do not have to change, because the change can happen in the reader instead.
 
 ### Ki
 
-Ki introduces the characters, their world, and the feeling of the story. Ki needs no inciting incident. Its hook is a compelling sense of who these people are and what the story will feel like to live inside. Ki is also the place to plant small details that the twist will later turn upside down.
+Ki establishes a slice of something: a place, a person, a moment, or a way of life. It needs no inciting incident, because its hook is how vividly the slice is shown and how much the reader wants to stay inside it. In the spare form, Ki is the lit apartment windows at night. Ki is also the place to plant small details that the turn may later change.
 
-- Who does the reader meet first, and what makes them worth following?
+- What slice of the world does the story open on?
+- What makes this slice vivid enough to stay inside?
 - What feeling should the reader carry out of Ki?
-- What small detail here could the twist later turn upside down?
+- What small detail here could the turn later change?
 
 ### Shō
 
-Shō deepens the reader's understanding of the situation and their attachment to the characters. The drama builds, but nothing fundamental changes yet. If the twist needs groundwork, Shō is where to bury it, quietly enough that the reader does not notice it being laid.
+Shō develops the slice until the reader has a settled sense of it: this is the way things are, or this is what the story is about. Shō deepens and widens the slice without changing anything fundamental. In the spare form, Shō follows the windows' scattered patterns across the city. If the turn needs groundwork, Shō is where to bury it, quietly enough that the reader does not notice it being laid.
 
-- What does the reader come to believe here that the twist will overturn?
-- How does the energy build while the world stays the same?
-- Where is the groundwork for the twist hidden?
+- What does the reader come to understand as the way things are?
+- How does Shō deepen the slice without changing it?
+- Where is the groundwork for the turn hidden?
 
 ### Ten
 
-Ten is the twist, and it is the emotional climax of the story. Something unexpected upends everything, and the characters learn that the story they were in is not the story they thought. The twist can be a surprise from outside, or it can be the painful revelation of a fault, failing, or bias in someone the reader trusted. Conflict, if the story has any, often appears for the first time here.
+Ten introduces a turn that shifts or expands the understanding Shō built. The turn can be a revelation, a contrast, or an idea that seems at first to have nothing to do with what came before. In the spare form, Ten leaves the city entirely and moves offshore to the fishing boats and their lamps. In a longer story, Ten is often the emotional climax, and the turn can be the painful revelation of a fault in someone the reader trusted. Conflict, if the story has any, often appears for the first time here.
 
-- What did the characters, and the reader, believe in Ki and Shō that turns out to be wrong?
-- Is the twist a surprise from outside or a revelation from within?
-- How does Ten mirror something from Ki?
-- Why can this not be happening, and why is it happening anyway?
+- Is the turn a revelation, a contrast, or a seemingly disconnected idea?
+- What understanding from Shō does the turn shift or expand?
+- How does Ten echo something from Ki, even at a distance?
+- What makes the turn feel surprising and, afterward, inevitable?
 
 ### Ketsu
 
-Ketsu reconciles what was believed with what was discovered. It sets the before and the after side by side, so the reader can see the whole of the journey at once, and it lets everything make at least a little sense. Ketsu does not have to resolve every tension, and it may face a new problem that the twist created.
+Ketsu brings the earlier material and the turn into relation, so that their combined meaning can emerge. Ketsu does not explain the connection. It sets the two side by side until the reader sees what they make together. In the spare form, Ketsu joins the windows and the boats into one image of people working through the darkness. Ketsu does not have to resolve every tension, and it may face a consequence that the turn created.
 
-- How do the characters make sense of the twist, even partly?
+- What meaning emerges when the earlier material and the turn sit side by side?
+- What single image or moment can hold both?
 - What from Ki looks different now?
-- What consequence of the twist must be faced before the end?
 - Which tension is it honest to leave unresolved?
 
 ---

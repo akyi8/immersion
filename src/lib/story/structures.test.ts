@@ -9,8 +9,9 @@ test('the guidance file gives every structure its parts, guidance, and prompts',
   const [k, circle, acts] = readStructures(guidance);
   assert.equal(k.name, 'Kishōtenketsu');
   assert.deepEqual(k.parts.map((p) => [p.id, p.name]), [['ki', 'Ki'], ['sho', 'Shō'], ['ten', 'Ten'], ['ketsu', 'Ketsu']]);
-  assert.match(k.overview, /situation to be understood/);
-  assert.match(k.parts[2].about, /^Ten is the twist/);
+  assert.match(k.overview, /understanding rather than conflict/);
+  assert.match(k.overview, /fishing boats/);
+  assert.match(k.parts[2].about, /^Ten introduces a turn/);
   assert.equal(k.parts[2].prompts.length, 4);
   assert.equal(circle.parts.length, 8);
   assert.equal(circle.parts[7].name, 'Change');
