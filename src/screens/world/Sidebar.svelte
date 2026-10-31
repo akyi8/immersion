@@ -4,7 +4,6 @@
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import Portrait from './Portrait.svelte';
   import CategoryActions from './CategoryActions.svelte';
   import EntryActions from './EntryActions.svelte';
   import { contextMenu } from '../../lib/contextMenu.svelte';
@@ -176,17 +175,17 @@
     ]);
   }
 
-  type Mode = 'working' | 'tree' | 'faces';
+  // Faces moved to the World home page as its opening band (Mike, October 31).
+  type Mode = 'working' | 'tree';
   const MODES: [Mode, string][] = [
     ['working', 'Working set'],
     ['tree', 'Tree'],
-    ['faces', 'Faces'],
   ];
 
   function savedMode(): Mode {
     try {
       const m = localStorage.getItem('immersion.sidebar');
-      if (m === 'working' || m === 'tree' || m === 'faces') return m;
+      if (m === 'working' || m === 'tree') return m;
     } catch {
       // Storage can be unavailable; the default is fine.
     }
@@ -224,7 +223,6 @@
     open = { ...open, [folder.path]: !isOpen(folder) };
   }
 
-  const people = $derived(index.all());
 </script>
 
 <svelte:window
@@ -303,15 +301,6 @@
         <button type="button" onclick={() => onNewEntry()}>+ New entry</button>
         <button type="button" onclick={() => onNewFolder()}>+ New category</button>
       </div>
-    </div>
-  {:else}
-    <div class="faces">
-      {#each people as e (e.id)}
-        <button type="button" class="face" class:current={e.id === current} onclick={() => nav.open(e.id)} oncontextmenu={(event) => entryMenu(event, e.id)}>
-          <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
-          <span>{e.name}</span>
-        </button>
-      {/each}
     </div>
   {/if}
 </nav>
@@ -478,26 +467,5 @@
     border-radius: var(--round);
     padding: 8px 6px;
     min-height: 38px;
-  }
-  .faces {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    padding: 8px 16px 18px;
-  }
-  .face {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    text-align: left;
-    color: var(--text);
-    background: none;
-    border: 0;
-    padding: 0;
-    font-size: calc(12px * var(--type));
-    line-height: 1.3;
-  }
-  .face.current :global(.portrait) {
-    border-color: var(--structure);
   }
 </style>

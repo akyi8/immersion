@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { markOpened } from '../../lib/recent';
   import { untrack } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -34,6 +35,12 @@
     untrack(() => {
       if (fresh && !open.includes(fresh)) fresh = null;
     });
+  });
+
+  // Each entry opened is remembered, so the home page's faces start with the recent ones.
+  $effect(() => {
+    const here = nav.entry;
+    if (here && index.get(here)) markOpened(worldName, here);
   });
 
   // Entries deleted in another program drop out of the row.
@@ -122,7 +129,7 @@
     </Panes>
   {:else}
     <main class="sheet">
-      <WorldHome {index} {nav} {worldName} onTimeline={() => nav.openIn('boards', TIMELINE)} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
+      <WorldHome {index} {fs} {nav} {worldName} onTimeline={() => nav.openIn('boards', TIMELINE)} onNewEntry={(folder) => (creating = { kind: 'entry', folder: folder ?? likelyCategory(index) })} />
     </main>
   {/if}
 </div>
