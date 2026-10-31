@@ -153,3 +153,31 @@ export async function renameSeries(fs: WorldFs, root: string, from: string, to: 
   }
 }
 
+
+/** A part's title, renamed from one part word to another when it is still the default, such as "Chapter 3". */
+export function retitledPart(text: string, from: string, to: string): string {
+  if (!from.trim() || !to.trim() || from.trim().toLowerCase() === to.trim().toLowerCase()) return text;
+  const word = from.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`^#[ \\t]+${word}[ \\t]+(\\d+)[ \\t]*$`, 'im'), (_line, n: string) => `# ${to.trim()} ${n}`);
+}
+
+/**
+ * Renames a manuscript's parts that still carry their default titles, such as "Chapter 3"
+ * becoming "Part 3", after the book's part word changes (Mike, October 31). Titles the
+ * writer gave are left as they are. Front and back pages are not parts.
+ */
+export async function retitleParts(fs: WorldFs, folder: string, from: string, to: string): Promise<void> {
+  async function walk(dir: string, top: boolean) {
+    for (const e of await fs.readDir(dir)) {
+      const path = `${dir}/${e.name}`;
+      if (e.isDir) {
+        if (!(top && /^(front|back)$/i.test(e.name)) && !e.name.startsWith('.')) await walk(path, false);
+      } else if (/^\d+[-_ ].*\.md$/i.test(e.name)) {
+        const text = await fs.readText(path);
+        const next = retitledPart(text, from, to);
+        if (next !== text) await fs.writeText(path, next);
+      }
+    }
+  }
+  await walk(folder, true);
+}

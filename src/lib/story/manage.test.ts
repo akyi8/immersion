@@ -72,3 +72,23 @@ test('renaming a series renames it on every book and keeps its threads', async (
   assert.match(await fs.readText('world.md'), /series_threads:\n {2}The Long Coast:\n {4}- Main plot\n {4}- Mara/);
   await assert.rejects(renameSeries(fs, 'stories', 'The Long Coast', 'Another'));
 });
+
+test('default part titles follow a new part word, and given titles stay', async () => {
+  const { MemoryFs } = await import('../fs/memory.ts');
+  const { retitledPart, retitleParts } = await import('./manage.ts');
+  assert.equal(retitledPart('---\nstages:\n  kishotenketsu: ki\n---\n\n# Chapter 1\n\nText.\n', 'Chapter', 'Part'), '---\nstages:\n  kishotenketsu: ki\n---\n\n# Part 1\n\nText.\n');
+  assert.equal(retitledPart('# The Pier\n', 'Chapter', 'Part'), '# The Pier\n');
+  assert.equal(retitledPart('# Chapter 12: The Pier\n', 'Chapter', 'Part'), '# Chapter 12: The Pier\n');
+  const fs = new MemoryFs({
+    'stories/boxes/book.md': '# Boxes\n',
+    'stories/boxes/01-chapter-1.md': '# Chapter 1\n',
+    'stories/boxes/02-the-pier.md': '# The Pier\n',
+    'stories/boxes/part-two/03-chapter-3.md': '# Chapter 3\n',
+    'stories/boxes/front/01-dedication.md': '# Chapter 1\n',
+  });
+  await retitleParts(fs, 'stories/boxes', 'Chapter', 'Part');
+  assert.equal(await fs.readText('stories/boxes/01-chapter-1.md'), '# Part 1\n');
+  assert.equal(await fs.readText('stories/boxes/02-the-pier.md'), '# The Pier\n');
+  assert.equal(await fs.readText('stories/boxes/part-two/03-chapter-3.md'), '# Part 3\n');
+  assert.equal(await fs.readText('stories/boxes/front/01-dedication.md'), '# Chapter 1\n');
+});

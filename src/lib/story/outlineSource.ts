@@ -6,7 +6,7 @@ import { MAIN_THREAD, threadsFromNames, listedThreads, withThreads, type Thread 
 import { splitHeader, withHeader } from '../world.ts';
 import { buildStoryIndex } from './index.ts';
 import { readTitlePage, withTitlePage } from './book.ts';
-import { newManuscript, renamePiece } from './manage.ts';
+import { newManuscript, renamePiece, retitleParts } from './manage.ts';
 import { namesIn } from './threads.ts';
 import { readStages, STRUCTURE_IDS, withStage } from './structures.ts';
 
@@ -414,7 +414,11 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     },
     async setPartWord(word) {
       const clean = word.replace(/\s+/g, ' ').trim() || 'Chapter';
-      for (const b of await books()) if (b.page.partWord !== clean) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, partWord: clean }));
+      for (const b of await books()) {
+        if (b.page.partWord === clean) continue;
+        await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, partWord: clean }));
+        await retitleParts(fs, b.m.path, b.page.partWord, clean);
+      }
     },
     async seriesWords() {
       return [...new Set((await books()).map((b) => b.page.seriesWord))];

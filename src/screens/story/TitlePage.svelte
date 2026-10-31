@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import { readTitlePage, seriesLine, withTitlePage, type TitlePage } from '../../lib/story/book';
-  import { renamePiece } from '../../lib/story/manage';
+  import { renamePiece, retitleParts } from '../../lib/story/manage';
   import { withHeader } from '../../lib/world';
   import { account } from '../../lib/account.svelte';
   import { newProfileId, profileLabel } from '../../lib/you';
@@ -98,6 +98,8 @@
       } else if (who !== 'hand') profile = who;
       const next = { ...editing, title: page.title, profile };
       await fs.writeText(book, withTitlePage(await fs.readText(book), next));
+      // Parts still titled by the old word follow the new one, such as Chapter 3 to Part 3.
+      if (next.partWord.trim() && next.partWord.trim() !== page.partWord) await retitleParts(fs, folder, page.partWord, next.partWord);
       if (useAsDefault) {
         const changes = profile ? { profile, author: undefined, copyright: undefined } : { profile: undefined, author: next.author.trim() || undefined, copyright: next.copyright.trim() || undefined };
         await fs.writeText('world.md', withHeader(await fs.readText('world.md'), changes));
