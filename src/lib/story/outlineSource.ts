@@ -54,11 +54,14 @@ export interface OutlineSource {
   setStage?(i: number, structure: string, part: string | null): Promise<void>;
   /** Puts the cards in this reading order, given as their current positions. */
   reorder?(order: number[]): Promise<void>;
-  /** On a series board: what the books' parts are called, and changing it on every book. */
-  partWord?(): Promise<string>;
+  /**
+   * On a series board: the words the books use for their parts, one when they agree and
+   * several when they do not, and changing it on every book.
+   */
+  partWords?(): Promise<string[]>;
   setPartWord?(word: string): Promise<void>;
-  /** On a series board: what one book of the series is called, such as Episode, on every book. */
-  seriesWord?(): Promise<string>;
+  /** On a series board: the words for one book of the series, such as Episode, and changing it on every book. */
+  seriesWords?(): Promise<string[]>;
   setSeriesWord?(word: string): Promise<void>;
 }
 
@@ -404,15 +407,17 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     },
     // What a series' books call their parts lives in each book's title page, so a book
     // read on its own still knows. The series board sets it on all of them at once.
-    async partWord() {
-      return (await books())[0]?.page.partWord ?? 'Chapter';
+    // Books written by hand can disagree, so every word in use is reported, not just the
+    // first book's, and setting one word reaches every book that differs (Mike, October 31).
+    async partWords() {
+      return [...new Set((await books()).map((b) => b.page.partWord))];
     },
     async setPartWord(word) {
       const clean = word.replace(/\s+/g, ' ').trim() || 'Chapter';
       for (const b of await books()) if (b.page.partWord !== clean) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, partWord: clean }));
     },
-    async seriesWord() {
-      return (await books())[0]?.page.seriesWord ?? 'Story';
+    async seriesWords() {
+      return [...new Set((await books()).map((b) => b.page.seriesWord))];
     },
     async setSeriesWord(word) {
       const clean = word.replace(/\s+/g, ' ').trim() || 'Story';

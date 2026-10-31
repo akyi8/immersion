@@ -36,25 +36,32 @@
   const WORDS = ['Chapter', 'Part', 'Section', 'Episode', 'Movement', 'Act'];
   // And what each book of the series is called, such as Episode (Mike, October 31).
   const BOOK_WORDS = ['Story', 'Book', 'Novel', 'Tale', 'Episode', 'Volume'];
-  let partWord = $state('Chapter');
-  let seriesWord = $state('Story');
+  // Each field shows the word every book uses, or "Mixed" with the words in use when the
+  // books disagree, and a word typed there is written to every book that differs.
+  let partWords = $state<string[]>(['Chapter']);
+  let seriesWords = $state<string[]>(['Story']);
+  const partWord = $derived(partWords.length === 1 ? partWords[0] : '');
+  const seriesWord = $derived(seriesWords.length === 1 ? seriesWords[0] : '');
+  async function readWords() {
+    partWords = (await source.partWords?.()) ?? ['Chapter'];
+    seriesWords = (await source.seriesWords?.()) ?? ['Story'];
+  }
   $effect(() => {
-    const s = source;
-    void s.partWord?.().then((w) => (partWord = w));
-    void s.seriesWord?.().then((w) => (seriesWord = w));
+    void source;
+    void readWords();
   });
   async function setSeriesWord(word: string) {
     const clean = word.replace(/\s+/g, ' ').trim();
-    if (!clean || clean === seriesWord) return;
-    seriesWord = clean;
+    if (!clean) return;
     await source.setSeriesWord?.(clean);
+    await readWords();
     onChanged();
   }
   async function setPartWord(word: string) {
     const clean = word.replace(/\s+/g, ' ').trim();
-    if (!clean || clean === partWord) return;
-    partWord = clean;
+    if (!clean) return;
     await source.setPartWord?.(clean);
+    await readWords();
     onChanged();
   }
 </script>
@@ -80,6 +87,7 @@
         type="text"
         list="book-words"
         value={seriesWord}
+        placeholder={seriesWords.length > 1 ? `Mixed: ${seriesWords.join(', ')}` : 'Story'}
         autocomplete="off"
         onchange={(e) => setSeriesWord((e.currentTarget as HTMLInputElement).value)}
         onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
@@ -91,6 +99,7 @@
         type="text"
         list="part-words"
         value={partWord}
+        placeholder={partWords.length > 1 ? `Mixed: ${partWords.join(', ')}` : 'Chapter'}
         autocomplete="off"
         onchange={(e) => setPartWord((e.currentTarget as HTMLInputElement).value)}
         onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
@@ -103,7 +112,7 @@
       {fs}
       {source}
       unit="book"
-      partWord={seriesWord}
+      partWord={seriesWord || seriesWords[0] || 'Story'}
       onWrite={(card) => onOpenBook(card.path)}
       onAdded={() => onChanged()} />
   {/key}

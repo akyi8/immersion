@@ -107,13 +107,18 @@ test('a series board names the parts of every book at once, and a new book follo
     'stories/ocean/book.md': '---\nseries: M\nnumber: 2\n---\n\n# Ocean\n',
   });
   const series = seriesSource(fs, 'stories', 'M');
-  assert.equal(await series.partWord!(), 'Chapter');
+  assert.deepEqual(await series.partWords!(), ['Chapter']);
   await series.setPartWord!('Part');
   assert.match(await fs.readText('stories/boxes/book.md'), /part_word: Part/);
   assert.match(await fs.readText('stories/ocean/book.md'), /part_word: Part/);
   const made = await series.add();
   assert.match(await fs.readText(made.path), /part_word: Part/);
-  assert.equal(await series.seriesWord!(), 'Story');
+  assert.deepEqual(await series.seriesWords!(), ['Story']);
+  // A book written by hand that disagrees shows up, and setting the word again reaches it.
+  await fs.writeText('stories/ocean/book.md', (await fs.readText('stories/ocean/book.md')).replace('part_word: Part\n', ''));
+  assert.deepEqual((await series.partWords!()).sort(), ['Chapter', 'Part']);
+  await series.setPartWord!('Part');
+  assert.deepEqual(await series.partWords!(), ['Part']);
   await series.setSeriesWord!('Episode');
   assert.match(await fs.readText('stories/ocean/book.md'), /series_word: Episode/);
   const third = await series.add();
