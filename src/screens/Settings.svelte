@@ -2,7 +2,8 @@
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
   import { account } from '../lib/account.svelte';
-  import { newProfileId, profileLabel, type Profile } from '../lib/you';
+  import { BOARD_FONTS, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
+  import { zoom } from '../lib/zoom.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import { sync } from '../lib/sync.svelte';
 
@@ -129,6 +130,11 @@
         Enter a world on its own after a moment
       </label>
       <p class="hint">Its picture holds for a breath first. A click on the picture keeps it for as long as you like.</p>
+      <h3 class="label">Text on boards</h3>
+      <select class="board-font" value={account.look.boardFont} onchange={(e) => run(() => account.saveLook({ ...account.look, boardFont: (e.currentTarget as HTMLSelectElement).value as BoardFont }))}>
+        {#each BOARD_FONTS as [id, name, face]}<option value={id} style:font-family={face || null}>{name}</option>{/each}
+      </select>
+      <p class="hint" style:font-family={BOARD_FONTS.find(([id]) => id === account.look.boardFont)?.[2] || null}>A condensed face fits more of an outline on each card. The fog came in off the water before she reached the end of the pier.</p>
       {#if !info?.path}
         <h3 class="label">Author profiles</h3>
         <p>Author profiles live in your library, so every computer has them. Choose your library first.</p>
@@ -221,6 +227,14 @@
       {/if}
       <h3 class="label">Light or dark</h3>
       <ModeToggle />
+      <h3 class="label">Size</h3>
+      <div class="row zoom">
+        <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>
+        <span class="zoom-level">{Math.round(zoom.level * 100)}%</span>
+        <button type="button" aria-label="Larger" onclick={() => zoom.step(1)}>+</button>
+        <button type="button" class="quiet" onclick={() => zoom.set(1)} disabled={zoom.level === 1}>Reset</button>
+      </div>
+      <p class="hint">Everything grows or shrinks together. Ctrl or Cmd with plus, minus, and zero do the same anywhere.</p>
     {/if}
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </div>
@@ -489,5 +503,26 @@
   code {
     font-family: var(--font-label);
     font-size: 0.9em;
+  }
+  .zoom {
+    align-items: center;
+  }
+  .zoom button {
+    min-width: 40px;
+  }
+  .zoom-level {
+    min-width: 52px;
+    text-align: center;
+    font-family: var(--font-label);
+    font-size: calc(13px * var(--type));
+  }
+  .board-font {
+    font: inherit;
+    font-size: calc(14px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 8px 10px;
   }
 </style>

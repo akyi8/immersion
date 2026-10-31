@@ -28,9 +28,18 @@ export interface Look {
   backdrop: boolean;
   /** Whether a world's loading screen enters the world on its own after a breath (Mike, October 31). */
   autoEnter: boolean;
+  /** The face of the text on boards: the world's prose font, or a condensed one (Mike, October 31). */
+  boardFont: BoardFont;
 }
 
-export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true, autoEnter: true };
+export type BoardFont = 'theme' | 'cabin' | 'plex';
+export const BOARD_FONTS: [BoardFont, string, string][] = [
+  ['theme', "The world's prose font", ''],
+  ['cabin', 'Cabin Condensed', "'Cabin Condensed', sans-serif"],
+  ['plex', 'IBM Plex Sans Condensed', "'IBM Plex Sans Condensed', sans-serif"],
+];
+
+export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true, autoEnter: true, boardFont: 'theme' };
 
 export interface You {
   profiles: Profile[];
@@ -44,6 +53,7 @@ export function readLook(header: Record<string, unknown>): Look {
     layout: header.layout === 'soft' ? 'soft' : 'classic',
     backdrop: header.backdrop !== false,
     autoEnter: header.enter !== 'wait',
+    boardFont: header.board_font === 'cabin' || header.board_font === 'plex' ? header.board_font : 'theme',
   };
 }
 
@@ -68,6 +78,7 @@ export function withLook(source: string | null, look: Look): string {
     layout: look.layout === 'classic' ? undefined : look.layout,
     backdrop: look.backdrop ? undefined : false,
     enter: look.autoEnter ? undefined : 'wait',
+    board_font: look.boardFont === 'theme' ? undefined : look.boardFont,
   });
 }
 

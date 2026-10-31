@@ -23,6 +23,8 @@
   import type { ShelfWorld } from './lib/library/types';
   import { sync } from './lib/sync.svelte';
   import { updates } from './lib/updates.svelte';
+  import { BOARD_FONTS } from './lib/you';
+  import { zoom } from './lib/zoom.svelte';
   import { vault } from './lib/vault/vault.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
@@ -49,6 +51,9 @@
   // world's picture can glow through the desk.
   $effect(() => {
     document.documentElement.dataset.layout = account.look.layout;
+    const face = BOARD_FONTS.find(([id]) => id === account.look.boardFont)?.[2];
+    if (face) document.documentElement.style.setProperty('--board-font', face);
+    else document.documentElement.style.removeProperty('--board-font');
   });
   const backdrop = $derived(
     account.look.layout === 'soft' && account.look.backdrop && fs && world && (phase === 'loading' || phase === 'inside')
@@ -171,6 +176,7 @@
         void vault.lock();
       }
     });
+    zoom.start();
     const page = readerPage();
     if (page) {
       readerId = page.id;

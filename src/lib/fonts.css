@@ -69,3 +69,9 @@
 @import '@fontsource/quattrocento/700.css';
 @import '@fontsource/im-fell-english/400.css';
 @import '@fontsource/im-fell-english/400-italic.css';
+
+/* Condensed faces for the text on boards (Mike, October 31), so more fits on a card. */
+@import '@fontsource/cabin-condensed/400.css';
+@import '@fontsource/cabin-condensed/600.css';
+@import '@fontsource/ibm-plex-sans-condensed/400.css';
+@import '@fontsource/ibm-plex-sans-condensed/600.css';

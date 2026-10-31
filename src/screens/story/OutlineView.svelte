@@ -1354,4 +1354,9 @@
   .problem {
     color: var(--danger);
   }
+  /* The writer's board font, when one is chosen in Settings (Mike, October 31). */
+  .body,
+  .beat {
+    font-family: var(--board-font, inherit);
+  }
 </style>
