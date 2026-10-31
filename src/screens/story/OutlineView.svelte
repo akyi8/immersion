@@ -73,6 +73,7 @@
       await load();
     } finally {
       saving = false;
+      idle();
     }
   }
 
@@ -290,15 +291,74 @@
   }
   let removing = $state<string | null>(null);
 
-  /** Grows a field to fit its text, so a long outline never hides inside a scroll box. */
+  /**
+   * Grows a field to fit its text, so a long outline never hides inside a scroll box.
+   * Measuring collapses the field for a moment, so the pane's scroll position is kept
+   * across it, and after typing or pasting the pane follows the cursor, which can
+   * otherwise end up below the bottom of the screen (Mike, October 31).
+   */
   function grow(el: HTMLTextAreaElement, least: number) {
-    const fit = () => {
+    const fit = (follow: boolean) => {
+      const scroller = scrollParent(el);
+      const top = scroller.scrollTop;
       el.style.height = 'auto';
       el.style.height = `${Math.max(el.scrollHeight, least)}px`;
+      scroller.scrollTop = top;
+      // The field may have just made its pane long enough to scroll, so look again.
+      if (follow && document.activeElement === el) keepCaretInView(el);
     };
-    fit();
-    el.addEventListener('input', fit);
-    return { destroy: () => el.removeEventListener('input', fit) };
+    const typed = () => fit(true);
+    fit(false);
+    el.addEventListener('input', typed);
+    return { destroy: () => el.removeEventListener('input', typed) };
+  }
+
+  /** The nearest box that scrolls up and down around the field. A plot grid scrolls sideways, so it is passed over. */
+  function scrollParent(el: HTMLElement): HTMLElement {
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+    }
+    return (document.scrollingElement as HTMLElement) ?? document.documentElement;
+  }
+
+  /**
+   * Scrolls so the line with the cursor shows, measured with a hidden copy of the field.
+   * A plot grid scrolls inside its pane, so every scrolling box around the field takes
+   * its turn, from the nearest outward, each keeping the cursor inside what it shows.
+   */
+  function keepCaretInView(el: HTMLTextAreaElement) {
+    const copy = el.cloneNode() as HTMLTextAreaElement;
+    copy.style.cssText = `position:absolute;visibility:hidden;height:auto;min-height:0;width:${el.offsetWidth}px`;
+    copy.value = el.value.slice(0, el.selectionEnd);
+    el.parentElement!.appendChild(copy);
+    const depth = copy.scrollHeight;
+    copy.remove();
+    const line = parseFloat(getComputedStyle(el).lineHeight) || 24;
+    const margin = 48;
+    for (let box = el.parentElement; box; box = box.parentElement) {
+      if (!(/(auto|scroll)/.test(getComputedStyle(box).overflowY) && box.scrollHeight > box.clientHeight + 1)) continue;
+      const rect = box.getBoundingClientRect();
+      const view = { top: Math.max(rect.top, 0), bottom: Math.min(rect.bottom, innerHeight) };
+      // A field with a height limit scrolls inside itself, so the cursor sits within it.
+      const caret = el.getBoundingClientRect().top + Math.min(Math.max(depth - el.scrollTop, line), el.clientHeight);
+      if (caret > view.bottom - margin) box.scrollTop += caret - (view.bottom - margin);
+      else if (caret - line < view.top + margin) box.scrollTop -= view.top + margin - (caret - line);
+    }
+  }
+
+  /**
+   * Reads the board again, unless something is being typed into it. Then it waits until
+   * typing stops, so a reload never pulls text out from under the cursor.
+   */
+  let stale = false;
+  function reloadWhenIdle() {
+    if (pending.size || saving || grid?.contains(document.activeElement)) stale = true;
+    else void load();
+  }
+  function idle() {
+    if (!stale || pending.size || saving || grid?.contains(document.activeElement)) return;
+    stale = false;
+    void load();
   }
 
   // A board handed a new source, such as after its manuscript was read again, reads it.
@@ -306,7 +366,7 @@
   $effect(() => {
     source;
     if (first) first = false;
-    else untrack(() => void load());
+    else untrack(reloadWhenIdle);
   });
 
   onMount(() => {
@@ -322,12 +382,13 @@
         grid?.querySelectorAll<HTMLElement>('.chapter-head')[focus]?.scrollIntoView({ block: 'nearest', inline: 'center' });
       }
     });
-    // Changes from elsewhere show up here, unless something typed here is waiting to save.
-    const stop = fs.onChange(() => {
-      if (!pending.size && !saving && !grid?.contains(document.activeElement)) load();
-    });
+    // Changes from elsewhere show up here once nothing typed here is waiting to save.
+    const stop = fs.onChange(reloadWhenIdle);
+    const left = () => setTimeout(idle, 0);
+    document.addEventListener('focusout', left);
     return () => {
       stop();
+      document.removeEventListener('focusout', left);
       void flush();
     };
   });
@@ -863,7 +924,8 @@
     border-bottom-color: var(--structure);
   }
   .body {
-    flex: 1;
+    /* Grows to its measured height, never shrinks below it, so a long outline is never cut off. */
+    flex: 1 0 auto;
     min-height: 200px;
     resize: none;
     overflow: hidden;
