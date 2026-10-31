@@ -225,7 +225,38 @@ fn place_image(stem: &Path, source: &Path) -> Result<PathBuf, String> {
         let _ = fs::remove_file(&temp);
         format!("Could not save the picture: {e}")
     })?;
+    // A picture dropped into the app was parked in the temporary folder, and is done with.
+    if is_stash(source) {
+        let _ = fs::remove_file(source);
+    }
     Ok(target)
+}
+
+const STASH_PREFIX: &str = "immersion-drop-";
+
+fn is_stash(path: &Path) -> bool {
+    path.parent() == Some(std::env::temp_dir().as_path()) && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with(STASH_PREFIX))
+}
+
+/// Parks a picture dropped onto the page in the temporary folder and returns its path,
+/// so it can be placed like a picture chosen from disk. The page drops files itself
+/// since the window stopped catching drops, which on Windows had blocked every drag
+/// inside the page, such as moving cards on a board (Mike, October 31). The bytes
+/// arrive as the request's body, and the picture's extension in its `x-ext` header.
+#[tauri::command]
+fn stash_picture(request: tauri::ipc::Request) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else { return Err("No picture arrived.".into()) };
+    let ext = request
+        .headers()
+        .get("x-ext")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_ascii_lowercase)
+        .filter(|e| IMAGE_EXTENSIONS.contains(&e.as_str()))
+        .ok_or("Pictures can be JPEG, PNG, or WebP files.")?;
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let path = std::env::temp_dir().join(format!("{STASH_PREFIX}{stamp}.{ext}"));
+    fs::write(&path, bytes).map_err(|e| format!("Could not take the picture: {e}"))?;
+    Ok(path.to_string_lossy().into_owned())
 }
 
 /// The path of a changed file relative to the world folder, unless it should be ignored:
@@ -1239,7 +1270,8 @@ pub fn run() {
             vault_recall,
             vault_forget,
             read_picture,
-            set_image
+            set_image,
+            stash_picture
         ])
         .run(tauri::generate_context!())
         .expect("error while running Immersion");
@@ -1501,6 +1533,25 @@ mod tests {
         let worlds_only = |p: &str| p.starts_with("cinder/");
         assert_eq!(super::count_pending(&world, &[".".into()], false, &worlds_only).incoming, 1);
         let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn a_dropped_picture_is_placed_and_its_parked_copy_removed() {
+        let dir = std::env::temp_dir().join(format!("immersion-stash-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let parked = std::env::temp_dir().join(format!("{}{}-test.png", super::STASH_PREFIX, std::process::id()));
+        std::fs::write(&parked, b"png").unwrap();
+        assert!(super::is_stash(&parked));
+        let placed = place_image(&dir.join("cerys"), &parked).unwrap();
+        assert_eq!(std::fs::read(&placed).unwrap(), b"png");
+        assert!(!parked.exists());
+        // A picture chosen from disk stays where it was.
+        let chosen = dir.join("chosen.jpg");
+        std::fs::write(&chosen, b"jpg").unwrap();
+        assert!(!super::is_stash(&chosen));
+        place_image(&dir.join("cerys"), &chosen).unwrap();
+        assert!(chosen.exists() && !dir.join("cerys.png").exists());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

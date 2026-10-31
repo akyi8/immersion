@@ -1,7 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { DiskFs } from '../fs/disk';
-import type { ImageSource, Pending, SyncReport, WorldFs } from '../fs/types';
+import { picturePath, type ImageSource, type Pending, type SyncReport, type WorldFs } from '../fs/types';
 import { pickImage } from '../pickImage';
 import { describeWorld } from '../world';
 import type { FolderShape, Library, LibraryInfo, ShelfWorld } from './types';
@@ -82,8 +82,7 @@ export class DiskLibrary implements Library {
   }
 
   async setCover(path: string, image: ImageSource): Promise<void> {
-    if (image.kind !== 'path') throw new Error('The desktop app takes pictures from disk.');
-    await invoke('set_world_cover', { path, source: image.path });
+    await invoke('set_world_cover', { path, source: await picturePath(image) });
   }
 
   info(): Promise<LibraryInfo> {

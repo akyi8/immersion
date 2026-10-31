@@ -39,5 +39,5 @@ export async function openInWindow(id: string, title: string): Promise<void> {
   }
   // The window opens in the theme's background color, so it never flashes white first.
   const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#07090b';
-  new WebviewWindow(label, { url: `index.html${query}`, title, width: 780, height: 900, minWidth: 420, minHeight: 360, backgroundColor: background });
+  new WebviewWindow(label, { url: `index.html${query}`, title, width: 780, height: 900, minWidth: 420, minHeight: 360, backgroundColor: background, dragDropEnabled: false });
 }

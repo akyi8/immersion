@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { DirEntry, ImageSource, Pending, SyncReport, WorldFs } from './types';
+import { picturePath, type DirEntry, type ImageSource, type Pending, type SyncReport, type WorldFs } from './types';
 
 /** The real world folder on disk, reached through the Rust backend. */
 export class DiskFs implements WorldFs {
@@ -41,8 +41,7 @@ export class DiskFs implements WorldFs {
   }
 
   async setImage(stem: string, image: ImageSource): Promise<string> {
-    if (image.kind !== 'path') throw new Error('The desktop app takes pictures from disk.');
-    const path = await invoke<string>('set_image', { stem, source: image.path });
+    const path = await invoke<string>('set_image', { stem, source: await picturePath(image) });
     this.imageVersion += 1;
     return path;
   }

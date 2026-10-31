@@ -17,6 +17,18 @@ export interface DirEntry {
  */
 export type ImageSource = { kind: 'path'; path: string } | { kind: 'file'; file: File };
 
+/**
+ * The path of a picture on disk, for the desktop app's Rust side. A picture dropped onto
+ * the page arrives as a file, so it is first parked in the temporary folder.
+ */
+export async function picturePath(image: ImageSource): Promise<string> {
+  if (image.kind === 'path') return image.path;
+  const ext = imageExtension(image.file.name);
+  if (!ext) throw new Error('Pictures can be JPEG, PNG, or WebP files.');
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<string>('stash_picture', new Uint8Array(await image.file.arrayBuffer()), { headers: { 'x-ext': ext } });
+}
+
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 
 /** The lowercase extension of a picture's name, if it is a picture the app accepts. */

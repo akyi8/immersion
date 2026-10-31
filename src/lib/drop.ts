@@ -1,4 +1,3 @@
-import { inDesktopApp } from './runtime';
 import { imageExtension, type ImageSource } from './fs/types';
 
 /**
@@ -6,59 +5,25 @@ import { imageExtension, type ImageSource } from './fs/types';
  * Use it as `use:dropImage={(image) => ...}`. While a picture is dragged over the
  * element, the element carries the `drop-over` class.
  *
- * Inside the desktop app, the window receives dropped files as paths on disk and
- * reports where the drop happened, so one listener finds the element under the
- * pointer. In a browser, the element hears the drop itself and gets the file.
+ * The element hears the drop itself and gets the file, in the desktop app as in a
+ * browser. The desktop window used to catch dropped files itself, which on Windows kept
+ * every drag inside the page from working (Mike, October 31).
  */
 type Handler = (image: ImageSource) => void;
 
 const targets = new Map<HTMLElement, Handler>();
-let listening = false;
 
-function targetAt(x: number, y: number): HTMLElement | null {
-  // The window reports physical pixels, and the page lays out in CSS pixels.
-  const ratio = window.devicePixelRatio || 1;
-  let el = document.elementFromPoint(x / ratio, y / ratio) as HTMLElement | null;
-  while (el && !targets.has(el)) el = el.parentElement;
-  return el;
-}
-
-function mark(over: HTMLElement | null) {
-  for (const el of targets.keys()) el.classList.toggle('drop-over', el === over);
-}
-
-async function listenToWindow() {
-  if (listening) return;
-  listening = true;
-  const { getCurrentWebview } = await import('@tauri-apps/api/webview');
-  await getCurrentWebview().onDragDropEvent((event) => {
-    const p = event.payload;
-    if (p.type === 'leave') return mark(null);
-    const target = targetAt(p.position.x, p.position.y);
-    if (p.type === 'drop') {
-      mark(null);
-      const path = p.paths.find((f) => imageExtension(f));
-      if (target && path) targets.get(target)!({ kind: 'path', path });
-    } else {
-      mark(target);
-    }
-  });
+// A file dropped where nothing takes it would otherwise open in place of the app.
+if (typeof window !== 'undefined') {
+  const holdFiles = (e: DragEvent) => {
+    if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+  };
+  window.addEventListener('dragover', holdFiles);
+  window.addEventListener('drop', holdFiles);
 }
 
 export function dropImage(el: HTMLElement, handler: Handler) {
   targets.set(el, handler);
-  if (inDesktopApp) {
-    void listenToWindow();
-    return {
-      update(next: Handler) {
-        targets.set(el, next);
-      },
-      destroy() {
-        targets.delete(el);
-      },
-    };
-  }
-
   const over = (e: DragEvent) => {
     e.preventDefault();
     el.classList.add('drop-over');
