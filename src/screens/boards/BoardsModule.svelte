@@ -121,6 +121,8 @@
             {fs}
             root={storiesDir}
             series={id.slice(SERIES.length)}
+            {index}
+            onOpenEntry={(entry) => nav.open(entry, i)}
             onOpenBook={(book) => nav.open(book, i)}
             onChanged={refresh}
             onRenamed={async (name) => {
@@ -131,6 +133,8 @@
           <ManuscriptBoard
             {fs}
             manuscript={manuscriptOf(id)!}
+            {index}
+            onOpenEntry={(entry) => nav.open(entry, i)}
             onWrite={(path) => nav.open(path, i)}
             onRenamed={async (from, to) => {
               await refresh();

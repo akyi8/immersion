@@ -3,6 +3,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import type { Card, OutlineSource } from '../../lib/story/outlineSource';
   import type { Thread } from '../../lib/story/threads';
+  import type { WikiIndex } from '../../lib/index/wiki';
   import { bands, placed, type Band } from '../../lib/story/structures';
   import { STRUCTURES } from '../../lib/story/guide';
   import { contextMenu } from '../../lib/contextMenu.svelte';
@@ -26,6 +27,8 @@
     onAdded,
     unit = 'chapter',
     partWord = unit === 'book' ? 'Book' : 'Chapter',
+    index = null,
+    onOpenEntry,
   }: {
     fs: WorldFs;
     source: OutlineSource;
@@ -38,6 +41,10 @@
     unit?: 'chapter' | 'book';
     /** What a manuscript's parts are called, such as Chapter or Part (Mike, October 31). */
     partWord?: string;
+    /** The wiki, so names in the board's text are lit and linked (Mike, October 31). */
+    index?: WikiIndex | null;
+    /** Opens a named entry beside the board. */
+    onOpenEntry?: (id: string) => void;
   } = $props();
 
   // A series board names its books by the series' word, such as Story or Episode, and a
@@ -88,6 +95,11 @@
   }
 
   function typed(i: number, text: string, thread = '') {
+    // The card keeps what was typed, so leaving the field shows it before it is saved.
+    if (cards?.[i]) {
+      if (thread) cards[i].beats[thread] = text;
+      else cards[i].outline = text;
+    }
     pending.set(`${i}:${thread}`, { i, thread, text });
     if (timer) clearTimeout(timer);
     timer = setTimeout(flush, SAVE_DELAY_MS);
@@ -122,6 +134,66 @@
   // Dragging a card by its number moves the chapter to where it is dropped.
   let dragging = $state<number | null>(null);
   let over = $state<number | null>(null);
+
+  // Names on the board (Mike, October 31). A board cell shows its text as written, with
+  // the names of wiki entries lit and linked, as the wiki and the writing view do. A click
+  // on a name opens the entry beside the board, and a click anywhere else turns the cell
+  // into the field to type in, with the cursor where the click was.
+  let editing = $state<string | null>(null);
+  let caretAt = 0;
+  const cellKey = (i: number, thread: string) => `${i}:${thread}`;
+  function pieces(text: string): { text: string; id: string | null }[] {
+    if (!index || !text) return [{ text, id: null }];
+    const out: { text: string; id: string | null }[] = [];
+    let at = 0;
+    for (const m of index.scanner.find(text)) {
+      if (m.start < at) continue;
+      if (m.start > at) out.push({ text: text.slice(at, m.start), id: null });
+      out.push({ text: text.slice(m.start, m.end), id: m.id });
+      at = m.end;
+    }
+    if (at < text.length) out.push({ text: text.slice(at), id: null });
+    return out;
+  }
+  /** Where in the cell's text a click landed, counted in characters. */
+  function offsetAt(cell: HTMLElement, e: MouseEvent): number | null {
+    const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
+    const pos = doc.caretPositionFromPoint?.(e.clientX, e.clientY);
+    const range = pos ? null : document.caretRangeFromPoint?.(e.clientX, e.clientY);
+    const node = pos?.offsetNode ?? range?.startContainer;
+    const offset = pos?.offset ?? range?.startOffset ?? 0;
+    if (!node || !cell.contains(node)) return null;
+    let count = 0;
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if ((n.parentElement as HTMLElement | null)?.closest('.placeholder')) continue;
+      if (n === node) return count + offset;
+      count += (n as Text).data.length;
+    }
+    return null;
+  }
+  async function startEditing(i: number, thread: string, at: number) {
+    editing = cellKey(i, thread);
+    caretAt = at;
+    await tick();
+    const field = grid?.querySelector<HTMLTextAreaElement>(`textarea[data-cell="${editing}"]`);
+    if (!field) return;
+    field.focus();
+    const n = Math.min(caretAt, field.value.length);
+    field.setSelectionRange(n, n);
+  }
+  function cellClick(e: MouseEvent, i: number, thread: string, text: string) {
+    const name = (e.target as HTMLElement).closest<HTMLElement>('[data-entry]');
+    if (name?.dataset.entry && onOpenEntry) {
+      onOpenEntry(name.dataset.entry);
+      return;
+    }
+    void startEditing(i, thread, offsetAt(e.currentTarget as HTMLElement, e) ?? text.length);
+  }
+  function leaveCell() {
+    editing = null;
+    void flush();
+  }
 
   // Column widths on the plot grid (Mike, October 31): a story column can be dragged
   // wider by the bar on its right edge, and a double click sets it back. Widths are kept
@@ -491,8 +563,9 @@
   onMount(() => {
     load().then(async () => {
       if (focus === null) return;
+      if (index && cards?.[focus]) editing = cellKey(focus, '');
       await tick();
-      const field = grid?.querySelectorAll<HTMLTextAreaElement>('textarea.body')[focus];
+      const field = index ? grid?.querySelector<HTMLTextAreaElement>(`textarea[data-cell="${cellKey(focus, '')}"]`) : grid?.querySelectorAll<HTMLTextAreaElement>('textarea.body')[focus];
       if (field) {
         field.scrollIntoView({ block: 'center' });
         field.focus();
@@ -516,6 +589,35 @@
     };
   });
 </script>
+
+{#snippet linkedCell(i: number, thread: string, text: string, kind: 'body' | 'beat', least: number, placeholder: string, label: string)}
+  {#if !index || editing === cellKey(i, thread)}
+    <textarea
+      class={kind}
+      data-cell={cellKey(i, thread)}
+      use:grow={least}
+      value={text}
+      {placeholder}
+      aria-label={label}
+      oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value, thread)}
+      onblur={leaveCell}></textarea>
+  {:else}
+    <div
+      class="{kind} linked"
+      style:min-height="{least}px"
+      role="textbox"
+      tabindex="0"
+      aria-label={label}
+      aria-multiline="true"
+      onclick={(e) => cellClick(e, i, thread, text)}
+      onkeydown={(e) => {
+        if (e.key === 'Enter' || (e.key.length === 1 && !e.ctrlKey && !e.metaKey)) {
+          if (e.key === 'Enter') e.preventDefault();
+          void startEditing(i, thread, text.length);
+        }
+      }}>{#each pieces(text) as p}{#if p.id}<span class="mention name" data-entry={p.id}>{p.text}</span>{:else}{p.text}{/if}{/each}{#if !text}<span class="placeholder">{placeholder}</span>{/if}</div>
+  {/if}
+{/snippet}
 
 {#snippet bandHead(band: Band, style: string)}
   {@const key = bandKey(band)}
@@ -630,14 +732,7 @@
         }
       }}
       onblur={(e) => rename(i, (e.currentTarget as HTMLTextAreaElement).value.replace(/\s+/g, ' '))}></textarea>
-    <textarea
-      class="body"
-      use:grow={200}
-      value={card.outline}
-      placeholder="What happens in this {noun}?"
-      aria-label="What happens in {card.title}"
-      oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value)}
-      onblur={flush}></textarea>
+    {@render linkedCell(i, '', card.outline, 'body', 200, `What happens in this ${noun}?`, `What happens in ${card.title}`)}
     <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>{writeLabel}</button>
   </section>
 {/snippet}
@@ -828,14 +923,7 @@
           </div>
           {#each threads as t, ti (t.key)}
             <div class="cell" style={slot.cells[ti]}>
-              <textarea
-                class="beat"
-                use:grow={110}
-                value={card.beats[t.key] ?? ''}
-                placeholder="—"
-                aria-label="{t.name} in {card.title}"
-                oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value, t.key)}
-                onblur={flush}></textarea>
+              {@render linkedCell(i, t.key, card.beats[t.key] ?? '', 'beat', 110, '—', `${t.name} in ${card.title}`)}
             </div>
           {/each}
         {/if}
@@ -1358,5 +1446,27 @@
   .body,
   .beat {
     font-family: var(--board-font, inherit);
+  }
+  /* A board cell at rest: the same text, as written, with names lit. */
+  .linked {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    cursor: text;
+    box-sizing: border-box;
+  }
+  .linked:focus-visible {
+    outline: 1px solid var(--structure);
+    outline-offset: 2px;
+  }
+  .linked .name {
+    cursor: pointer;
+  }
+  .linked .name:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .linked .placeholder {
+    color: var(--muted);
+    opacity: 0.7;
   }
 </style>

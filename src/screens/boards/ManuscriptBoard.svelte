@@ -6,6 +6,7 @@
   import BoardTitle from './BoardTitle.svelte';
   import { renamePiece } from '../../lib/story/manage';
   import { saveAllUnder } from '../../lib/saves';
+  import type { WikiIndex } from '../../lib/index/wiki';
 
   /** One manuscript's board, its chapters by its threads, as the Boards module shows it. */
   let {
@@ -13,7 +14,16 @@
     manuscript,
     onWrite,
     onRenamed,
-  }: { fs: WorldFs; manuscript: Manuscript; onWrite: (path: string) => void; onRenamed?: (from: string, to: string) => void } = $props();
+    index = null,
+    onOpenEntry,
+  }: {
+    fs: WorldFs;
+    manuscript: Manuscript;
+    onWrite: (path: string) => void;
+    onRenamed?: (from: string, to: string) => void;
+    index?: WikiIndex | null;
+    onOpenEntry?: (id: string) => void;
+  } = $props();
 
   const PLACES = { desk: 'On the desk', drawer: 'In the drawer', shelf: 'On the shelf' };
   const source = $derived(folderSource(fs, manuscript));
@@ -36,7 +46,7 @@
     {/if}
   </header>
   {#key manuscript.path}
-    <OutlineView {fs} {source} partWord={manuscript.partWord} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
+    <OutlineView {fs} {source} partWord={manuscript.partWord} {index} {onOpenEntry} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
   {/key}
 </article>
 

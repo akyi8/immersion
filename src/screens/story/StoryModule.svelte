@@ -376,6 +376,8 @@
               {fs}
               root={storiesDir}
               series={id.slice(SERIES.length)}
+              {index}
+              onOpenEntry={(entry) => nav.open(entry, i)}
               onOpenBook={(book) => nav.open(book, i)}
               onChanged={refresh} />
           {:else if index.get(id)}

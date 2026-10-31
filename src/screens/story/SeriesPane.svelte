@@ -4,6 +4,7 @@
   import OutlineView from './OutlineView.svelte';
   import BoardTitle from '../boards/BoardTitle.svelte';
   import { renameSeries } from '../../lib/story/manage';
+  import type { WikiIndex } from '../../lib/index/wiki';
 
   /**
    * A series board (Mike, October 25): the books of one series along When, in the order
@@ -16,6 +17,8 @@
     onOpenBook,
     onChanged,
     onRenamed,
+    index = null,
+    onOpenEntry,
   }: {
     fs: WorldFs;
     /** The stories folder. */
@@ -27,6 +30,9 @@
     onChanged: () => void;
     /** Called after the series is renamed, with its new name. */
     onRenamed?: (name: string) => void;
+    /** The wiki, so names on the board are linked, and where a named entry opens. */
+    index?: WikiIndex | null;
+    onOpenEntry?: (id: string) => void;
   } = $props();
 
   const source = $derived(seriesSource(fs, root, series));
@@ -112,6 +118,8 @@
       {fs}
       {source}
       unit="book"
+      {index}
+      {onOpenEntry}
       partWord={seriesWord || seriesWords[0] || 'Story'}
       onWrite={(card) => onOpenBook(card.path)}
       onAdded={() => onChanged()} />

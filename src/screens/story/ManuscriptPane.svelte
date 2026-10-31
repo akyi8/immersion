@@ -185,6 +185,8 @@
         {fs}
         {source}
         partWord={owner?.partWord}
+        {index}
+        onOpenEntry={(entry) => onOpen(entry)}
         focus={outlineFocus}
         onWrite={(card) => {
           mode = 'write';
