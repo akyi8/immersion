@@ -4,11 +4,17 @@ import { account } from './account.svelte';
 
 /**
  * When the open world syncs through Git (Mike, October 26): as it opens, a few minutes
- * after the writing stops, and every ten minutes while it is open. Closing the world
+ * after the writing stops, every five minutes while it is open, and when the app comes
+ * back to the front. Closing the world
  * syncs it once more, from the Rust side, so leaving never waits on the network.
  */
 const AFTER_WRITING_MS = 3 * 60 * 1000;
-const EVERY_MS = 10 * 60 * 1000;
+const EVERY_MS = 5 * 60 * 1000;
+/**
+ * Coming back to the app syncs too (Mike, October 31), so changes a Claude session made
+ * in the meantime arrive without a press of the button, unless a sync just ran.
+ */
+const BACK_AFTER_MS = 60 * 1000;
 /** Changes that arrive right after a sync are the sync's own pull, not new writing. */
 const ITS_OWN_MS = 4000;
 
@@ -23,6 +29,8 @@ class Sync {
   private name = '';
   private busy = false;
   private quietUntil = 0;
+  /** When a sync last began, so coming back to the app does not sync twice in a row. */
+  private tried = 0;
   private afterWriting: ReturnType<typeof setTimeout> | null = null;
   private every: ReturnType<typeof setInterval> | null = null;
   private stopWatching = () => {};
@@ -37,7 +45,12 @@ class Sync {
     void this.count();
     void this.now();
     this.every = setInterval(() => void this.now(), EVERY_MS);
-    this.stopWatching = fs.onChange(() => {
+    const back = () => {
+      if (Date.now() - this.tried > BACK_AFTER_MS) void this.now();
+    };
+    window.addEventListener('focus', back);
+    const stopBack = () => window.removeEventListener('focus', back);
+    const watching = fs.onChange(() => {
       // A save shows in the count within a couple of seconds, without waiting for a sync.
       if (this.recount) clearTimeout(this.recount);
       this.recount = setTimeout(() => void this.count(), 1500);
@@ -45,6 +58,10 @@ class Sync {
       if (this.afterWriting) clearTimeout(this.afterWriting);
       this.afterWriting = setTimeout(() => void this.now(), AFTER_WRITING_MS);
     });
+    this.stopWatching = () => {
+      watching();
+      stopBack();
+    };
   }
 
   stop() {
@@ -64,6 +81,7 @@ class Sync {
     const fs = this.fs;
     if (!fs || this.busy || this.state === 'off' || this.state === 'not-git') return;
     this.busy = true;
+    this.tried = Date.now();
     const was = this.state;
     this.state = 'syncing';
     try {

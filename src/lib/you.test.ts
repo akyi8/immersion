@@ -20,13 +20,14 @@ test('author profiles round-trip through immersion.md', () => {
 
 test('the layout is kept in immersion.md, beside the profiles', () => {
   const start = withProfiles(null, [{ id: 'mara-vell', author: 'Mara Vell', copyright: '' }]);
-  assert.deepEqual(readYou(start).look, { layout: 'classic', backdrop: true });
-  const soft = withLook(start, { layout: 'soft', backdrop: true });
+  assert.deepEqual(readYou(start).look, { layout: 'classic', backdrop: true, autoEnter: true });
+  const soft = withLook(start, { layout: 'soft', backdrop: true, autoEnter: true });
   assert.match(soft, /layout: soft/);
   assert.doesNotMatch(soft, /backdrop/);
   assert.equal(readYou(soft).profiles[0].author, 'Mara Vell');
-  const plain = withLook(soft, { layout: 'soft', backdrop: false });
-  assert.deepEqual(readYou(plain).look, { layout: 'soft', backdrop: false });
+  const plain = withLook(soft, { layout: 'soft', backdrop: false, autoEnter: false });
+  assert.deepEqual(readYou(plain).look, { layout: 'soft', backdrop: false, autoEnter: false });
+  assert.match(plain, /enter: wait/);
   // Classic with the picture on is what a file with neither line means.
-  assert.doesNotMatch(withLook(plain, DEFAULT_LOOK), /layout|backdrop/);
+  assert.doesNotMatch(withLook(plain, DEFAULT_LOOK), /layout|backdrop|enter/);
 });

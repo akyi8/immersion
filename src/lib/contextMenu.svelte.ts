@@ -16,12 +16,13 @@ class ContextMenu {
   y = $state(0);
   open = $state(false);
 
-  show(event: MouseEvent, items: MenuEntry[]) {
+  /** Opens at the pointer, or at `at` when the menu belongs under a button. */
+  show(event: MouseEvent, items: MenuEntry[], at?: { x: number; y: number }) {
     event.preventDefault();
     event.stopPropagation();
     this.items = items;
-    this.x = event.clientX;
-    this.y = event.clientY;
+    this.x = at?.x ?? event.clientX;
+    this.y = at?.y ?? event.clientY;
     this.open = true;
   }
 

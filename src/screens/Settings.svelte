@@ -123,6 +123,12 @@
         </label>
         <p class="hint">Seen through frosted glass, so only its colors come through.</p>
       {/if}
+      <h3 class="label">Arriving</h3>
+      <label class="check">
+        <input type="checkbox" checked={account.look.autoEnter} onchange={(e) => run(() => account.saveLook({ ...account.look, autoEnter: (e.currentTarget as HTMLInputElement).checked }))} />
+        Enter a world on its own after a moment
+      </label>
+      <p class="hint">Its picture holds for a breath first. A click on the picture keeps it for as long as you like.</p>
       {#if !info?.path}
         <h3 class="label">Author profiles</h3>
         <p>Author profiles live in your library, so every computer has them. Choose your library first.</p>

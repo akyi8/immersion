@@ -62,9 +62,10 @@
   } = $props();
 
   const TABS: [Place, string][] = [
-    ['shelf', 'Shelf'],
-    ['desk', 'Desk'],
+    // In the order a piece lives (Mike, October 31): an idea in the drawer, work on the desk, finished on the shelf.
     ['drawer', 'Drawer'],
+    ['desk', 'Desk'],
+    ['shelf', 'Shelf'],
   ];
   const PLACE_NAMES: Record<Place, string> = { desk: 'the desk', drawer: 'the drawer', shelf: 'the shelf' };
 
@@ -226,7 +227,15 @@
       <span class="fold" aria-hidden="true"></span>
     {/if}
     <button type="button" class="manuscript" onclick={() => openManuscript(m)}>
-      <span>{#if m.series && m.number}<span class="number">{m.number}</span>{/if}{m.title}</span><span class="n">{count(m.words)}</span>
+      <span class="piece-name">
+        <!-- A book for a manuscript, a page for a note (Mike, October 31). -->
+        {#if m.kind === 'folder'}
+          <svg class="kind" width="12" height="12" viewBox="0 0 12 12" aria-label="Manuscript"><path d="M2 2.2 Q4.2 1.4 6 2.6 Q7.8 1.4 10 2.2 V10 Q7.8 9.2 6 10.4 Q4.2 9.2 2 10 Z M6 2.6 V10.4" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" /></svg>
+        {:else}
+          <svg class="kind" width="12" height="12" viewBox="0 0 12 12" aria-label="Note"><path d="M3 1.5 H7.5 L9.5 3.5 V10.5 H3 Z M7.5 1.5 V3.5 H9.5 M4.6 6 H7.9 M4.6 8 H7.9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" /></svg>
+        {/if}
+        {#if m.series && m.number}<span class="number">{m.number}</span>{/if}{m.title}
+      </span><span class="n">{count(m.words)}</span>
     </button>
   </div>
   {#if unfold}
@@ -514,6 +523,16 @@
     margin: 8px 18px;
     font-size: calc(13px * var(--type));
     line-height: 1.5;
+    color: var(--muted);
+  }
+  .piece-name {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+  .kind {
+    flex-shrink: 0;
+    align-self: center;
     color: var(--muted);
   }
 </style>

@@ -12,7 +12,27 @@
     imageUrl,
     onEnter,
     onSetCover,
-  }: { world: World; imageUrl: string | null; onEnter: () => void; onSetCover: (image: ImageSource) => Promise<void> } = $props();
+    auto = false,
+  }: {
+    world: World;
+    imageUrl: string | null;
+    onEnter: () => void;
+    onSetCover: (image: ImageSource) => Promise<void>;
+    /** Enter on its own after a breath, unless a click asks the screen to stay. */
+    auto?: boolean;
+  } = $props();
+
+  // The arrival (Mike, October 31): the picture holds for a breath, a line fills under the
+  // button, and the world opens. A click anywhere on the picture, or any key but Enter,
+  // keeps the screen for as long as the writer wants it.
+  const BREATH_MS = 4000;
+  let counting = $state(false);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  function stay() {
+    counting = false;
+    if (timer) clearTimeout(timer);
+    timer = null;
+  }
 
   // A world with no cover invites one right here (Mike, October 25).
   let coverProblem = $state('');
@@ -59,18 +79,29 @@
       if (e.key === 'Enter') {
         e.preventDefault();
         onEnter();
-      }
+      } else stay();
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
+    // A world without a cover waits, since this screen is where its picture is chosen.
+    if (auto && imageUrl) {
+      counting = true;
+      timer = setTimeout(() => {
+        timer = null;
+        if (counting) onEnter();
+      }, BREATH_MS);
+    }
     return () => {
+      stay();
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', onKey);
     };
   });
 </script>
 
-<section class:dark={tone === 'dark'}>
+<!-- Any key but Enter keeps the screen too, so a click here has its keyboard twin. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+<section class:dark={tone === 'dark'} onclick={(e) => !(e.target as HTMLElement).closest('button') && stay()}>
   {#if imageUrl}
     <img src={imageUrl} alt="" crossorigin="anonymous" />
   {:else}
@@ -87,6 +118,7 @@
     </div>
     <div class="enter">
       <button type="button" bind:this={enterButton} onclick={onEnter}>Enter the world</button>
+      <div class="breath" class:on={counting} style:--breath="{BREATH_MS}ms" aria-hidden="true"></div>
       {#if version}<div class="version">Immersion {version}</div>{/if}
     </div>
   </div>
@@ -194,5 +226,23 @@
     border: 0;
     padding: 14px 32px;
     min-height: 48px;
+  }
+  .breath {
+    height: 2px;
+    width: 100%;
+    margin-top: -2px;
+    background: var(--ink);
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .breath.on {
+    opacity: 0.6;
+    animation: breath var(--breath) linear forwards;
+  }
+  @keyframes breath {
+    to {
+      transform: scaleX(1);
+    }
   }
 </style>

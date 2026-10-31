@@ -26,9 +26,11 @@ export interface Look {
   layout: Layout;
   /** In Soft, whether the world's picture glows through behind the desk. */
   backdrop: boolean;
+  /** Whether a world's loading screen enters the world on its own after a breath (Mike, October 31). */
+  autoEnter: boolean;
 }
 
-export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true };
+export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true, autoEnter: true };
 
 export interface You {
   profiles: Profile[];
@@ -41,6 +43,7 @@ export function readLook(header: Record<string, unknown>): Look {
   return {
     layout: header.layout === 'soft' ? 'soft' : 'classic',
     backdrop: header.backdrop !== false,
+    autoEnter: header.enter !== 'wait',
   };
 }
 
@@ -64,6 +67,7 @@ export function withLook(source: string | null, look: Look): string {
   return withHeader(source ?? withProfiles(null, []), {
     layout: look.layout === 'classic' ? undefined : look.layout,
     backdrop: look.backdrop ? undefined : false,
+    enter: look.autoEnter ? undefined : 'wait',
   });
 }
 

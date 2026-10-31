@@ -10,8 +10,8 @@
   import { contextMenu } from '../lib/contextMenu.svelte';
   import SyncStatus from './SyncStatus.svelte';
   import BoardsModule from './boards/BoardsModule.svelte';
-  import ModeToggle from './ModeToggle.svelte';
   import UpdateButton from './UpdateButton.svelte';
+  import Finder from './Finder.svelte';
 
   let {
     index,
@@ -43,6 +43,26 @@
   } = $props();
 
   const nav = new Navigator();
+
+  // The quick finder (Mike, October 31), from its button or Ctrl or Cmd and K anywhere.
+  let finding = $state(false);
+  const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+
+  function worldMenu(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    contextMenu.show(
+      e,
+      [
+        { label: 'All worlds', run: onShowShelf },
+        'separator',
+        { label: 'Show the loading screen', run: onShowLoading },
+        { label: 'Edit details', run: onDetails },
+        { label: 'Theme', run: onTheme },
+        { label: 'Settings', run: () => (ui.settings = 'world') },
+      ],
+      { x: r.left, y: r.bottom + 4 },
+    );
+  }
 
   // Full screen belongs to the module it was opened in, so leaving the module leaves it too.
   const currentModule = $derived(nav.current.module);
@@ -92,6 +112,11 @@
   onMount(() => {
     // Back and forward from the keyboard and from the mouse's side buttons.
     const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        finding = !finding;
+        return;
+      }
       const back = (e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
       const forward = (e.altKey && e.key === 'ArrowRight') || (e.metaKey && e.key === ']');
       if (back) {
@@ -127,19 +152,12 @@
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3 L11 8 L6 13" fill="none" stroke="currentColor" stroke-width="1.8" /></svg>
         </button>
       </div>
-      <button
-        type="button"
-        class="world-name"
-        title="Show the loading screen. Right-click for the theme."
-        onclick={onShowLoading}
-        oncontextmenu={(e) =>
-          contextMenu.show(e, [
-            { label: 'Show the loading screen', run: onShowLoading },
-            { label: 'Edit details', run: onDetails },
-            { label: 'Theme', run: onTheme },
-            'separator',
-            { label: 'All worlds', run: onShowShelf },
-          ])}>{worldName}</button>
+      <!-- The world's name opens the world's menu, which also leads back to every world
+           (Mike, October 31). The arrow says it can be clicked. -->
+      <button type="button" class="world-name" title="All worlds, this world's details, theme, and loading screen" aria-haspopup="menu" onclick={worldMenu} oncontextmenu={worldMenu}>
+        {worldName}
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+      </button>
       <nav aria-label="Modules">
         {#each TABS as [module, label]}
           <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => nav.show(module)}>{label}</button>
@@ -147,6 +165,10 @@
       </nav>
     </div>
     <div class="right">
+      <button type="button" class="find" title="Find anything in this world" onclick={() => (finding = true)}>
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M10.4 10.4 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+        Find <kbd>{mac ? '⌘K' : 'Ctrl K'}</kbd>
+      </button>
       <SyncStatus />
       <UpdateButton />
       {#if nav.current.module === 'world'}
@@ -155,11 +177,9 @@
           <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
         </div>
       {/if}
-      <ModeToggle />
       <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.97 6.46 L14.90 6.82 L14.90 9.18 L12.97 9.54 L12.60 10.43 L13.72 12.04 L12.04 13.72 L10.43 12.60 L9.54 12.97 L9.18 14.90 L6.82 14.90 L6.46 12.97 L5.57 12.60 L3.96 13.72 L2.28 12.04 L3.40 10.43 L3.03 9.54 L1.10 9.18 L1.10 6.82 L3.03 6.46 L3.40 5.57 L2.28 3.96 L3.96 2.28 L5.57 3.40 L6.46 3.03 L6.82 1.10 L9.18 1.10 L9.54 3.03 L10.43 3.40 L12.04 2.28 L13.72 3.96 L12.60 5.57 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
       </button>
-      <button type="button" class="quiet" onclick={onShowShelf} title="Show every world on this computer">Worlds</button>
     </div>
   </header>
   {/if}
@@ -186,6 +206,10 @@
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
 </div>
+
+{#if finding && index}
+  <Finder {index} {fs} {nav} {storiesDir} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
+{/if}
 
 <style>
   .gear {
@@ -242,13 +266,27 @@
     cursor: default;
   }
   .world-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--font-display);
     font-size: calc(26px * var(--type));
     letter-spacing: 0.02em;
     color: var(--text);
     background: none;
     border: 0;
-    padding: 6px 6px;
+    border-radius: var(--round);
+    padding: 6px 10px 6px 8px;
+  }
+  .world-name:hover {
+    background: var(--surface);
+  }
+  .chevron {
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .world-name:hover .chevron {
+    color: var(--text);
   }
   nav {
     display: flex;
@@ -284,15 +322,6 @@
     color: var(--selected-fg);
     background: var(--selected-bg);
   }
-  .quiet {
-    font-size: calc(13px * var(--type));
-    color: var(--muted);
-    background: var(--well);
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    padding: 9px 12px;
-    min-height: 40px;
-  }
   .waiting {
     flex: 1;
     display: flex;
@@ -301,5 +330,28 @@
     color: var(--muted);
     padding: 0 24px;
     text-align: center;
+  }
+  .find {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: calc(13px * var(--type));
+    color: var(--muted);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 7px 10px 7px 12px;
+    min-height: 36px;
+    min-width: 150px;
+  }
+  .find:hover {
+    color: var(--text);
+  }
+  .find kbd {
+    margin-left: auto;
+    font-family: var(--font-label);
+    font-size: calc(10px * var(--type));
+    letter-spacing: 0.04em;
+    opacity: 0.8;
   }
 </style>

@@ -11,7 +11,6 @@
   import WorldDetails from './WorldDetails.svelte';
   import ThemeEditor from '../ThemeEditor.svelte';
   import type { Mode, ThemeSpec } from '../../lib/theme';
-  import ModeToggle from '../ModeToggle.svelte';
   import UpdateButton from '../UpdateButton.svelte';
   import { account } from '../../lib/account.svelte';
   import { ui } from '../../lib/ui.svelte';
@@ -68,13 +67,16 @@
       // The last count stays.
     }
   }
-  async function syncLibrary() {
+  let librarySynced = 0;
+  /** Syncs the library. On its own (`quiet`), a sync that only has to wait says nothing. */
+  async function syncLibrary(quiet = false) {
     librarySyncing = true;
-    problem = '';
+    librarySynced = Date.now();
+    if (!quiet) problem = '';
     try {
       const r = await library.syncLibrary();
       libraryState = r.state;
-      if (r.state === 'problem' || r.state === 'waiting') problem = r.message;
+      if (r.state === 'problem' || (r.state === 'waiting' && !quiet)) problem = r.message;
       if (r.state === 'synced') await account.refresh();
       await refresh();
     } catch (e) {
@@ -133,10 +135,12 @@
     refresh();
     void countLibrary().then(() => countLibrary(true));
     // Worlds arrive from other computers and from Claude sessions while the app is open,
-    // so the page looks again whenever the app comes back to the front (Mike, October 28).
+    // so the page looks again whenever the app comes back to the front (Mike, October 28),
+    // and syncs the library then too, unless it did so in the last two minutes (Mike, October 31).
     const again = () => {
       void refresh();
-      void countLibrary(true);
+      if (libraryCounts?.state === 'git' && Date.now() - librarySynced > 2 * 60 * 1000) void syncLibrary(true);
+      else void countLibrary(true);
     };
     window.addEventListener('focus', again);
     return () => window.removeEventListener('focus', again);
@@ -205,10 +209,9 @@
         busy={librarySyncing}
         tone={libraryState === 'problem' ? 'problem' : libraryState === 'waiting' ? 'quiet' : 'calm'}
         note={libraryState === 'waiting' ? 'Waiting' : libraryState === 'problem' ? 'Problem' : ''}
-        onSync={syncLibrary}
+        onSync={() => syncLibrary()}
         onDetails={() => (ui.settings = 'computer')} />
       <UpdateButton />
-      <ModeToggle />
       <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'you')}>
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.97 6.46 L14.90 6.82 L14.90 9.18 L12.97 9.54 L12.60 10.43 L13.72 12.04 L12.04 13.72 L10.43 12.60 L9.54 12.97 L9.18 14.90 L6.82 14.90 L6.46 12.97 L5.57 12.60 L3.96 13.72 L2.28 12.04 L3.40 10.43 L3.03 9.54 L1.10 9.18 L1.10 6.82 L3.03 6.46 L3.40 5.57 L2.28 3.96 L3.96 2.28 L5.57 3.40 L6.46 3.03 L6.82 1.10 L9.18 1.10 L9.54 3.03 L10.43 3.40 L12.04 2.28 L13.72 3.96 L12.60 5.57 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
     </button>

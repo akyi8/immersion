@@ -16,7 +16,7 @@ const LOOK_KEY = 'immersion.look';
 function localLook(): Look {
   try {
     const saved = JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null') as Partial<Look> | null;
-    if (saved) return { layout: saved.layout === 'soft' ? 'soft' : 'classic', backdrop: saved.backdrop !== false };
+    if (saved) return { layout: saved.layout === 'soft' ? 'soft' : 'classic', backdrop: saved.backdrop !== false, autoEnter: saved.autoEnter !== false };
   } catch {
     // Nothing kept, or nothing readable.
   }

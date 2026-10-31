@@ -22,6 +22,7 @@
   import WorldDetails from './screens/shelf/WorldDetails.svelte';
   import type { ShelfWorld } from './lib/library/types';
   import { sync } from './lib/sync.svelte';
+  import { updates } from './lib/updates.svelte';
   import { vault } from './lib/vault/vault.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
@@ -31,6 +32,8 @@
   let world = $state<World | null>(null);
   let index = $state<WikiIndex | null>(null);
   let problem = $state('');
+  /** True while a world is being opened, when its loading screen may enter on its own. */
+  let arriving = $state(false);
   let library = $state.raw<Library | null>(null);
 
   // The open world wears its own theme, and the shelf wears Night. A theme being edited
@@ -62,6 +65,7 @@
       fs = source;
       world = await loadWorld(source);
       index = null;
+      arriving = true;
       phase = 'loading';
       // The index builds while the loading screen is up.
       index = await buildWikiIndex(source, world);
@@ -191,6 +195,7 @@
       library = new MemoryLibrary(sampleWorld());
     }
     await account.attach(library);
+    updates.start();
     // At launch the library brings in what other computers saved to immersion.md, so a
     // vault passphrase or a layout chosen there is here before it is needed.
     void library
@@ -225,7 +230,7 @@
     storiesDir={world.storiesDir}
     journal={world.journal}
     daily={world.daily}
-    onShowLoading={() => (phase = 'loading')}
+    onShowLoading={() => ((arriving = false), (phase = 'loading'))}
     onShowShelf={showShelf}
     onTheme={editTheme}
     onDetails={editDetails}
@@ -257,7 +262,8 @@
       <Loading
         {world}
         imageUrl={world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null}
-        onEnter={() => (phase = 'inside')}
+        auto={arriving && account.look.autoEnter}
+        onEnter={() => ((phase = 'inside'), (arriving = false))}
         onSetCover={async (image) => {
           if (!fs) return;
           await fs.setImage('world', image);

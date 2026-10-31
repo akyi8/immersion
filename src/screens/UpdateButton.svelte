@@ -1,26 +1,11 @@
-<script lang="ts" module>
-  import type { Update } from '@tauri-apps/plugin-updater';
-  import { findUpdate, installUpdate } from '../lib/updates';
-
-  // A newer build, if GitHub has one. The question is asked once per launch and shared,
-  // so the shelf and the world's header show the same button.
-  let shared: Promise<Update | null> | null = null;
-  function newerBuild(): Promise<Update | null> {
-    shared ??= findUpdate();
-    return shared;
-  }
-</script>
-
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { installUpdate } from '../lib/updates';
+  import { updates } from '../lib/updates.svelte';
 
-  let update = $state<Update | null>(null);
+  // The shelf and the world's header show the same button, from the one shared check.
+  const update = $derived(updates.available);
   let updating = $state(false);
   let updateError = $state('');
-
-  onMount(() => {
-    newerBuild().then((u) => (update = u));
-  });
 
   async function runUpdate() {
     if (!update) return;

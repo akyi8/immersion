@@ -129,8 +129,8 @@
 
   {#if W === 0}
     <p class="empty">
-      Nothing is dated yet. Any entry with a <code>when:</code> line in its header becomes an event here, such as <code>when: 2057</code> or
-      <code>when: 14 October 1066</code>. An era is an entry with a span and <code>era: true</code>, such as <code>when: 2045 to 2060</code>.
+      Nothing is dated yet. Add an event with <strong>+ Event</strong>, or give any entry a date with <strong>+ Date</strong> under its name. An
+      era is a stretch of years, such as 2045 to 2060, drawn as a band over the events inside it. Add one with <strong>+ Era</strong>.
     </p>
   {:else}
     <div
