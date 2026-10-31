@@ -7,6 +7,7 @@
   import { STRUCTURES } from '../../lib/story/guide';
   import { contextMenu } from '../../lib/contextMenu.svelte';
   import Dialog from '../shelf/Dialog.svelte';
+  import { counted, plural } from '../../lib/story/book';
 
   /**
    * Outline view (Mike, October 23 and 25): every chapter as a card, three to a row with
@@ -24,7 +25,7 @@
     onWrite,
     onAdded,
     unit = 'chapter',
-    partWord = 'Chapter',
+    partWord = unit === 'book' ? 'Book' : 'Chapter',
   }: {
     fs: WorldFs;
     source: OutlineSource;
@@ -39,10 +40,12 @@
     partWord?: string;
   } = $props();
 
-  const Unit = $derived(unit === 'book' ? 'Book' : partWord);
-  /** The unit in a sentence, such as "chapter" or "part". */
-  const noun = $derived(unit === 'book' ? 'book' : partWord.toLowerCase());
-  const writeLabel = $derived(unit === 'book' ? 'Open this book' : `Write this ${noun}`);
+  // A series board names its books by the series' word, such as Story or Episode, and a
+  // manuscript board names its parts by the book's word (Mike, October 31).
+  const Unit = $derived(partWord);
+  /** The unit in a sentence, such as "chapter" or "episode". */
+  const noun = $derived(partWord.toLowerCase());
+  const writeLabel = $derived(unit === 'book' ? `Open this ${noun}` : `Write this ${noun}`);
 
   const SAVE_DELAY_MS = 800;
 
@@ -650,7 +653,7 @@
         <button type="button" class="tool" onclick={() => ((naming = false), (newThread = ''))}>Cancel</button>
       </form>
     {:else}
-      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {noun}s">+ Thread</button>
+      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {plural(noun)}">+ Thread</button>
     {/if}
     {#if source.structure}
       <select

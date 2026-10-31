@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { counted } from '../../lib/story/book';
   import { tick } from 'svelte';
   import type { Manuscript, Place, Section, StoryIndex } from '../../lib/story/index';
   import type { Activity } from '../../lib/story/activity';
@@ -293,7 +294,7 @@
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" class:down={unfold}><path d="M3 1.5 L7 5 L3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
           </button>
           <button type="button" class="manuscript series" title="Open the {row.name} board" onclick={() => onSeries(row.name)}>
-            <span>{row.name}</span><span class="n">{row.books.length} {row.books.length === 1 ? 'book' : 'books'}</span>
+            <span>{row.name}</span><span class="n">{counted(row.books.length, row.books[0]?.seriesWord ?? 'Story')}</span>
           </button>
         </div>
         {#if unfold}

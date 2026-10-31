@@ -57,6 +57,9 @@ export interface OutlineSource {
   /** On a series board: what the books' parts are called, and changing it on every book. */
   partWord?(): Promise<string>;
   setPartWord?(word: string): Promise<void>;
+  /** On a series board: what one book of the series is called, such as Episode, on every book. */
+  seriesWord?(): Promise<string>;
+  setSeriesWord?(word: string): Promise<void>;
 }
 
 const beatMap = (beats: Beat[]) => Object.fromEntries(beats.map((b) => [b.thread, b.text]));
@@ -407,6 +410,13 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     async setPartWord(word) {
       const clean = word.replace(/\s+/g, ' ').trim() || 'Chapter';
       for (const b of await books()) if (b.page.partWord !== clean) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, partWord: clean }));
+    },
+    async seriesWord() {
+      return (await books())[0]?.page.seriesWord ?? 'Story';
+    },
+    async setSeriesWord(word) {
+      const clean = word.replace(/\s+/g, ' ').trim() || 'Story';
+      for (const b of await books()) if (b.page.seriesWord !== clean) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, seriesWord: clean }));
     },
     async setStage(i, structure, part) {
       const { b } = await at(i);

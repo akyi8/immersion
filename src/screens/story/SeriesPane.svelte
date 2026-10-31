@@ -34,11 +34,22 @@
   // What every book in the series calls its parts (Mike, October 31), such as Part for
   // short stories told in four movements.
   const WORDS = ['Chapter', 'Part', 'Section', 'Episode', 'Movement', 'Act'];
+  // And what each book of the series is called, such as Episode (Mike, October 31).
+  const BOOK_WORDS = ['Story', 'Book', 'Novel', 'Tale', 'Episode', 'Volume'];
   let partWord = $state('Chapter');
+  let seriesWord = $state('Story');
   $effect(() => {
     const s = source;
     void s.partWord?.().then((w) => (partWord = w));
+    void s.seriesWord?.().then((w) => (seriesWord = w));
   });
+  async function setSeriesWord(word: string) {
+    const clean = word.replace(/\s+/g, ' ').trim();
+    if (!clean || clean === seriesWord) return;
+    seriesWord = clean;
+    await source.setSeriesWord?.(clean);
+    onChanged();
+  }
   async function setPartWord(word: string) {
     const clean = word.replace(/\s+/g, ' ').trim();
     if (!clean || clean === partWord) return;
@@ -64,7 +75,18 @@
     {/if}
     <p class="about">Each book's beats on the series threads are kept in its title page file, under its title.</p>
     <label class="parts">
-      <span class="label">Each book's parts are called</span>
+      <span class="label">Each one is called</span>
+      <input
+        type="text"
+        list="book-words"
+        value={seriesWord}
+        autocomplete="off"
+        onchange={(e) => setSeriesWord((e.currentTarget as HTMLInputElement).value)}
+        onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
+      <datalist id="book-words">{#each BOOK_WORDS as w}<option value={w}></option>{/each}</datalist>
+    </label>
+    <label class="parts">
+      <span class="label">Its parts are called</span>
       <input
         type="text"
         list="part-words"
@@ -81,6 +103,7 @@
       {fs}
       {source}
       unit="book"
+      partWord={seriesWord}
       onWrite={(card) => onOpenBook(card.path)}
       onAdded={() => onChanged()} />
   {/key}
@@ -100,10 +123,10 @@
     color: var(--title);
   }
   .parts {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    margin-top: 12px;
+    margin: 12px 24px 0 0;
   }
   .parts .label {
     font-size: calc(11px * var(--type));

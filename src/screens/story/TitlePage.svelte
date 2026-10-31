@@ -162,9 +162,8 @@
       </div>
       <div>
         <label for="tp-word" class="label">Called a</label>
-        <select id="tp-word" bind:value={editing.seriesWord}>
-          {#each ['Story', 'Book', 'Novel', 'Tale'] as w}<option value={w}>{w}</option>{/each}
-        </select>
+        <input id="tp-word" type="text" list="tp-series-words" bind:value={editing.seriesWord} autocomplete="off" placeholder="Story" />
+        <datalist id="tp-series-words">{#each ['Story', 'Book', 'Novel', 'Tale', 'Episode', 'Volume'] as w}<option value={w}></option>{/each}</datalist>
       </div>
     </div>
     {#if seriesLine(editing)}<p class="preview">{seriesLine(editing)}</p>{/if}

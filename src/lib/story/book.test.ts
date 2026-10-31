@@ -135,3 +135,13 @@ test('a book names its parts, and Chapter is left unwritten', async () => {
   assert.equal(nextChapterTitle([], 'Movement'), 'Movement 1');
   assert.equal(nextChapterTitle([{ title: 'The Pier' }]), 'Chapter 2');
 });
+
+test('plurals and counts for the names of parts and books', async () => {
+  const { plural, counted } = await import('./book.ts');
+  assert.equal(plural('Story'), 'Stories');
+  assert.equal(plural('Episode'), 'Episodes');
+  assert.equal(plural('Day'), 'Days');
+  assert.equal(plural('Act'), 'Acts');
+  assert.equal(counted(1, 'Episode'), '1 episode');
+  assert.equal(counted(20, 'Story'), '20 stories');
+});

@@ -13,6 +13,7 @@
   import EntryView from '../world/EntryView.svelte';
   import ManuscriptPane from '../story/ManuscriptPane.svelte';
   import ManuscriptBoard from './ManuscriptBoard.svelte';
+  import { counted } from '../../lib/story/book';
 
   /**
    * Boards (Mike, October 26): every board in the world in one place. The wiki's timeline,
@@ -53,6 +54,8 @@
 
   const series = $derived([...new Set((story?.manuscripts ?? []).map((m) => m.series).filter((s): s is string => !!s))].sort());
   const booksIn = (name: string) => (story?.manuscripts ?? []).filter((m) => m.series === name).length;
+  /** What one book of a series is called, such as Episode (Mike, October 31). */
+  const wordOf = (name: string) => (story?.manuscripts ?? []).find((m) => m.series === name)?.seriesWord ?? 'Story';
   const manuscripts = $derived((story?.manuscripts ?? []).filter((m) => m.kind === 'folder' && m.sections.length));
   const dated = $derived(index.all().filter((e) => e.when).length);
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
@@ -93,7 +96,7 @@
       <h2 class="label">Series</h2>
       {#each series as name (name)}
         <button type="button" class="board" class:on={isOpen(SERIES + name)} onclick={() => nav.open(SERIES + name)}>
-          <span>{name}</span><span class="n">{booksIn(name)} {booksIn(name) === 1 ? 'book' : 'books'}</span>
+          <span>{name}</span><span class="n">{counted(booksIn(name), wordOf(name))}</span>
         </button>
       {:else}
         <p class="hint">No series yet. A book joins a series from its title page, or start one with + New in Story.</p>
@@ -101,7 +104,7 @@
       <h2 class="label">Manuscripts</h2>
       {#each manuscripts as m (m.path)}
         <button type="button" class="board" class:on={isOpen(BOARD + m.path)} onclick={() => nav.open(BOARD + m.path)}>
-          <span>{m.title}</span><span class="n">{m.sections.length} {m.partWord === 'Chapter' ? 'ch' : (m.sections.length === 1 ? m.partWord : `${m.partWord}s`).toLowerCase()}</span>
+          <span>{m.title}</span><span class="n">{m.partWord === 'Chapter' ? `${m.sections.length} ch` : counted(m.sections.length, m.partWord)}</span>
         </button>
       {:else}
         <p class="hint">No manuscripts yet.</p>
@@ -163,12 +166,12 @@
         </button>
         {#each series as name (name)}
           <button type="button" class="card" onclick={() => nav.open(SERIES + name)}>
-            <span class="kind">Series</span><span class="name">{name}</span><span class="n">{booksIn(name)} {booksIn(name) === 1 ? 'book' : 'books'}</span>
+            <span class="kind">Series</span><span class="name">{name}</span><span class="n">{counted(booksIn(name), wordOf(name))}</span>
           </button>
         {/each}
         {#each manuscripts as m (m.path)}
           <button type="button" class="card" onclick={() => nav.open(BOARD + m.path)}>
-            <span class="kind">Manuscript</span><span class="name">{m.title}</span><span class="n">{m.sections.length} {(m.sections.length === 1 ? m.partWord : `${m.partWord}s`).toLowerCase()}</span>
+            <span class="kind">Manuscript</span><span class="name">{m.title}</span><span class="n">{counted(m.sections.length, m.partWord)}</span>
           </button>
         {/each}
       </div>

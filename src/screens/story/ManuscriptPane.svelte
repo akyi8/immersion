@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { counted } from '../../lib/story/book';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Manuscript, Place, StoryIndex } from '../../lib/story/index';
@@ -129,8 +130,7 @@
     if (!m) return null;
     const where = PLACE_LABELS[m.place];
     const chapters = m.kind === 'file' ? m.sections.filter((s) => s.depth === 2).length : m.sections.length;
-    const part = m.partWord.toLowerCase();
-    const summary = `${words(m.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? part : `${part}s`}` : ''}`;
+    const summary = `${words(m.words)}${chapters ? ` · ${counted(chapters, m.partWord)}` : ''}`;
     if (m.kind === 'file') return { kind: 'note' as const, title: m.title, label: `${where} · Note`, meta: words(m.words) };
     if (id === m.book) return { kind: 'book' as const, title: m.title, label: `${where} · Title page`, meta: summary };
     const i = m.sections.findIndex((s) => s.path === id);

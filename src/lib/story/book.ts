@@ -34,6 +34,18 @@ export interface TitlePage {
   year: number | null;
 }
 
+/** A word's plural, enough for the names of parts and books: Story, Stories; Episode, Episodes. */
+export function plural(word: string): string {
+  if (/[^aeiou]y$/i.test(word)) return `${word.slice(0, -1)}${word.endsWith('Y') ? 'IES' : 'ies'}`;
+  if (/(s|x|z|ch|sh)$/i.test(word)) return `${word}es`;
+  return `${word}s`;
+}
+
+/** "1 part" or "4 parts", in lowercase. */
+export function counted(n: number, word: string): string {
+  return `${n} ${(n === 1 ? word : plural(word)).toLowerCase()}`;
+}
+
 const ORDINALS = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth', 'Eleventh', 'Twelfth', 'Thirteenth', 'Fourteenth', 'Fifteenth', 'Sixteenth', 'Seventeenth', 'Eighteenth', 'Nineteenth', 'Twentieth'];
 
 export function ordinal(n: number): string {

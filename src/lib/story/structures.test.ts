@@ -113,4 +113,9 @@ test('a series board names the parts of every book at once, and a new book follo
   assert.match(await fs.readText('stories/ocean/book.md'), /part_word: Part/);
   const made = await series.add();
   assert.match(await fs.readText(made.path), /part_word: Part/);
+  assert.equal(await series.seriesWord!(), 'Story');
+  await series.setSeriesWord!('Episode');
+  assert.match(await fs.readText('stories/ocean/book.md'), /series_word: Episode/);
+  const third = await series.add();
+  assert.match(await fs.readText(third.path), /# Episode 4/);
 });
