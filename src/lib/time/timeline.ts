@@ -56,7 +56,14 @@ export function buildTimeline(entries: Entry[]): Timeline {
   const laneEnds: number[] = [];
   const bands: EraBand[] = [];
   for (const era of eras) {
-    const inside = moments.map((m, i) => (m.at >= key(era.when!) && within({ ...era.when!, start: m.at }, era.when!) ? i : -1)).filter((i) => i >= 0);
+    // Eras that hand off share a year: "1985 to 2000" ends where "2000 to 2015" begins.
+    // That year's moment belongs to the era beginning in it, so a band stops at the
+    // moment before the next era starts (Mike, October 31). An era nothing hands off
+    // from, such as a war "1914 to 1918", keeps the events of its last year.
+    const handoffs = new Set(eras.filter((other) => other !== era && other.when!.start > era.when!.start && other.when!.start >= era.when!.end - 1).map((other) => key(other.when!)));
+    const inside = moments
+      .map((m, i) => (m.at >= key(era.when!) && within({ ...era.when!, start: m.at }, era.when!) && !handoffs.has(m.at) ? i : -1))
+      .filter((i) => i >= 0);
     const from = inside.length ? inside[0] : moments.findIndex((m) => m.at >= key(era.when!));
     const to = inside.length ? inside[inside.length - 1] : from;
     let lane = laneEnds.findIndex((end) => end < from);
