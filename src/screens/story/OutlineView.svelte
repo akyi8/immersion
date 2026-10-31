@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from 'svelte';
+  import { onMount, tick, untrack, type Snippet } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Card, OutlineSource } from '../../lib/story/outlineSource';
   import type { Thread } from '../../lib/story/threads';
@@ -29,6 +29,8 @@
     partWord = unit === 'book' ? 'Book' : 'Chapter',
     index = null,
     onOpenEntry,
+    lead,
+    tail,
   }: {
     fs: WorldFs;
     source: OutlineSource;
@@ -45,6 +47,12 @@
     index?: WikiIndex | null;
     /** Opens a named entry beside the board. */
     onOpenEntry?: (id: string) => void;
+    /**
+     * The pane's own actions, such as Write and Board and the counts, at the start of the
+     * board's row, and its ⋯ at the end, so a pane has one row of actions (Mike, October 31).
+     */
+    lead?: Snippet;
+    tail?: Snippet;
   } = $props();
 
   // A series board names its books by the series' word, such as Story or Episode, and a
@@ -738,8 +746,10 @@
 {/snippet}
 
 {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-{#if cards}
-  <div class="toolbar">
+<div class="toolbar">
+  {@render lead?.()}
+  <span class="spacer"></span>
+  {#if cards}
     {#if naming}
       <form class="name-thread" onsubmit={addThread}>
         <!-- svelte-ignore a11y_autofocus -->
@@ -765,10 +775,16 @@
       {/if}
     {/if}
     {#if threads.length > 1}
-      <button type="button" class="tool" onclick={flip} title="Swap which runs across and which runs down">Flip</button>
-      <span class="axes">When runs {flipped ? 'down' : 'across'}, threads run {flipped ? 'across' : 'down'}</span>
+      <button
+        type="button"
+        class="tool"
+        onclick={flip}
+        title="When runs {flipped ? 'down' : 'across'} and threads run {flipped ? 'across' : 'down'}. Flip swaps them.">Flip</button>
     {/if}
-  </div>
+  {/if}
+  {@render tail?.()}
+</div>
+{#if cards}
   {#if structure && overviewOpen}
     <div class="overview">
       {#each structure.overview.split('\n\n') as p}<p>{p}</p>{/each}
@@ -1243,6 +1259,9 @@
     gap: 8px 12px;
     margin-bottom: 14px;
   }
+  .spacer {
+    flex: 1;
+  }
   .tool {
     font-size: calc(13px * var(--type));
     color: var(--structure);
@@ -1278,11 +1297,6 @@
     border-radius: var(--round);
     padding: 6px 10px;
     width: 220px;
-  }
-  .axes {
-    font-family: var(--font-label);
-    font-size: calc(11px * var(--type));
-    color: var(--muted);
   }
   /* The plot grid. Its headers stay in view while the cells scroll under them. */
   .board {

@@ -11,8 +11,9 @@
    * running upward. Clicking a spine brings its pane back into view. Each module decides
    * what its panes hold, through the `pane` snippet.
    *
-   * Every document carries the same toolbar in its top corner (Mike, October 26): Beats
-   * where the document has them, full screen, a new window, and close. Full screen shows
+   * Every document carries the same toolbar in its top corner (Mike, October 26): full
+   * screen, a new window, and close. Beats live in the pane's own actions row (Mike,
+   * October 31), and show up here only in full screen, where that row is hidden. Full screen shows
    * one pane alone, and the others stay open behind it, so nothing loses its place.
    */
   let {
@@ -133,7 +134,7 @@
         </div>
         <div class="body">
           <div class="tools" role="toolbar" aria-label="{name} tools">
-            {#if hasBeats?.(id)}
+            {#if full === id && hasBeats?.(id)}
               <button type="button" class="beats" class:on={beats.on} aria-pressed={beats.on} title="This chapter's beats, beside the writing" onclick={() => beats.set(!beats.on)}>Beats</button>
             {/if}
             {#if full === id}

@@ -21,12 +21,15 @@
     fs,
     onOpen,
     rebuild,
+    world = '',
   }: {
     index: WikiIndex;
     fs: WorldFs;
     /** Opens an entry beside the timeline. */
     onOpen: (id: string) => void;
     rebuild: () => Promise<void>;
+    /** The world's name, for the place line above the title. */
+    world?: string;
   } = $props();
 
   const timeline = $derived(buildTimeline(index.all()));
@@ -113,14 +116,16 @@
 
 <section class="timeline-view">
   <header>
-    <div class="label">Timeline</div>
+    <div class="label">{world || 'The wiki'}</div>
     <h1>Timeline</h1>
     <div class="row">
       <span class="meta">
         {timeline.moments.reduce((n, m) => n + m.events.length, 0)} events · {timeline.eras.length}
         {timeline.eras.length === 1 ? 'era' : 'eras'}
       </span>
-      <button type="button" class="tool strong" onclick={() => startMaking('event')}>+ Event</button>
+      <span class="spacer"></span>
+      <!-- Outlined like every pane's buttons; amber fill is for a home page's main act (Mike, October 31). -->
+      <button type="button" class="tool" onclick={() => startMaking('event')}>+ Event</button>
       <button type="button" class="tool" onclick={() => startMaking('era')}>+ Era</button>
       <button type="button" class="tool" onclick={flip} title="Turn the dates {across ? 'down the page' : 'across the page'}">Flip</button>
     </div>
@@ -211,6 +216,9 @@
     line-height: 1;
     color: var(--title);
   }
+  .spacer {
+    flex: 1;
+  }
   .row {
     display: flex;
     flex-wrap: wrap;
@@ -234,12 +242,6 @@
   .tool:hover {
     color: var(--text);
     border-color: var(--hover-edge);
-  }
-  .tool.strong {
-    color: var(--accent-ink);
-    background: var(--accent);
-    border-color: var(--accent);
-    font-weight: 700;
   }
   .problem {
     color: var(--danger);

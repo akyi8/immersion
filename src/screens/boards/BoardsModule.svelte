@@ -128,13 +128,15 @@
     <Panes {nav} ids={row} {label} onWindow={toWindow}>
       {#snippet pane(id, i, next, full)}
         {#if id === TIMELINE}
-          <TimelineView {index} {fs} {rebuild} onOpen={(target) => nav.open(target, i)} />
+          <TimelineView {index} {fs} {rebuild} world={worldName} onOpen={(target) => nav.open(target, i)} />
         {:else if id.startsWith(SERIES)}
           <SeriesPane
             {fs}
             root={storiesDir}
             series={id.slice(SERIES.length)}
             {index}
+            books={booksIn(id.slice(SERIES.length))}
+            words={wordsIn(id.slice(SERIES.length))}
             onOpenEntry={(entry) => nav.open(entry, i)}
             onOpenBook={(book) => nav.open(book, i)}
             onChanged={refresh}

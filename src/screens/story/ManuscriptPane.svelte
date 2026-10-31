@@ -147,37 +147,51 @@
   }
 </script>
 
+{#snippet lead()}
+  {#if about}
+    {#if source}
+      <div class="views" role="group" aria-label="View">
+        <button type="button" class:on={mode === 'write'} aria-pressed={mode === 'write'} onclick={() => (mode = 'write')}>Write</button>
+        <button type="button" class:on={mode === 'outline'} aria-pressed={mode === 'outline'} onclick={() => ((outlineFocus = null), (mode = 'outline'))}>Board</button>
+      </div>
+    {/if}
+    <span class="meta">{about.meta}</span>
+    <!-- Beats sit in the pane's own row, beside what they describe (Mike, October 31). -->
+    {#if about.kind === 'chapter' && source && mode === 'write'}
+      <button type="button" class="beats" class:on={beats.on} aria-pressed={beats.on} title="This chapter's beats, beside the writing" onclick={() => beats.set(!beats.on)}>Beats</button>
+    {/if}
+    {#if owner?.place === 'drawer' && (about.kind === 'note' || about.kind === 'book')}
+      <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
+    {/if}
+    {#if about.kind === 'note' && owner && onMakeManuscript}
+      <button type="button" class="action" onclick={() => onMakeManuscript(owner!)}>Make it a manuscript…</button>
+    {/if}
+  {/if}
+{/snippet}
+
+<!-- The pane's ⋯, at the end of its one row of actions (Mike, October 31). -->
+{#snippet tail()}
+  {#if about && onMoved && story && owner}
+    <PieceActions
+      {fs}
+      path={owner.path}
+      title={about.title}
+      root={story.root}
+      {onMoved}
+      {onWindow}
+      windowOnly={about.kind === 'chapter' || about.kind === 'matter'} />
+  {/if}
+{/snippet}
+
 {#if about}
   <article class:drafting>
     {#if !drafting || mode === 'outline'}
-      <header>
+      <header class:tight={mode === 'outline' && !!source}>
         <div class="label">{about.label}</div>
         {#if about.kind !== 'book' || mode === 'outline'}<h1>{about.title}</h1>{/if}
-        <div class="row">
-          {#if source}
-            <div class="views" role="group" aria-label="View">
-              <button type="button" class:on={mode === 'write'} aria-pressed={mode === 'write'} onclick={() => (mode = 'write')}>Write</button>
-              <button type="button" class:on={mode === 'outline'} aria-pressed={mode === 'outline'} onclick={() => ((outlineFocus = null), (mode = 'outline'))}>Board</button>
-            </div>
-          {/if}
-          <span class="meta">{about.meta}</span>
-          {#if owner?.place === 'drawer' && (about.kind === 'note' || about.kind === 'book')}
-            <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
-          {/if}
-          {#if about.kind === 'note' && owner && onMakeManuscript}
-            <button type="button" class="action" onclick={() => onMakeManuscript(owner!)}>Make it a manuscript…</button>
-          {/if}
-          {#if onMoved && story && owner}
-            <PieceActions
-              {fs}
-              path={owner.path}
-              title={about.title}
-              root={story.root}
-              {onMoved}
-              {onWindow}
-              windowOnly={about.kind === 'chapter' || about.kind === 'matter'} />
-          {/if}
-        </div>
+        {#if mode !== 'outline' || !source}
+          <div class="row">{@render lead()}<span class="spacer"></span>{@render tail()}</div>
+        {/if}
       </header>
     {/if}
     {#if mode === 'outline' && source}
@@ -188,6 +202,8 @@
         {index}
         onOpenEntry={(entry) => onOpen(entry)}
         focus={outlineFocus}
+        {lead}
+        {tail}
         onWrite={(card) => {
           mode = 'write';
           onOpenPiece(card.path, card.offset, card.title);
@@ -296,6 +312,10 @@
   header {
     margin-bottom: 22px;
   }
+  /* On a board, the board's own row is the header's actions row, so it sits close. */
+  header.tight {
+    margin-bottom: 0;
+  }
   h1 {
     color: var(--title);
     margin: 4px 0 8px;
@@ -310,6 +330,26 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 14px;
+  }
+  .spacer {
+    flex: 1;
+  }
+  .beats {
+    font-family: var(--font-label);
+    font-size: calc(11px * var(--type));
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    padding: 0 9px;
+    min-height: 28px;
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+  }
+  .beats.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
   }
   .meta {
     font-family: var(--font-label);

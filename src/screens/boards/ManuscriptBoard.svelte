@@ -7,6 +7,7 @@
   import { renamePiece } from '../../lib/story/manage';
   import { saveAllUnder } from '../../lib/saves';
   import type { WikiIndex } from '../../lib/index/wiki';
+  import { counted } from '../../lib/story/book';
 
   /** One manuscript's board, its chapters by its threads, as the Boards module shows it. */
   let {
@@ -29,6 +30,10 @@
   const source = $derived(folderSource(fs, manuscript));
 </script>
 
+{#snippet lead()}
+  <span class="meta">{counted(manuscript.sections.length, manuscript.partWord)} · {manuscript.words.toLocaleString()} {manuscript.words === 1 ? 'word' : 'words'}</span>
+{/snippet}
+
 <article class="board">
   <header>
     <div class="label">{PLACES[manuscript.place]} · Board</div>
@@ -46,14 +51,22 @@
     {/if}
   </header>
   {#key manuscript.path}
-    <OutlineView {fs} {source} partWord={manuscript.partWord} {index} {onOpenEntry} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
+    <OutlineView {fs} {source} partWord={manuscript.partWord} {index} {onOpenEntry} {lead} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
   {/key}
 </article>
 
 <style>
+  header {
+    margin-bottom: 0;
+  }
+  .meta {
+    font-family: var(--font-label);
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
+  }
   h1 {
     color: var(--title);
-    margin: 4px 0 18px;
+    margin: 4px 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
     font-size: calc(60px * var(--type));

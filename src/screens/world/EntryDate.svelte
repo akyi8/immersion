@@ -109,7 +109,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 10px;
-    margin-top: 10px;
   }
   .label {
     font-size: calc(11px * var(--type));
@@ -141,12 +140,13 @@
     color: var(--text-soft);
   }
   .add {
-    margin-top: 8px;
-    font-size: calc(12px * var(--type));
+    font-size: calc(13px * var(--type));
     color: var(--structure);
-    background: none;
-    border: 0;
-    padding: 2px 0;
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 6px 10px;
+    min-height: 32px;
   }
   .add:hover {
     color: var(--text);

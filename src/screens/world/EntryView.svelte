@@ -95,13 +95,16 @@
     {:else}
       <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" />
     {/if}
+    <!-- Like every pane: where it lives, its name, then one row of actions ending in ⋯ (Mike, October 31). -->
     <div class="title">
-      <div class="name">
-        <h1>{entry.name}</h1>
+      <div class="label">{folderLabel(entry.category)}</div>
+      <h1>{entry.name}</h1>
+      {#if entry.aliases.length}<div class="meta">{entry.aliases.join(' · ')}</div>{/if}
+      <div class="row">
+        <EntryDate {fs} {entry} editable={view === 'narrator'} />
+        <span class="spacer"></span>
         {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} {onWindow} />{/if}
       </div>
-      <div class="meta">{[...entry.aliases, folderLabel(entry.category)].join(' · ')}</div>
-      <EntryDate {fs} {entry} editable={view === 'narrator'} />
       {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
     </div>
   </header>
@@ -132,10 +135,17 @@
     flex: 1;
     min-width: 0;
   }
-  .name {
+  .title > .label {
+    margin-bottom: 6px;
+  }
+  .row {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .spacer {
+    flex: 1;
   }
   h1 {
     color: var(--title);

@@ -108,7 +108,7 @@
       }}>
       {#snippet pane(id, i, next)}
         {#if id === TIMELINE}
-          <TimelineView {index} {fs} {rebuild} onOpen={(target) => nav.open(target, i)} />
+          <TimelineView {index} {fs} {rebuild} world={worldName} onOpen={(target) => nav.open(target, i)} />
         {:else}
         <EntryView
           {index}

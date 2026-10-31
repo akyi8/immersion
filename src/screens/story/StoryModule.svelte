@@ -382,6 +382,8 @@
               root={storiesDir}
               series={id.slice(SERIES.length)}
               {index}
+              books={(story?.manuscripts ?? []).filter((m) => m.series === id.slice(SERIES.length)).length}
+              words={(story?.manuscripts ?? []).filter((m) => m.series === id.slice(SERIES.length)).reduce((n, m) => n + m.words, 0)}
               onOpenEntry={(entry) => nav.open(entry, i)}
               onOpenBook={(book) => nav.open(book, i)}
               onChanged={refresh} />
