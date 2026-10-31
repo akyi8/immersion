@@ -6,7 +6,7 @@
   import { worldFile } from '../../lib/world';
   import Dialog from './Dialog.svelte';
 
-  // A new world with starter shelves (Mike, October 24): a wiki with a folder for each
+  // A new world with starter categories (Mike, October 24; the word was shelves until October 31): a wiki with a folder for each
   // kind of entry most worlds need, and an empty stories folder.
   let { library, onCreated, onCancel }: { library: Library; onCreated: (path: string) => void; onCancel: () => void } = $props();
 
@@ -63,7 +63,7 @@
   <label for="nw-tagline" class="label">Tagline</label>
   <input id="nw-tagline" type="text" bind:value={tagline} autocomplete="off" placeholder="A harbor town on stilts" />
 
-  <div class="label">Starter shelves</div>
+  <div class="label">Starter categories</div>
   <div class="shelves">
     {#each SHELVES as s}
       <label class="check"><input type="checkbox" bind:checked={shelves[s]} /> {s[0].toUpperCase() + s.slice(1)}</label>

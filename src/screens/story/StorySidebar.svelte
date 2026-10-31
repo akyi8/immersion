@@ -5,7 +5,6 @@
   import type { Activity } from '../../lib/story/activity';
   import type { WorldFs } from '../../lib/fs/types';
   import { contextMenu, type MenuEntry } from '../../lib/contextMenu.svelte';
-  import Heatmap from './Heatmap.svelte';
   import PieceActions from './PieceActions.svelte';
 
   /**
@@ -322,9 +321,6 @@
     {/each}
   </div>
 
-  {#if activity}
-    <div class="activity"><Heatmap {activity} weeks={17} /></div>
-  {/if}
 </nav>
 
 {#if target && story}
@@ -374,10 +370,6 @@
     min-height: 0;
     overflow-y: auto;
     padding-bottom: 18px;
-  }
-  .activity {
-    padding: 14px 18px 16px;
-    border-top: 1px solid var(--line);
   }
   .vault {
     display: flex;

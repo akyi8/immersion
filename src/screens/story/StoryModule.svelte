@@ -20,6 +20,7 @@
   import CreateDialog from '../world/CreateDialog.svelte';
   import { createEntry, likelyCategory } from '../../lib/index/create';
   import Heatmap from './Heatmap.svelte';
+  import { whenEdited } from '../../lib/story/book';
   import SeriesPane from './SeriesPane.svelte';
   import VaultPane from '../vault/VaultPane.svelte';
   import { account } from '../../lib/account.svelte';
@@ -137,6 +138,10 @@
   }
 
   /** Opens a piece, and moves to a chapter in it when `offset` is given. */
+  const HOME_PLACES: Record<Place, string> = { desk: 'On the desk', drawer: 'In the drawer', shelf: 'On the shelf' };
+  /** The pieces touched most recently, for the home page. */
+  const lately = $derived([...(story?.manuscripts ?? [])].filter((m) => m.modified).sort((a, b) => (b.modified ?? 0) - (a.modified ?? 0)).slice(0, 8));
+
   function openPiece(path: string, offset?: number | null, title?: string) {
     nav.open(path);
     if (offset !== null && offset !== undefined) jump = { path, offset, at: Date.now(), title };
@@ -431,7 +436,22 @@
             Make a new stories folder
           </button>
         {:else}
-          <p>The desk holds what you are writing, the drawer what you might write, and the shelf what is finished. Names in your writing open their wiki entries beside it.</p>
+          {#if lately.length}
+            <!-- Story's home answers what was being written (Mike, October 31): the pieces
+                 touched most recently, each a click away from where it was left. -->
+            <h2 class="label">Lately</h2>
+            <div class="lately">
+              {#each lately as m (m.path)}
+                <button type="button" class="piece" onclick={() => openPiece(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path))}>
+                  <span class="piece-title">{m.title}</span>
+                  <span class="piece-about">{[m.kind === 'file' ? 'Note' : m.series ? `${m.seriesWord} ${m.number ?? ''}`.trim() + ` of ${m.series}` : 'Manuscript', HOME_PLACES[m.place], m.words ? `${m.words.toLocaleString()} words` : ''].filter(Boolean).join(' · ')}</span>
+                  <span class="piece-when">{whenEdited(m.modified)}</span>
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <p>The desk holds what you are writing, the drawer what you might write, and the shelf what is finished. Names in your writing open their wiki entries beside it.</p>
+          {/if}
         {/if}
         {#if activity}
           <h2 class="label">Writing, the last year</h2>
@@ -558,5 +578,47 @@
     border: 0;
     padding: 10px 16px;
     min-height: 44px;
+  }
+  .lately {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 760px;
+    margin-bottom: 28px;
+  }
+  .piece {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'title when' 'about when';
+    align-items: baseline;
+    gap: 2px 16px;
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--text);
+    background: none;
+    border: 0;
+    border-radius: var(--round);
+  }
+  .piece:hover {
+    background: var(--surface);
+  }
+  .piece-title {
+    grid-area: title;
+    font-family: var(--font-display);
+    font-size: calc(24px * var(--type));
+    line-height: 1.1;
+    color: var(--title);
+  }
+  .piece-about {
+    grid-area: about;
+    font-size: calc(13px * var(--type));
+    color: var(--muted);
+  }
+  .piece-when {
+    grid-area: when;
+    font-family: var(--font-label);
+    font-size: calc(11px * var(--type));
+    color: var(--muted);
+    white-space: nowrap;
   }
 </style>

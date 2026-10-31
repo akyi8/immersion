@@ -13,7 +13,8 @@
   import EntryView from '../world/EntryView.svelte';
   import ManuscriptPane from '../story/ManuscriptPane.svelte';
   import ManuscriptBoard from './ManuscriptBoard.svelte';
-  import { counted } from '../../lib/story/book';
+  import { counted, whenEdited } from '../../lib/story/book';
+  import { STRUCTURES } from '../../lib/story/guide';
 
   /**
    * Boards (Mike, October 26): every board in the world in one place. The wiki's timeline,
@@ -57,6 +58,18 @@
   /** What one book of a series is called, such as Episode (Mike, October 31). */
   const wordOf = (name: string) => (story?.manuscripts ?? []).find((m) => m.series === name)?.seriesWord ?? 'Story';
   const manuscripts = $derived((story?.manuscripts ?? []).filter((m) => m.kind === 'folder' && m.sections.length));
+  // The home page's cards say what each board holds and when it was last touched, and the
+  // ones touched most recently come first (Mike, October 31).
+  const PLACES = { desk: 'On the desk', drawer: 'In the drawer', shelf: 'On the shelf' };
+  const structureName = (id: string | null) => STRUCTURES.find((s) => s.id === id)?.name ?? null;
+  const wordsIn = (name: string) => (story?.manuscripts ?? []).filter((m) => m.series === name).reduce((n, m) => n + m.words, 0);
+  const editedIn = (name: string) => Math.max(0, ...(story?.manuscripts ?? []).filter((m) => m.series === name).map((m) => m.modified ?? 0)) || null;
+  const recentFirst = $derived([...manuscripts].sort((a, b) => (b.modified ?? 0) - (a.modified ?? 0)));
+  const seriesRecentFirst = $derived([...series].sort((a, b) => (editedIn(b) ?? 0) - (editedIn(a) ?? 0)));
+  const eras = $derived(index.all().filter((e) => e.when && e.era).length);
+  const words = (n: number) => (n ? `${n.toLocaleString()} words` : '');
+  const line = (...parts: (string | null | false)[]) => parts.filter(Boolean).join(' · ');
+
   const dated = $derived(index.all().filter((e) => e.when).length);
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
   const manuscriptOf = (id: string) => (id.startsWith(BOARD) ? (story?.manuscripts.find((m) => m.path === id.slice(BOARD.length)) ?? null) : null);
@@ -166,16 +179,21 @@
       <p>Every board in {worldName}: the timeline of its history, each series, and each manuscript, with When along one side and threads along the other.</p>
       <div class="cards">
         <button type="button" class="card" onclick={() => nav.open(TIMELINE)}>
-          <span class="kind">Timeline</span><span class="name">{worldName}</span><span class="n">{dated} dated entries</span>
+          <span class="kind">Timeline</span><span class="name">{worldName}</span>
+          <span class="n">{line(`${dated} dated ${dated === 1 ? 'entry' : 'entries'}`, eras > 0 && counted(eras, 'era'))}</span>
         </button>
-        {#each series as name (name)}
+        {#each seriesRecentFirst as name (name)}
           <button type="button" class="card" onclick={() => nav.open(SERIES + name)}>
-            <span class="kind">Series</span><span class="name">{name}</span><span class="n">{counted(booksIn(name), wordOf(name))}</span>
+            <span class="kind">Series</span><span class="name">{name}</span>
+            <span class="n">{line(counted(booksIn(name), wordOf(name)), words(wordsIn(name)))}</span>
+            <span class="n when">{whenEdited(editedIn(name))}</span>
           </button>
         {/each}
-        {#each manuscripts as m (m.path)}
+        {#each recentFirst as m (m.path)}
           <button type="button" class="card" onclick={() => nav.open(BOARD + m.path)}>
-            <span class="kind">Manuscript</span><span class="name">{m.title}</span><span class="n">{counted(m.sections.length, m.partWord)}</span>
+            <span class="kind">{line('Manuscript', PLACES[m.place])}</span><span class="name">{m.title}</span>
+            <span class="n">{line(counted(m.sections.length, m.partWord), words(m.words), structureName(m.structure))}</span>
+            <span class="n when">{whenEdited(m.modified)}</span>
           </button>
         {/each}
       </div>
@@ -284,5 +302,9 @@
     font-size: calc(30px * var(--type));
     line-height: 1.05;
     color: var(--title);
+  }
+  .card .when {
+    margin-top: auto;
+    opacity: 0.8;
   }
 </style>

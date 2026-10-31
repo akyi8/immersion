@@ -273,7 +273,7 @@
       <button type="button" class="card blank new" onclick={() => (making = true)}>
         <span class="plus" aria-hidden="true">+</span>
         <span class="name">New world</span>
-        <span class="hint">Starts with shelves for people, places, factions, and history</span>
+        <span class="hint">Starts with categories for people, places, factions, and history</span>
       </button>
       <button type="button" class="card blank" onclick={add}>
         <span class="plus folder" aria-hidden="true">

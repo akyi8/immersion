@@ -206,3 +206,14 @@ export function fileToFolder(source: string, fileName: string): { title: string;
   blocks.slice(last + 1).forEach((b, i) => (files[`back/${name(b, i)}`] = b.content));
   return { title, files };
 }
+
+/** When something was last changed, the way a person would say it: today, 3 days ago, 2 weeks ago. */
+export function whenEdited(ms: number | null, now = Date.now()): string {
+  if (!ms) return '';
+  const days = Math.floor((new Date(now).setHours(0, 0, 0, 0) - new Date(ms).setHours(0, 0, 0, 0)) / 86400000);
+  if (days <= 0) return 'edited today';
+  if (days === 1) return 'edited yesterday';
+  if (days < 14) return `edited ${days} days ago`;
+  if (days < 60) return `edited ${Math.round(days / 7)} weeks ago`;
+  return `edited ${new Date(ms).toLocaleDateString([], { month: 'short', year: 'numeric' })}`;
+}
