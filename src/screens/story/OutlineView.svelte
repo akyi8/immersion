@@ -5,6 +5,8 @@
   import type { Thread } from '../../lib/story/threads';
   import { bands, placed, type Band } from '../../lib/story/structures';
   import { STRUCTURES } from '../../lib/story/guide';
+  import { contextMenu } from '../../lib/contextMenu.svelte';
+  import Dialog from '../shelf/Dialog.svelte';
 
   /**
    * Outline view (Mike, October 23 and 25): every chapter as a card, three to a row with
@@ -212,6 +214,74 @@
     const b = bandOf(i)!;
     const k = b.cards.indexOf(i);
     return place(i, b.part?.id ?? null, by < 0 ? b.cards[k - 1] : (b.cards[k + 2] ?? null));
+  }
+
+  // While a card is dragged, holding it near the edge of the board or its pane scrolls
+  // that way, so a part off the screen can still be reached (Mike, October 31).
+  const EDGE = 70;
+  let dragPoint: { x: number; y: number } | null = null;
+  let scrolling = 0;
+  function scrollers(): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    for (let el: HTMLElement | null = grid ?? null; el; el = el.parentElement) {
+      const cs = getComputedStyle(el);
+      const x = /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1;
+      const y = /(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+      if (x || y) out.push(el);
+    }
+    return out;
+  }
+  function edgeScroll() {
+    if (dragging === null || !dragPoint) {
+      scrolling = 0;
+      return;
+    }
+    const { x, y } = dragPoint;
+    const speed = (d: number) => Math.round(((EDGE - d) / EDGE) * 22);
+    for (const box of scrollers()) {
+      const r = box.getBoundingClientRect();
+      const top = Math.max(r.top, 0);
+      const bottom = Math.min(r.bottom, innerHeight);
+      if (y - top < EDGE && y >= top) box.scrollTop -= speed(y - top);
+      else if (bottom - y < EDGE && y <= bottom) box.scrollTop += speed(bottom - y);
+      if (x - r.left < EDGE && x >= r.left) box.scrollLeft -= speed(x - r.left);
+      else if (r.right - x < EDGE && x <= r.right) box.scrollLeft += speed(r.right - x);
+    }
+    scrolling = requestAnimationFrame(edgeScroll);
+  }
+  function followDrag(e: DragEvent) {
+    if (dragging === null) return;
+    dragPoint = { x: e.clientX, y: e.clientY };
+    if (!scrolling) scrolling = requestAnimationFrame(edgeScroll);
+  }
+
+  // Right-click a card for its moves, including Move to, which places it by name (Mike, October 31).
+  function cardMenu(e: MouseEvent, i: number) {
+    if (!cards) return;
+    const card = cards[i];
+    contextMenu.show(e, [
+      { label: 'Move to…', run: () => (moving = { card: i, part: bandOf(i)?.part?.id ?? null, before: null }) },
+      { label: 'Move earlier', run: () => nudge(i, -1), disabled: !canNudge(i, -1) },
+      { label: 'Move later', run: () => nudge(i, 1), disabled: !canNudge(i, 1) },
+      'separator',
+      { label: writeLabel, run: async () => (await flush(), onWrite(card)) },
+    ]);
+  }
+  let moving = $state<{ card: number; part: string | null; before: number | null } | null>(null);
+  /** The cards a moved card can be placed before, in the part chosen in the dialog. */
+  const neighbours = $derived.by(() => {
+    if (!moving || !cards) return [];
+    const m = moving;
+    const inBand = list ? (list.find((b) => (b.part?.id ?? null) === m.part)?.cards ?? []) : shown;
+    return inBand.filter((c) => c !== m.card);
+  });
+  async function finishMove() {
+    if (!moving) return;
+    const { card, part, before } = moving;
+    moving = null;
+    if (list) return place(card, part, before);
+    const order = shown.filter((c) => c !== card);
+    await move(card, before === null ? order.length : order.indexOf(before));
   }
 
   /** Where a dragged card lands when dropped on card `i`. */
@@ -432,9 +502,13 @@
     const stop = fs.onChange(reloadWhenIdle);
     const left = () => setTimeout(idle, 0);
     document.addEventListener('focusout', left);
+    // Heard on the way down, since a card stops the event on its way back up.
+    document.addEventListener('dragover', followDrag, true);
     return () => {
       stop();
       document.removeEventListener('focusout', left);
+      document.removeEventListener('dragover', followDrag, true);
+      cancelAnimationFrame(scrolling);
       void flush();
     };
   });
@@ -505,6 +579,7 @@
     role="group"
     aria-label="{Unit} {n}: {card.title}"
     class:over={over === i && dragging !== null && dragging !== i}
+    oncontextmenu={(e) => cardMenu(e, i)}
     ondragover={(e) => {
       if (dragging === null) return;
       e.preventDefault();
@@ -688,6 +763,7 @@
           <div
             class="chapter-head"
             class:over={over === i && dragging !== null && dragging !== i}
+            oncontextmenu={(e) => cardMenu(e, i)}
             style={slot.head}
             role="group"
             aria-label="{Unit} {slot.n}: {card.title}"
@@ -764,6 +840,23 @@
       <button type="button" class="add-when" style={plan.add} onclick={add}>+ {Unit}</button>
     </div>
   {/if}
+{/if}
+
+{#if moving && cards}
+  {@const m = moving}
+  <Dialog title="Move {cards[m.card].title}" action="Move" ready={true} busy={false} problem="" onSubmit={finishMove} onCancel={() => (moving = null)}>
+    {#if list}
+      <label class="label" for="move-part">Into</label>
+      <select id="move-part" value={m.part ?? ''} onchange={(e) => (moving = { ...m, part: (e.currentTarget as HTMLSelectElement).value || null, before: null })}>
+        {#each list as band (bandKey(band))}<option value={band.part?.id ?? ''}>{band.part?.name ?? 'Unassigned'}</option>{/each}
+      </select>
+    {/if}
+    <label class="label" for="move-before">Place it</label>
+    <select id="move-before" value={m.before === null ? '' : String(m.before)} onchange={(e) => (moving = { ...m, before: (e.currentTarget as HTMLSelectElement).value === '' ? null : Number((e.currentTarget as HTMLSelectElement).value) })}>
+      {#each neighbours as c (c)}<option value={String(c)}>Before {cards[c].title}</option>{/each}
+      <option value="">{list ? 'At the end of the part' : 'At the end'}</option>
+    </select>
+  </Dialog>
 {/if}
 
 <style>
