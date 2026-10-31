@@ -30,6 +30,22 @@
   } = $props();
 
   const source = $derived(seriesSource(fs, root, series));
+
+  // What every book in the series calls its parts (Mike, October 31), such as Part for
+  // short stories told in four movements.
+  const WORDS = ['Chapter', 'Part', 'Section', 'Episode', 'Movement', 'Act'];
+  let partWord = $state('Chapter');
+  $effect(() => {
+    const s = source;
+    void s.partWord?.().then((w) => (partWord = w));
+  });
+  async function setPartWord(word: string) {
+    const clean = word.replace(/\s+/g, ' ').trim();
+    if (!clean || clean === partWord) return;
+    partWord = clean;
+    await source.setPartWord?.(clean);
+    onChanged();
+  }
 </script>
 
 <article class="series">
@@ -47,6 +63,17 @@
       <h1>{series}</h1>
     {/if}
     <p class="about">Each book's beats on the series threads are kept in its title page file, under its title.</p>
+    <label class="parts">
+      <span class="label">Each book's parts are called</span>
+      <input
+        type="text"
+        list="part-words"
+        value={partWord}
+        autocomplete="off"
+        onchange={(e) => setPartWord((e.currentTarget as HTMLInputElement).value)}
+        onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
+      <datalist id="part-words">{#each WORDS as w}<option value={w}></option>{/each}</datalist>
+    </label>
   </header>
   <!-- Rebuilt only for another series: the world reloading after a save is not a new board. -->
   {#key series}
@@ -71,6 +98,25 @@
     letter-spacing: 0.02em;
     line-height: 1;
     color: var(--title);
+  }
+  .parts {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .parts .label {
+    font-size: calc(11px * var(--type));
+  }
+  .parts input {
+    width: 150px;
+    font: inherit;
+    font-size: calc(14px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 6px 10px;
   }
   .about {
     margin: 0;

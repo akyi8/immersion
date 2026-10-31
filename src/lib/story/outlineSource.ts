@@ -54,6 +54,9 @@ export interface OutlineSource {
   setStage?(i: number, structure: string, part: string | null): Promise<void>;
   /** Puts the cards in this reading order, given as their current positions. */
   reorder?(order: number[]): Promise<void>;
+  /** On a series board: what the books' parts are called, and changing it on every book. */
+  partWord?(): Promise<string>;
+  setPartWord?(word: string): Promise<void>;
 }
 
 const beatMap = (beats: Beat[]) => Object.fromEntries(beats.map((b) => [b.thread, b.text]));
@@ -243,7 +246,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       await fs.writeText(path, renameChapter(text, head.offset, title));
     },
     async add() {
-      const title = nextChapterTitle(manuscript.sections);
+      const title = nextChapterTitle(manuscript.sections, manuscript.partWord);
       const n = String(files.length + 1).padStart(2, '0');
       let path = `${manuscript.path}/${n}-${slugify(title)}.md`;
       for (let k = 2; await fs.exists(path); k++) path = `${manuscript.path}/${n}-${slugify(title)}-${k}.md`;
@@ -371,7 +374,8 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
       const made = await newManuscript(fs, root, title, { profile: last?.profile, author: last?.author, copyright: last?.copyright });
       const book = `${made.folder}/book.md`;
       const page = readTitlePage(await fs.readText(book), title);
-      await fs.writeText(book, withTitlePage(await fs.readText(book), { ...page, series, number: list.length + 1, seriesWord: word, year: last?.year ?? page.year }));
+      const parts = list[list.length - 1]?.page.partWord ?? 'Chapter';
+      await fs.writeText(book, withTitlePage(await fs.readText(book), { ...page, series, number: list.length + 1, seriesWord: word, partWord: parts, year: last?.year ?? page.year }));
       return { path: book, offset: null };
     },
     async move(from, to) {
@@ -394,6 +398,15 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
       if (id) all[series] = id;
       else delete all[series];
       await fs.writeText('world.md', withHeader(text, { series_structures: Object.keys(all).length ? all : undefined }));
+    },
+    // What a series' books call their parts lives in each book's title page, so a book
+    // read on its own still knows. The series board sets it on all of them at once.
+    async partWord() {
+      return (await books())[0]?.page.partWord ?? 'Chapter';
+    },
+    async setPartWord(word) {
+      const clean = word.replace(/\s+/g, ' ').trim() || 'Chapter';
+      for (const b of await books()) if (b.page.partWord !== clean) await fs.writeText(b.book, withTitlePage(b.text, { ...b.page, partWord: clean }));
     },
     async setStage(i, structure, part) {
       const { b } = await at(i);

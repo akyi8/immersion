@@ -101,7 +101,7 @@
       <h2 class="label">Manuscripts</h2>
       {#each manuscripts as m (m.path)}
         <button type="button" class="board" class:on={isOpen(BOARD + m.path)} onclick={() => nav.open(BOARD + m.path)}>
-          <span>{m.title}</span><span class="n">{m.sections.length} ch</span>
+          <span>{m.title}</span><span class="n">{m.sections.length} {m.partWord === 'Chapter' ? 'ch' : (m.sections.length === 1 ? m.partWord : `${m.partWord}s`).toLowerCase()}</span>
         </button>
       {:else}
         <p class="hint">No manuscripts yet.</p>
@@ -168,7 +168,7 @@
         {/each}
         {#each manuscripts as m (m.path)}
           <button type="button" class="card" onclick={() => nav.open(BOARD + m.path)}>
-            <span class="kind">Manuscript</span><span class="name">{m.title}</span><span class="n">{m.sections.length} {m.sections.length === 1 ? 'chapter' : 'chapters'}</span>
+            <span class="kind">Manuscript</span><span class="name">{m.title}</span><span class="n">{m.sections.length} {(m.sections.length === 1 ? m.partWord : `${m.partWord}s`).toLowerCase()}</span>
           </button>
         {/each}
       </div>

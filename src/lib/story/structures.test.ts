@@ -97,3 +97,20 @@ test('a manuscript board follows its chapters after renumbering them', async () 
   await source.add();
   assert.equal((await source.load()).length, 3);
 });
+
+test('a series board names the parts of every book at once, and a new book follows', async () => {
+  const { MemoryFs } = await import('../fs/memory.ts');
+  const { seriesSource } = await import('./outlineSource.ts');
+  const fs = new MemoryFs({
+    'world.md': '---\nname: W\n---\n\n# W\n',
+    'stories/boxes/book.md': '---\nseries: M\nnumber: 1\n---\n\n# Boxes\n',
+    'stories/ocean/book.md': '---\nseries: M\nnumber: 2\n---\n\n# Ocean\n',
+  });
+  const series = seriesSource(fs, 'stories', 'M');
+  assert.equal(await series.partWord!(), 'Chapter');
+  await series.setPartWord!('Part');
+  assert.match(await fs.readText('stories/boxes/book.md'), /part_word: Part/);
+  assert.match(await fs.readText('stories/ocean/book.md'), /part_word: Part/);
+  const made = await series.add();
+  assert.match(await fs.readText(made.path), /part_word: Part/);
+});

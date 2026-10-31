@@ -67,6 +67,8 @@ export interface Manuscript {
   /** The series its title page names, and its number in that series. */
   series: string | null;
   number: number | null;
+  /** What its parts are called, Chapter unless its title page says otherwise (Mike, October 31). */
+  partWord: string;
 }
 
 export interface StoryIndex {
@@ -176,7 +178,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
   const isPiece = (name: string) => /\.md$/i.test(name) && !SIDECAR.test(name);
 
   async function folderManuscript(dir: string, place: Place): Promise<Manuscript> {
-    const m: Manuscript = { kind: 'folder', path: dir, title: titleFromName(dir.split('/').pop()!), words: 0, modified: null, place, sections: [], front: [], back: [], book: null, series: null, number: null };
+    const m: Manuscript = { kind: 'folder', path: dir, title: titleFromName(dir.split('/').pop()!), words: 0, modified: null, place, sections: [], front: [], back: [], book: null, series: null, number: null, partWord: 'Chapter' };
     async function read(path: string, name: string, modified: number | null | undefined, part: string | null, into: Section[], counts: boolean) {
       const text = await fs.readText(path);
       const words = countWords(text);
@@ -199,6 +201,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
           const { header } = splitHeader(text);
           if (typeof header.series === 'string' && header.series.trim()) m.series = header.series.trim();
           if (typeof header.number === 'number') m.number = header.number;
+          if (typeof header.part_word === 'string' && header.part_word.trim()) m.partWord = header.part_word.trim();
           m.modified = Math.max(m.modified ?? 0, e.modified ?? 0) || m.modified;
         } else if (isPiece(e.name)) {
           await read(path, e.name, e.modified, part, into, counts);
@@ -231,6 +234,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
           book: null,
           series: null,
           number: null,
+          partWord: 'Chapter',
         });
       }
     }

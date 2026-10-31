@@ -190,14 +190,15 @@ export function addChapter(text: string, title: string): { text: string; offset:
   return { text: `${before}\n\n${heading}\n\n`, offset: before.length + 2 };
 }
 
-/** The next chapter's title, continuing "Chapter 11" as "Chapter 12". */
-export function nextChapterTitle(chapters: { title: string }[]): string {
+/** The next chapter's title, continuing "Chapter 11" as "Chapter 12", or "Part 3" as "Part 4". */
+export function nextChapterTitle(chapters: { title: string }[], word = 'Chapter'): string {
+  const named = new RegExp(`^${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(\\d+)\\b`, 'i');
   let highest = 0;
   for (const c of chapters) {
-    const m = /^chapter\s+(\d+)\b/i.exec(c.title);
+    const m = named.exec(c.title);
     if (m) highest = Math.max(highest, Number(m[1]));
   }
-  return highest ? `Chapter ${highest + 1}` : chapters.length ? `Chapter ${chapters.length + 1}` : 'Chapter 1';
+  return `${word} ${highest ? highest + 1 : chapters.length + 1}`;
 }
 
 /** Removes outline callouts, for counting the words a reader would read. */

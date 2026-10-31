@@ -17,6 +17,11 @@ export interface TitlePage {
   /** What one installment of the series is called: Story, Book, Novel, or Tale. */
   seriesWord: string;
   /**
+   * What the book's parts are called, such as Chapter, Part, or Episode (Mike, October
+   * 31). A series board sets it for every book in the series at once.
+   */
+  partWord: string;
+  /**
    * The author profile the book is linked to (Mike, October 26), by its id in the
    * library's `immersion.md`. While it is set, the profile's names are the book's, and
    * `author` and `copyright` are not kept in the book.
@@ -66,6 +71,7 @@ export function readTitlePage(bookText: string, fallbackTitle: string): TitlePag
     series: text(header.series),
     number: whole(header.number),
     seriesWord: text(header.series_word) || 'Story',
+    partWord: text(header.part_word).trim() || 'Chapter',
     profile: text(header.profile),
     author: text(header.author),
     copyright: text(header.copyright),
@@ -81,6 +87,7 @@ export function withTitlePage(bookText: string, page: TitlePage): string {
     series: blank(page.series),
     number: page.series.trim() && page.number ? page.number : undefined,
     series_word: page.series.trim() && page.seriesWord.trim() && page.seriesWord !== 'Story' ? page.seriesWord.trim() : undefined,
+    part_word: page.partWord.trim() && page.partWord.trim() !== 'Chapter' ? page.partWord.trim() : undefined,
     profile: blank(page.profile),
     author: page.profile.trim() ? undefined : blank(page.author),
     copyright: page.profile.trim() ? undefined : blank(page.copyright),
@@ -107,7 +114,7 @@ export interface PageDefaults {
 
 export function blankPage(title: string, defaults: PageDefaults = {}): TitlePage {
   const named = !!(defaults.profile || defaults.copyright);
-  return { title, subtitle: '', series: '', number: null, seriesWord: 'Story', profile: defaults.profile ?? '', author: defaults.author ?? '', copyright: defaults.copyright ?? '', year: named ? new Date().getFullYear() : null };
+  return { title, subtitle: '', series: '', number: null, seriesWord: 'Story', partWord: 'Chapter', profile: defaults.profile ?? '', author: defaults.author ?? '', copyright: defaults.copyright ?? '', year: named ? new Date().getFullYear() : null };
 }
 
 const FRONT = /^(dedication|epigraph|foreword|preface|contents|table of contents|copyright)$/i;

@@ -129,7 +129,8 @@
     if (!m) return null;
     const where = PLACE_LABELS[m.place];
     const chapters = m.kind === 'file' ? m.sections.filter((s) => s.depth === 2).length : m.sections.length;
-    const summary = `${words(m.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? 'chapter' : 'chapters'}` : ''}`;
+    const part = m.partWord.toLowerCase();
+    const summary = `${words(m.words)}${chapters ? ` · ${chapters} ${chapters === 1 ? part : `${part}s`}` : ''}`;
     if (m.kind === 'file') return { kind: 'note' as const, title: m.title, label: `${where} · Note`, meta: words(m.words) };
     if (id === m.book) return { kind: 'book' as const, title: m.title, label: `${where} · Title page`, meta: summary };
     const i = m.sections.findIndex((s) => s.path === id);
@@ -183,6 +184,7 @@
       <OutlineView
         {fs}
         {source}
+        partWord={owner?.partWord}
         focus={outlineFocus}
         onWrite={(card) => {
           mode = 'write';

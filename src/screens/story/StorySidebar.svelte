@@ -182,7 +182,7 @@
       { label: 'Open in a new window', run: () => onWindow(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path)) },
     ];
     if (m.kind === 'folder') {
-      items.push({ label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) }, { label: '+ Chapter', run: () => onAddChapter(m) });
+      items.push({ label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) }, { label: `+ ${m.partWord}`, run: () => onAddChapter(m) });
       if (m.series) items.push({ label: 'Open the series board', run: () => onSeries(m.series!) });
     } else items.push({ label: 'Make it a manuscript…', run: () => onMakeManuscript(m) });
     items.push('separator');
@@ -206,7 +206,7 @@
       'separator',
       { label: 'Move earlier', run: () => onMoveChapter(m, s, -1), disabled: !chapter || at === 0 },
       { label: 'Move later', run: () => onMoveChapter(m, s, 1), disabled: !chapter || at === list.length - 1 },
-      { label: 'Rename chapter', run: () => onRenameChapter(m, s), disabled: !chapter },
+      { label: `Rename ${m.partWord.toLowerCase()}`, run: () => onRenameChapter(m, s), disabled: !chapter },
     ]);
   }
 
@@ -263,7 +263,7 @@
           <span>{s.title}</span>
         </button>
       {/each}
-      <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ Chapter</button>
+      <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ {m.partWord}</button>
     </div>
   {/if}
 {/snippet}

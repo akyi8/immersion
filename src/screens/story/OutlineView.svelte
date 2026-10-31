@@ -22,6 +22,7 @@
     onWrite,
     onAdded,
     unit = 'chapter',
+    partWord = 'Chapter',
   }: {
     fs: WorldFs;
     source: OutlineSource;
@@ -32,10 +33,14 @@
     onAdded: (at: { path: string; offset: number | null }) => void;
     /** What runs along When: a manuscript's chapters, or a series' books. */
     unit?: 'chapter' | 'book';
+    /** What a manuscript's parts are called, such as Chapter or Part (Mike, October 31). */
+    partWord?: string;
   } = $props();
 
-  const Unit = $derived(unit === 'book' ? 'Book' : 'Chapter');
-  const writeLabel = $derived(unit === 'book' ? 'Open this book' : 'Write this chapter');
+  const Unit = $derived(unit === 'book' ? 'Book' : partWord);
+  /** The unit in a sentence, such as "chapter" or "part". */
+  const noun = $derived(unit === 'book' ? 'book' : partWord.toLowerCase());
+  const writeLabel = $derived(unit === 'book' ? 'Open this book' : `Write this ${noun}`);
 
   const SAVE_DELAY_MS = 800;
 
@@ -112,6 +117,47 @@
   // Dragging a card by its number moves the chapter to where it is dropped.
   let dragging = $state<number | null>(null);
   let over = $state<number | null>(null);
+
+  // Column widths on the plot grid (Mike, October 31): a story column can be dragged
+  // wider by the bar on its right edge, and a double click sets it back. Widths are kept
+  // by each chapter's or book's file, on this computer only, like the app's other layout.
+  const WIDTHS_KEY = 'immersion.columnWidths';
+  const COLUMN = 260;
+  function savedWidths(): Record<string, number> {
+    try {
+      return JSON.parse(localStorage.getItem(WIDTHS_KEY) ?? '{}') as Record<string, number>;
+    } catch {
+      return {};
+    }
+  }
+  let widths = $state<Record<string, number>>(savedWidths());
+  function keepWidths() {
+    try {
+      localStorage.setItem(WIDTHS_KEY, JSON.stringify(widths));
+    } catch {
+      // Not remembering a width is harmless.
+    }
+  }
+  function resize(e: PointerEvent, path: string) {
+    e.preventDefault();
+    const bar = e.currentTarget as HTMLElement;
+    bar.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    const start = widths[path] ?? COLUMN;
+    const move = (m: PointerEvent) => (widths = { ...widths, [path]: Math.round(Math.min(900, Math.max(180, start + m.clientX - startX))) });
+    const up = () => {
+      bar.removeEventListener('pointermove', move);
+      bar.removeEventListener('pointerup', up);
+      keepWidths();
+    };
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', up);
+  }
+  function resetWidth(path: string) {
+    const { [path]: _, ...rest } = widths;
+    widths = rest;
+    keepWidths();
+  }
 
   // Story structures (Mike, October 28). With a structure on, the cards sit in one band
   // per part, in story order, with the Unassigned band last. Placing a card in a part
@@ -214,7 +260,7 @@
         corner: `grid-row: ${1 + top}; grid-column: 1`,
         threadHead: threads.map((_, ti) => `grid-row: ${ti + 2 + top}; grid-column: 1`),
         add: `grid-row: ${1 + top}; grid-column: ${col}`,
-        columns: `200px ${slots.map((s) => (s.card === null ? '210px' : '260px')).join(' ')} 130px`,
+        columns: `200px ${slots.map((s) => (s.card === null ? '210px' : `${widths[cards![s.card].path] ?? COLUMN}px`)).join(' ')} 130px`,
       };
     }
     let row = 2;
@@ -415,7 +461,7 @@
     }}>
     <div class="band-row">
       <span class="band-name">{band.part ? band.part.name : 'Unassigned'}</span>
-      <span class="band-count" class:empty={!band.cards.length}>{band.cards.length ? `${band.cards.length} ${band.cards.length === 1 ? unit : `${unit}s`}` : `Drag a ${unit} here`}</span>
+      <span class="band-count" class:empty={!band.cards.length}>{band.cards.length ? `${band.cards.length} ${band.cards.length === 1 ? unit : `${noun}s`}` : `Drag a ${noun} here`}</span>
       {#if band.part}
         <button
           type="button"
@@ -475,7 +521,7 @@
       <span
         class="n"
         draggable="true"
-        title="Drag to move this {unit}"
+        title="Drag to move this {noun}"
         role="button"
         tabindex="-1"
         ondragstart={(e) => {
@@ -510,7 +556,7 @@
       class="body"
       use:grow={200}
       value={card.outline}
-      placeholder="What happens in this {unit}?"
+      placeholder="What happens in this {noun}?"
       aria-label="What happens in {card.title}"
       oninput={(e) => typed(i, (e.currentTarget as HTMLTextAreaElement).value)}
       onblur={flush}></textarea>
@@ -529,7 +575,7 @@
         <button type="button" class="tool" onclick={() => ((naming = false), (newThread = ''))}>Cancel</button>
       </form>
     {:else}
-      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {unit}s">+ Thread</button>
+      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {noun}s">+ Thread</button>
     {/if}
     {#if source.structure}
       <select
@@ -634,7 +680,7 @@
               e.preventDefault();
               dropOnBand(slot.band);
             }}>
-            Drag a {unit} here
+            Drag a {noun} here
           </div>
         {:else}
           {@const i = slot.card}
@@ -659,7 +705,7 @@
               <span
                 class="n"
                 draggable="true"
-                title="Drag to move this {unit}"
+                title="Drag to move this {noun}"
                 role="button"
                 tabindex="-1"
                 ondragstart={(e) => {
@@ -691,6 +737,15 @@
               }}
               onblur={(e) => rename(i, (e.currentTarget as HTMLTextAreaElement).value.replace(/\s+/g, ' '))}></textarea>
             <button type="button" class="write" onclick={async () => (await flush(), onWrite(card))}>{writeLabel}</button>
+            {#if !flipped}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="col-resize"
+                title="Drag to widen this column. Double-click to set it back."
+                onpointerdown={(e) => resize(e, card.path)}
+                ondblclick={() => resetWidth(card.path)}>
+              </div>
+            {/if}
           </div>
           {#each threads as t, ti (t.key)}
             <div class="cell" style={slot.cells[ti]}>
@@ -839,6 +894,30 @@
     color: var(--muted);
     border: 1px dashed var(--edge);
     border-radius: var(--round-box);
+  }
+  .col-resize {
+    position: absolute;
+    top: 0;
+    right: -5px;
+    bottom: 0;
+    width: 9px;
+    cursor: col-resize;
+    z-index: 2;
+  }
+  .col-resize::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    left: 4px;
+    width: 1px;
+    background: var(--structure);
+    opacity: 0;
+    transition: opacity 120ms;
+  }
+  .chapter-head:hover .col-resize::after,
+  .col-resize:active::after {
+    opacity: 0.8;
   }
   .chapter-head.over {
     box-shadow: inset 3px 0 0 var(--structure);

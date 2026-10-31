@@ -168,6 +168,11 @@
       </div>
     </div>
     {#if seriesLine(editing)}<p class="preview">{seriesLine(editing)}</p>{/if}
+    <div>
+      <label for="tp-parts" class="label">Its parts are called</label>
+      <input id="tp-parts" type="text" list="tp-part-words" bind:value={editing.partWord} autocomplete="off" placeholder="Chapter" />
+      <datalist id="tp-part-words">{#each ['Chapter', 'Part', 'Section', 'Episode', 'Movement', 'Act'] as w}<option value={w}></option>{/each}</datalist>
+    </div>
     <div class="pair">
       <div class="grow">
         <label for="tp-who" class="label">Author profile</label>

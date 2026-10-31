@@ -67,6 +67,7 @@ test('a typed-out title page becomes fields, and chapters become files', () => {
     series: 'Wayfarer Chronicles',
     number: 1,
     seriesWord: 'Story',
+    partWord: 'Chapter',
     profile: '',
     author: 'Mara Vell',
     copyright: 'Ada Lane',
@@ -119,4 +120,18 @@ test('a title page linked to a profile keeps the link and not the names', () => 
   const unlinked = withTitlePage(text, { ...readTitlePage(text, 'x'), profile: '', author: 'Mara Vell', copyright: 'Ada Lane' });
   assert.match(unlinked, /author: Mara Vell\ncopyright: Ada Lane/);
   assert.doesNotMatch(unlinked, /profile:/);
+});
+
+test('a book names its parts, and Chapter is left unwritten', async () => {
+  const { readTitlePage, withTitlePage } = await import('./book.ts');
+  const { nextChapterTitle } = await import('./outline.ts');
+  const page = readTitlePage('---\nseries: M\nnumber: 1\n---\n\n# Boxes\n', 'Boxes');
+  assert.equal(page.partWord, 'Chapter');
+  const parts = withTitlePage('# Boxes\n', { ...page, partWord: 'Part' });
+  assert.match(parts, /part_word: Part/);
+  assert.equal(readTitlePage(parts, 'Boxes').partWord, 'Part');
+  assert.doesNotMatch(withTitlePage(parts, { ...page, partWord: 'Chapter' }), /part_word/);
+  assert.equal(nextChapterTitle([{ title: 'Part 1' }, { title: 'Part 3' }], 'Part'), 'Part 4');
+  assert.equal(nextChapterTitle([], 'Movement'), 'Movement 1');
+  assert.equal(nextChapterTitle([{ title: 'The Pier' }]), 'Chapter 2');
 });

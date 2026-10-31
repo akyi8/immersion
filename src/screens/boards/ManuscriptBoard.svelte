@@ -36,7 +36,7 @@
     {/if}
   </header>
   {#key manuscript.path}
-    <OutlineView {fs} {source} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
+    <OutlineView {fs} {source} partWord={manuscript.partWord} onWrite={(card) => onWrite(card.path)} onAdded={() => {}} />
   {/key}
 </article>
 
