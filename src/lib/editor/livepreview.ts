@@ -1,5 +1,5 @@
-import { EditorState, RangeSet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
-import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
+import { EditorSelection, EditorState, Prec, RangeSet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
+import { Decoration, EditorView, WidgetType, keymap, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { hasNoProse, startWriting } from './writeHere';
 
@@ -155,19 +155,30 @@ function machineOnly(state: EditorState, header: { from: number; to: number }): 
   return keys.length > 0 && keys.every((k) => MACHINE_KEYS.has(k)) && lines.every((l) => l.trim() === '' || /^[\w-]+\s*:/.test(l) || /^\s+\S/.test(l));
 }
 
+type Zone = { from: number; to: number };
+
+/** The start of the line after `n`, past one blank separator line if there is one. */
+function pastSeparator(state: EditorState, n: number): number {
+  const doc = state.doc;
+  let after = n + 1;
+  if (after <= doc.lines && doc.line(after).text.trim() === '') after++;
+  return after <= doc.lines ? doc.line(after).from : doc.length;
+}
+
 /**
- * The zones the writing view protects: each outline callout, and a header the app
- * hides, together with the blank lines after them, up to the start of the next line.
+ * The zones the writing view protects: a header the app hides, each outline callout
+ * (a chapter's beat), and the blank lines that keep them apart from the writing. Only
+ * the one blank line after a beat is protected, because a line typed straight after a
+ * beat would join its quote. Further blank lines are the writer's own, so pressing
+ * Enter above the first paragraph makes room to write there (Mike, November 1).
  */
-function outlineZones(state: EditorState): { from: number; to: number }[] {
-  const zones: { from: number; to: number }[] = [];
+function outlineZones(state: EditorState): Zone[] {
+  const zones: Zone[] = [];
   const doc = state.doc;
   const header = headerRange(state);
   if (header && machineOnly(state, header)) {
-    let after = doc.lineAt(header.to).number + 1;
-    while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
     // Starting before the document means nothing can be typed in front of the header either.
-    zones.push({ from: -1, to: after <= doc.lines ? doc.line(after).from : doc.length });
+    zones.push({ from: -1, to: pastSeparator(state, doc.lineAt(header.to).number) });
   }
   for (let n = 1; n <= doc.lines; n++) {
     if (!/^>\s*\[!outline\]/i.test(doc.line(n).text)) continue;
@@ -175,12 +186,7 @@ function outlineZones(state: EditorState): { from: number; to: number }[] {
     while (end + 1 <= doc.lines && /^>/.test(doc.line(end + 1).text)) end++;
     let before = n - 1;
     while (before >= 1 && doc.line(before).text.trim() === '') before--;
-    let after = end + 1;
-    while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
-    zones.push({
-      from: before >= 1 ? doc.line(before).to : 0,
-      to: after <= doc.lines ? doc.line(after).from : doc.length,
-    });
+    zones.push({ from: before >= 1 ? doc.line(before).to : -1, to: pastSeparator(state, end) });
     n = end;
   }
   return zones;
@@ -188,56 +194,133 @@ function outlineZones(state: EditorState): { from: number; to: number }[] {
 
 /**
  * The top of a file whose title heading is hidden: any hidden header, the title, and the
- * blank lines after them, up to the first line of text. The title already shows above
- * the editor and has its own Rename, so the cursor steps past this zone and typing
- * cannot reach it (Mike, October 25: the title flashed as the cursor passed through).
+ * blank line after it. The title already shows above the editor and has its own Rename,
+ * so the cursor steps past this zone and typing cannot reach it (Mike, October 25: the
+ * title flashed as the cursor passed through).
  */
-function titleZone(state: EditorState, title: string): { from: number; to: number } | null {
+function titleZone(state: EditorState, title: string): Zone | null {
   const doc = state.doc;
   const header = headerRange(state);
   let n = header ? doc.lineAt(header.to).number + 1 : 1;
   while (n <= doc.lines && doc.line(n).text.trim() === '') n++;
   if (n > doc.lines || doc.line(n).text.replace(/^#\s+/, '').trim() !== title || !/^#\s/.test(doc.line(n).text)) return null;
-  let after = n + 1;
-  while (after <= doc.lines && doc.line(after).text.trim() === '') after++;
   const visibleHeader = header && !machineOnly(state, header);
   return {
     // A header that shows stays editable, so the zone starts below it.
     from: visibleHeader ? header.to : -1,
-    to: after <= doc.lines ? doc.line(after).from : doc.length,
+    to: pastSeparator(state, n),
   };
+}
+
+function zonesOf(state: EditorState, title: string): Zone[] {
+  const zones = outlineZones(state);
+  const top = titleZone(state, title);
+  if (top) zones.push(top);
+  return zones.sort((a, b) => a.from - b.from);
+}
+
+/** Whether a position is inside a zone, where the cursor never rests. */
+const inside = (z: Zone, pos: number) => pos > z.from && pos < z.to;
+
+/** Moves a position out of every zone, to the zone's end, where the writing begins. */
+function clamp(zones: Zone[], pos: number): number {
+  for (let moved = true; moved; ) {
+    moved = false;
+    for (const z of zones) {
+      if (inside(z, pos)) {
+        pos = z.to;
+        moved = true;
+      }
+    }
+  }
+  return pos;
+}
+
+/** Where the writing starts: the end of the zones at the top of the file. */
+function writingStart(state: EditorState, zones: Zone[]): number {
+  let start = 0;
+  for (const z of zones) {
+    if (z.from <= start || state.doc.sliceString(start, z.from).trim() === '') start = Math.max(start, z.to);
+    else break;
+  }
+  return start;
 }
 
 /**
  * Typing and deleting in the writing view never touch an outline (Mike, October 25).
- * A change that would cut into an outline or the blank lines around it is refused
- * whole, because removing even one of those blank lines would pull the next paragraph
- * into the outline. Typing at the end of the heading or the start of the paragraph
- * still works, and outline view edits the outline itself.
+ * A change that would cut into an outline or the blank line after it is refused whole,
+ * because removing that blank line would pull the next paragraph into the outline.
+ * Typing at the end of the heading or the start of the paragraph still works, and
+ * outline view edits the outline itself. When a file ends inside a beat, what is typed
+ * there starts a paragraph of its own below it instead.
  */
 const protectZones = (title: string) =>
   EditorState.transactionFilter.of((tr) => {
-  if (!tr.docChanged || (!tr.isUserEvent('input') && !tr.isUserEvent('delete') && !tr.isUserEvent('move'))) return tr;
-  const zones = outlineZones(tr.startState);
-  const top = titleZone(tr.startState, title);
-  if (top) zones.push(top);
-  if (!zones.length) return tr;
-  let blocked = false;
-  tr.changes.iterChangedRanges((fromA, toA) => {
-    for (const z of zones) {
-      if (toA > fromA ? fromA < z.to && toA > z.from : fromA > z.from && fromA < z.to) blocked = true;
+    if (!tr.docChanged || (!tr.isUserEvent('input') && !tr.isUserEvent('delete') && !tr.isUserEvent('move'))) return tr;
+    const zones = zonesOf(tr.startState, title);
+    if (!zones.length) return tr;
+    const doc = tr.startState.doc;
+    let blocked = false;
+    let atEnd: string | null = null;
+    tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+      for (const z of zones) {
+        if (toA > fromA ? fromA < z.to && toA > z.from : inside(z, fromA)) blocked = true;
+        else if (toA === fromA && fromA === z.to && z.to === doc.length && doc.lineAt(z.to).from < z.to) atEnd = inserted.toString();
+      }
+    });
+    if (blocked) return [];
+    if (atEnd !== null) {
+      const text = (atEnd as string).replace(/^\n+/, '');
+      return { changes: { from: doc.length, insert: '\n\n' + text }, selection: { anchor: doc.length + 2 + text.length }, userEvent: 'input.type' };
     }
-  });
-  return blocked ? [] : tr;
+    return tr;
   });
 
-/** The cursor steps over the top zone instead of landing inside the hidden title. */
-const skipTitle = (title: string) =>
-  EditorView.atomicRanges.of((view) => {
-    const zone = titleZone(view.state, title);
-    if (!zone || zone.to <= Math.max(0, zone.from)) return RangeSet.empty;
-    return RangeSet.of([Decoration.mark({}).range(Math.max(0, zone.from), zone.to)]);
+/**
+ * The cursor stays where text can be written (Mike, November 1). A click or a key that
+ * would put it inside a hidden header, the hidden title, or a beat moves it to where the
+ * writing continues below them, so typing always shows.
+ */
+const keepCursorOut = (title: string) =>
+  EditorState.transactionFilter.of((tr) => {
+    if (!tr.selection || !tr.isUserEvent('select')) return tr;
+    const zones = zonesOf(tr.state, title);
+    if (!zones.length) return tr;
+    const sel = tr.newSelection;
+    let changed = false;
+    const ranges = sel.ranges.map((r) => {
+      const anchor = clamp(zones, r.anchor);
+      const head = clamp(zones, r.head);
+      if (anchor !== r.anchor || head !== r.head) changed = true;
+      return EditorSelection.range(anchor, head);
+    });
+    return changed ? [tr, { selection: EditorSelection.create(ranges, sel.mainIndex), sequential: true }] : tr;
   });
+
+/** The cursor steps over every zone instead of landing inside it. */
+const skipZones = (title: string) =>
+  EditorView.atomicRanges.of((view) => {
+    const zones = zonesOf(view.state, title)
+      .map((z) => ({ from: Math.max(0, z.from), to: z.to }))
+      .filter((z) => z.to > z.from);
+    return zones.length ? RangeSet.of(zones.map((z) => Decoration.mark({}).range(z.from, z.to)), true) : RangeSet.empty;
+  });
+
+/** Select all takes the writing only, never the hidden header, title, or beat above it. */
+const selectWriting = (title: string) =>
+  Prec.high(
+    keymap.of([
+      {
+        key: 'Mod-a',
+        run: (view) => {
+          const start = writingStart(view.state, zonesOf(view.state, title));
+          if (start <= 0 || start >= view.state.doc.length) return false;
+          view.dispatch({ selection: { anchor: start, head: view.state.doc.length }, userEvent: 'select' });
+          return true;
+        },
+      },
+    ]),
+  );
 
 /** Whether the editor has focus. An unfocused editor shows every phrase finished. */
 const setFocus = StateEffect.define<boolean>();
@@ -390,5 +473,5 @@ export function livePreview(title: string, onOutline: ((at: number) => void) | n
     },
     provide: (f) => EditorView.decorations.from(f),
   });
-  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field, protectZones(title), skipTitle(title)];
+  return [focused, EditorView.focusChangeEffect.of((_state, isFocused) => setFocus.of(isFocused)), field, protectZones(title), keepCursorOut(title), skipZones(title), selectWriting(title)];
 }
