@@ -113,8 +113,13 @@ const paragraphGaps = ViewPlugin.fromClass(
  * The blank line between two paragraphs is one step for the cursor, not a line to type
  * on (Mike, October 24). Arrow keys pass over it, Backspace at the start of a paragraph
  * joins it to the one above, and a click on the gap lands at the edge of a paragraph.
- * The blank line stays in the file, so the markdown keeps its spacing. Two or more blank
- * lines in a row stay ordinary lines, which is also where Enter leaves the cursor.
+ * The blank line stays in the file, so the markdown keeps its spacing.
+ *
+ * Where blank lines run longer, as they do just after Enter makes room for a new
+ * paragraph, the first blank line after a paragraph and the last one before the next
+ * are steps too (Mike, November 1). So one Up arrow from a fresh paragraph returns to
+ * the end of the one above, as in other editors, and text typed in the room Enter made
+ * always has a blank line on each side.
  */
 const gapField = StateField.define<DecorationSet>({
   create: (state) => findGaps(state),
@@ -135,15 +140,26 @@ function findGaps(state: EditorState): DecorationSet {
     },
   });
   const builder = new RangeSetBuilder<Decoration>();
-  for (let n = 2; n < doc.lines; n++) {
-    const line = doc.line(n);
-    if (line.text.trim() !== '') continue;
+  const blank = (n: number) => doc.line(n).text.trim() === '';
+  const inCode = (n: number) => code.some((c) => c.from < doc.line(n).from && c.to > doc.line(n).to);
+  for (let n = 2; n <= doc.lines; n++) {
+    if (!blank(n) || blank(n - 1)) continue;
+    // A run of blank lines starts at n, after the paragraph on line n - 1.
+    let end = n;
+    while (end + 1 <= doc.lines && blank(end + 1)) end++;
     const above = doc.line(n - 1);
-    const below = doc.line(n + 1);
-    if (above.text.trim() === '' || below.text.trim() === '') continue;
-    // Blank lines inside a code block are part of the code.
-    if (code.some((c) => c.from < line.from && c.to > line.to)) continue;
-    builder.add(above.to, below.from, gapMark);
+    const below = end < doc.lines ? doc.line(end + 1) : null;
+    if (!inCode(n)) {
+      if (n === end && below) {
+        builder.add(above.to, below.from, gapMark);
+      } else if (n < end) {
+        // The first blank line after the paragraph, and, before a paragraph that follows,
+        // the last blank line before it.
+        builder.add(above.to, doc.line(n + 1).from, gapMark);
+        if (below) builder.add(doc.line(end - 1).to, below.from, gapMark);
+      }
+    }
+    n = end;
   }
   return builder.finish();
 }
