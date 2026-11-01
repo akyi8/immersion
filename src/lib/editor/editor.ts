@@ -234,7 +234,17 @@ const theme = EditorView.theme(
       color: 'var(--structure)',
       flexShrink: '0',
     },
-    '.cm-outline-text': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: '0' },
+    // The beat wraps, so a long one reads in full and never pushes the page sideways (Mike, November 1).
+    '.cm-outline-text': { whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: '0' },
+    '.cm-write-here': {
+      margin: '18px 0 0',
+      padding: '10px 0',
+      color: 'var(--muted)',
+      fontStyle: 'italic',
+      cursor: 'text',
+      borderTop: '1px dashed var(--line)',
+    },
+    '.cm-write-here:hover': { color: 'var(--text-soft)' },
     '.cm-properties': {
       fontFamily: 'var(--font-label)',
       fontSize: '11px',

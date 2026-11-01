@@ -13,6 +13,7 @@
   import { onMount } from 'svelte';
   import type { Thread } from '../../lib/story/threads';
   import type { EditorView } from '@codemirror/view';
+  import { startWriting } from '../../lib/editor/writeHere';
 
   /**
    * A piece of writing open in the Story module: a manuscript's title page, one of its
@@ -81,7 +82,16 @@
   let outlineFocus = $state<number | null>(null);
 
   // The beats beside the writing, switched from the document toolbar (Mike, October 26).
-  const aside = $derived(beats.on);
+  // A narrow pane has no room beside the writing, so there Beats opens the beats as a
+  // panel over the writing's edge, closed until asked for (Mike, November 1).
+  let roomWidth = $state(1000);
+  const narrow = $derived(roomWidth <= 760);
+  let peek = $state(false);
+  const aside = $derived(narrow ? peek : beats.on);
+  function toggleBeats() {
+    if (narrow) peek = !peek;
+    else beats.set(!beats.on);
+  }
   let editor = $state.raw<EditorView | null>(null);
   let cursor = $state(0);
 
@@ -158,7 +168,7 @@
     <span class="meta">{about.meta}</span>
     <!-- Beats sit in the pane's own row, beside what they describe (Mike, October 31). -->
     {#if about.kind === 'chapter' && source && mode === 'write'}
-      <button type="button" class="beats" class:on={beats.on} aria-pressed={beats.on} title="This chapter's beats, beside the writing" onclick={() => beats.set(!beats.on)}>Beats</button>
+      <button type="button" class="beats" class:on={aside} aria-pressed={aside} title="This chapter's beats, beside the writing" onclick={toggleBeats}>Beats</button>
     {/if}
     {#if owner?.place === 'drawer' && (about.kind === 'note' || about.kind === 'book')}
       <button type="button" class="action" onclick={() => onMoveTo(owner!, 'desk')}>Move to the desk</button>
@@ -219,9 +229,19 @@
         {/each}
       </nav>
     {:else}
-      <div class="room">
+      <div class="room" bind:clientWidth={roomWidth}>
       <div class="writing" class:with-aside={aside && !!source}>
-        <div class="book">
+        <!-- The page runs on below the writing, and a click anywhere under it starts typing at
+             the end, so a chapter with only its beat is never a sliver (Mike, November 1). -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="book"
+          onmousedown={(e) => {
+            if (editor && e.clientY > editor.contentDOM.getBoundingClientRect().bottom) {
+              e.preventDefault();
+              startWriting(editor);
+            }
+          }}>
           {#key id}
             <EntryEditor
               {fs}
@@ -281,12 +301,28 @@
     gap: 28px;
     align-items: start;
   }
+  .book {
+    min-height: 55vh;
+    cursor: text;
+  }
+  /* In a narrow pane there is no room beside the writing, so the beats open as a panel
+     over its right edge, and Beats closes it again (Mike, November 1). */
   @container (max-width: 760px) {
     .writing.with-aside {
-      display: block;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
     }
-    .writing.with-aside :global(.outline-aside) {
-      display: none;
+    .writing.with-aside > .book,
+    .writing.with-aside > :global(.outline-aside) {
+      grid-area: 1 / 1;
+    }
+    .writing.with-aside > :global(.outline-aside) {
+      justify-self: end;
+      width: min(280px, 85%);
+      z-index: 3;
+      background: var(--bg);
+      padding-right: 12px;
+      box-shadow: -18px 0 28px -16px var(--shadow);
     }
   }
   .views {

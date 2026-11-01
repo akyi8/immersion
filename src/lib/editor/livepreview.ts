@@ -1,6 +1,7 @@
 import { EditorState, RangeSet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
+import { hasNoProse, startWriting } from './writeHere';
 
 /**
  * Live preview. The file stays plain markdown, and this extension only changes how it
@@ -111,6 +112,29 @@ class OutlineWidget extends WidgetType {
   }
   eq(other: OutlineWidget) {
     return other.summary === this.summary && other.at === this.at && other.thread === this.thread;
+  }
+  ignoreEvent() {
+    return true;
+  }
+}
+
+/**
+ * A quiet "Start writing here" below a chapter that has only its beat so far, so it is
+ * clear where the writing goes (Mike, November 1). Clicking it starts the writing there.
+ */
+class WriteHereWidget extends WidgetType {
+  toDOM(view: EditorView) {
+    const el = document.createElement('div');
+    el.className = 'cm-write-here';
+    el.textContent = 'Start writing here';
+    el.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      startWriting(view);
+    });
+    return el;
+  }
+  eq() {
+    return true;
   }
   ignoreEvent() {
     return true;
@@ -346,6 +370,12 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
       }
     },
   });
+
+  // A chapter (one with a beat to fold) with no prose yet shows where the writing goes.
+  // A long chapter surely has prose, so it is not read again on every keystroke.
+  if (onOutline && doc.length < 4000 && hasNoProse(doc.toString())) {
+    marks.push(Decoration.widget({ widget: new WriteHereWidget(), block: true, side: 1 }).range(doc.length));
+  }
 
   return Decoration.set([...marks, ...lines], true);
 }
