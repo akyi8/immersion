@@ -454,6 +454,21 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
     },
   });
 
+  // Underlined text, written <u> and </u>, shows underlined with its tags hidden until
+  // the cursor reaches it (Mike, November 1).
+  if (doc.length < 400000) {
+    const text = doc.toString();
+    for (const m of text.matchAll(/<u>([^<\n]+?)<\/u>/g)) {
+      const from = m.index!;
+      const to = from + m[0].length;
+      marks.push(Decoration.mark({ class: 'cm-underline' }).range(from + 3, to - 4));
+      if (!touched(state, from, to)) {
+        marks.push(hide.range(from, from + 3));
+        marks.push(hide.range(to - 4, to));
+      }
+    }
+  }
+
   // A chapter (one with a beat to fold) with no prose yet shows where the writing goes.
   // A long chapter surely has prose, so it is not read again on every keystroke.
   if (onOutline && doc.length < 4000 && hasNoProse(doc.toString())) {

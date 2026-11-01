@@ -99,6 +99,7 @@ export function filesOf(m: Manuscript): string[] {
 export function countWords(markdown: string): number {
   const { body } = splitHeader(markdown);
   const text = withoutOutlines(body)
+    .replace(/<\/?u>/g, '')
     .replace(/\[!\w+\]/g, ' ')
     .replace(/\]\([^)]*\)/g, ' ')
     .replace(/[#>*_`~[\]|]/g, ' ');

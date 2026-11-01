@@ -209,6 +209,7 @@ const theme = EditorView.theme(
     '.cm-mention': { color: 'var(--name)', cursor: 'pointer' },
     '.cm-mention-open': { backgroundColor: 'var(--accent-wash)' },
     '.cm-md-link': { color: 'var(--structure)' },
+    '.cm-underline': { textDecoration: 'underline', textUnderlineOffset: '0.15em' },
     '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },
     '.cm-h2, .cm-h3, .cm-h4, .cm-h5, .cm-h6': {
       fontFamily: 'var(--font-label)',

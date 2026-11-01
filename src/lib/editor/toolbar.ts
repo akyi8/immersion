@@ -1,9 +1,9 @@
-import { EditorSelection, StateField, type EditorState, type Extension } from '@codemirror/state';
+import { EditorSelection, Prec, StateField, type EditorState, type Extension } from '@codemirror/state';
 import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view';
 
 /**
  * The selection toolbar (Mike, October 25). Selecting text shows a small bar above it
- * with the few things a writer does to a phrase: bold, italic, narrator-only text in a
+ * with the few things a writer does to a phrase: bold, italic, underline, narrator-only text in a
  * wiki entry, and making a new entry from a name. The markdown marks are written for
  * the writer, so nobody has to know them.
  */
@@ -14,21 +14,26 @@ export interface ToolbarOptions {
   onMakeEntry?: (name: string) => void;
 }
 
-/** Wraps the selection in `mark`, or removes the mark when the selection already has it. */
-export function toggleMark(view: EditorView, mark: string): boolean {
+/**
+ * Wraps the selection in `mark`, or removes the mark when the selection already has it.
+ * Underline has no markdown of its own, so it is written `<u>` and `</u>`, which the
+ * reading view and other markdown editors understand (Mike, November 1).
+ */
+export function toggleMark(view: EditorView, mark: string, close: string = mark): boolean {
   const { state } = view;
   view.dispatch(
     state.changeByRange((range) => {
       const n = mark.length;
+      const m = close.length;
       const before = state.sliceDoc(range.from - n, range.from);
-      const after = state.sliceDoc(range.to, range.to + n);
+      const after = state.sliceDoc(range.to, range.to + m);
       // A single * next to ** is part of bold, not italic.
-      const wrapped = before === mark && after === mark && !(n === 1 && (state.sliceDoc(range.from - 2, range.from) === '**' || state.sliceDoc(range.to, range.to + 2) === '**'));
+      const wrapped = before === mark && after === close && !(mark === '*' && (state.sliceDoc(range.from - 2, range.from) === '**' || state.sliceDoc(range.to, range.to + 2) === '**'));
       if (wrapped) {
         return {
           changes: [
             { from: range.from - n, to: range.from },
-            { from: range.to, to: range.to + n },
+            { from: range.to, to: range.to + m },
           ],
           range: EditorSelection.range(range.from - n, range.to - n),
         };
@@ -36,7 +41,7 @@ export function toggleMark(view: EditorView, mark: string): boolean {
       return {
         changes: [
           { from: range.from, insert: mark },
-          { from: range.to, insert: mark },
+          { from: range.to, insert: close },
         ],
         range: EditorSelection.range(range.from + n, range.to + n),
       };
@@ -45,6 +50,8 @@ export function toggleMark(view: EditorView, mark: string): boolean {
   );
   return true;
 }
+
+const underline = (view: EditorView) => toggleMark(view, '<u>', '</u>');
 
 /** Turns the selected paragraphs into a narrator-only callout, or back into plain text. */
 export function toggleNarrator(view: EditorView): boolean {
@@ -105,6 +112,8 @@ export function selectionToolbar(options: ToolbarOptions): Extension {
           dom.lastElementChild!.classList.add('bold');
           dom.append(button('I', 'Italic (Cmd-I or Ctrl-I)', () => toggleMark(view, '*')));
           dom.lastElementChild!.classList.add('italic');
+          dom.append(button('U', 'Underline (Cmd-U or Ctrl-U)', () => underline(view)));
+          dom.lastElementChild!.classList.add('underline');
           if (options.narrator) dom.append(button('Narrator only', 'Hide this from the protagonist view', () => toggleNarrator(view)));
           const name = nameIn(view.state);
           if (options.onMakeEntry && name) dom.append(button('Make an entry', `Start a wiki entry for ${name}`, () => options.onMakeEntry!(name)));
@@ -117,10 +126,15 @@ export function selectionToolbar(options: ToolbarOptions): Extension {
 
   return [
     bar,
-    keymap.of([
-      { key: 'Mod-b', run: (view) => toggleMark(view, '**') },
-      { key: 'Mod-i', run: (view) => toggleMark(view, '*') },
-    ]),
+    // Ahead of the editor's own keys, where Mod-i selects the surrounding block and
+    // Mod-u undoes a selection, so these always format (Mike, November 1).
+    Prec.high(
+      keymap.of([
+        { key: 'Mod-b', run: (view) => toggleMark(view, '**') },
+        { key: 'Mod-i', run: (view) => toggleMark(view, '*') },
+        { key: 'Mod-u', run: underline },
+      ]),
+    ),
     EditorView.theme({
       '.cm-tooltip.cm-tooltip-above:has(.cm-selbar), .cm-tooltip:has(.cm-selbar)': { border: '0', background: 'transparent' },
       '.cm-selbar': {
@@ -146,6 +160,7 @@ export function selectionToolbar(options: ToolbarOptions): Extension {
       '.cm-selbar button:hover': { background: 'var(--structure-deep)', color: 'var(--structure-soft)' },
       '.cm-selbar .bold': { fontWeight: '700' },
       '.cm-selbar .italic': { fontStyle: 'italic' },
+      '.cm-selbar .underline': { textDecoration: 'underline' },
     }),
   ];
 }
