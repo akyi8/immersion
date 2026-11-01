@@ -3,6 +3,7 @@ import { splitHeader, type World } from '../world';
 import { parseEntry, plainText } from './parse';
 import { MentionScanner, type Term } from './scanner';
 import { parseWhen, type When } from '../time/when';
+import { readFrame, readShape, type Frame, type Shape } from './frame';
 
 /**
  * The index of a world's wiki (architecture decision 1). It is built from the files
@@ -22,6 +23,11 @@ export interface Entry {
   when: When | null;
   /** An era: a span of time whose events belong to it (Mike, October 25). */
   era: boolean;
+  /** Whether the picture shows as a portrait or a banner, when the entry overrides its category. */
+  picture?: Shape | null;
+  /** How the picture is framed as a portrait and as a banner (Mike, November 1). */
+  portraitFrame?: Frame | null;
+  bannerFrame?: Frame | null;
 }
 
 export interface Folder {
@@ -130,6 +136,9 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         imagePath: image ? `${path}/${image}` : null,
         when: parseWhen(header.when),
         era: header.era === true && !!parseWhen(header.when),
+        picture: readShape(header.picture),
+        portraitFrame: readFrame(header.portrait_frame),
+        bannerFrame: readFrame(header.banner_frame),
       });
       folder.entries.push(childPath);
     }

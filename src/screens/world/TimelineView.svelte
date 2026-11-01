@@ -154,7 +154,7 @@
           {#each m.events as e (e.id)}
             <div class="event">
               <button type="button" class="face" onclick={() => onOpen(e.id)} aria-label="Open {e.name}">
-                <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
+                <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" frame={e.portraitFrame} />
               </button>
               <div class="about">
                 <button type="button" class="name" onclick={() => onOpen(e.id)}>{e.name}</button>

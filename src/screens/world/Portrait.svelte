@@ -1,6 +1,13 @@
 <script lang="ts">
-  // An entry's image, or its initials on a plain tile when it has none yet.
-  let { url, name, size = 'card' }: { url: string | null; name: string; size?: 'card' | 'large' | 'face' } = $props();
+  import { frameStyle, type Frame } from '../../lib/index/frame';
+
+  // An entry's image, framed as the entry says, or its initials on a plain tile when it has none yet.
+  let {
+    url,
+    name,
+    size = 'card',
+    frame = null,
+  }: { url: string | null; name: string; size?: 'card' | 'large' | 'face'; frame?: Frame | null } = $props();
 
   const initials = $derived(
     name
@@ -15,7 +22,7 @@
 
 <div class="portrait {size}">
   {#if url}
-    <img src={url} alt="" />
+    <img src={url} alt="" style={frameStyle(frame)} />
   {:else}
     <span aria-hidden="true">{initials}</span>
   {/if}
@@ -47,7 +54,6 @@
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
   }
   span {
     font-family: var(--font-display);

@@ -5,6 +5,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { openedTimes } from '../../lib/recent';
   import { dropImage } from '../../lib/drop';
+  import { frameStyle } from '../../lib/index/frame';
 
   // What the World module shows before any entry is open: every category and its entries.
   // An empty category still shows, with a way to start it, so a new world is never blank.
@@ -75,7 +76,7 @@
     <div class="faces" aria-label="Faces">
       {#each faces as e (e.id)}
         <button type="button" class="face" onclick={() => nav.open(e.id)} title={e.summary}>
-          <img src={fs.imageUrl(e.imagePath!)} alt="" loading="lazy" />
+          <span class="pic"><img src={fs.imageUrl(e.imagePath!)} alt="" loading="lazy" style={frameStyle(e.portraitFrame)} /></span>
           <span class="face-name">{e.name}</span>
           {#if e.summary}<span class="face-line">{e.summary}</span>{/if}
         </button>
@@ -224,15 +225,20 @@
     box-shadow: var(--lift);
     text-align: left;
   }
+  /* The picture keeps its own framing, and the slow lean in on hover moves its holder. */
+  .pic {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transition: transform 600ms var(--ease, ease);
+  }
   .face img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     display: block;
-    transition: transform 600ms var(--ease, ease);
   }
-  .face:hover img,
-  .face:focus-visible img {
+  .face:hover .pic,
+  .face:focus-visible .pic {
     transform: scale(1.04);
   }
   /* The name sits on a darkening at the foot of the picture, the first line rises on hover. */

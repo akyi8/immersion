@@ -123,7 +123,7 @@
         {@const e = index.get(id)}
         {#if e}
           <button type="button" class="face" title="Open {e.name}" onclick={() => onOpen(id)}>
-            <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" />
+            <Portrait url={e.imagePath ? fs.imageUrl(e.imagePath) : null} name={e.name} size="face" frame={e.portraitFrame} />
             <span>{e.name}</span>
           </button>
         {/if}
