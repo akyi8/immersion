@@ -95,6 +95,17 @@
     }
   }
 
+  /** Flips the picture between portrait and banner from the entry's ⋯ (Mike, November 1). */
+  async function setShape(to: Shape) {
+    pictureProblem = '';
+    try {
+      await saveNow(id);
+      await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category) ? undefined : to }));
+    } catch (e) {
+      pictureProblem = e instanceof Error ? e.message : String(e);
+    }
+  }
+
   // One listener handles every automatic link in the body.
   function onclick(event: MouseEvent) {
     const link = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
@@ -121,7 +132,18 @@
   <div class="row">
     <EntryDate {fs} {entry} editable={view === 'narrator'} />
     <span class="spacer"></span>
-    {#if view === 'narrator' && onMoved}<EntryActions {fs} {index} {entry} {onMoved} {onWindow} />{/if}
+    {#if view === 'narrator' && onMoved}
+      <EntryActions
+        {fs}
+        {index}
+        {entry}
+        {onMoved}
+        {onWindow}
+        {shape}
+        onShape={setShape}
+        onFrame={() => ((framingProblem = ''), (framing = true))}
+        onAddPicture={async () => setPicture(await pickImage())} />
+    {/if}
   </div>
   {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
 {/snippet}

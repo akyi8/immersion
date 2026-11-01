@@ -15,6 +15,10 @@
     onMoved,
     onWindow,
     button = true,
+    shape = null,
+    onShape,
+    onFrame,
+    onAddPicture,
   }: {
     fs: WorldFs;
     index: WikiIndex;
@@ -25,6 +29,11 @@
     onWindow?: () => void;
     /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
     button?: boolean;
+    /** How the entry's picture shows now, so the menu can offer the other shape (Mike, November 1). */
+    shape?: 'portrait' | 'banner' | null;
+    onShape?: (shape: 'portrait' | 'banner') => void;
+    onFrame?: () => void;
+    onAddPicture?: () => void;
   } = $props();
 
   let open = $state(false);
@@ -100,6 +109,16 @@
     <div class="menu" role="menu">
       {#if onWindow}
         <button type="button" role="menuitem" onclick={() => ((open = false), onWindow())}>Open in a new window</button>
+      {/if}
+      {#if entry.imagePath && shape && onShape}
+        <button type="button" role="menuitem" onclick={() => ((open = false), onShape(shape === 'banner' ? 'portrait' : 'banner'))}>
+          {shape === 'banner' ? 'Show the picture as a portrait' : 'Show the picture as a banner'}
+        </button>
+      {/if}
+      {#if entry.imagePath && onFrame}
+        <button type="button" role="menuitem" onclick={() => ((open = false), onFrame())}>Frame the picture…</button>
+      {:else if !entry.imagePath && onAddPicture}
+        <button type="button" role="menuitem" onclick={() => ((open = false), onAddPicture())}>Add a picture…</button>
       {/if}
       <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
       <button type="button" role="menuitem" onclick={() => start('names')}>Other names</button>
