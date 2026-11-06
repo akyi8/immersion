@@ -44,7 +44,7 @@ test('events sort into moments and eras band over them', () => {
 });
 
 test('eras that hand off share their boundary year with the era that begins in it', () => {
-  // Sin Angeles' generations, which chain end to start (Mike, October 31).
+  // Generations that chain end to start, as a world's eras often do (Mike, October 31).
   const t = buildTimeline([
     entry('Boomer', '1985 to 2000', true),
     entry('Gen X', '2000 to 2015', true),

@@ -7,7 +7,7 @@ export interface Findable {
   /** What it is, shown beside its name, such as Entry or Chapter. */
   kind: string;
   name: string;
-  /** Where it is or what it belongs to, such as People or The Wreckage. */
+  /** Where it is or what it belongs to, such as People or The Tide Letter. */
   detail: string;
   /** Other names that find it too, such as an entry's aliases. */
   also?: string[];

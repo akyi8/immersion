@@ -101,7 +101,7 @@ const YOU_FILE: &str = "immersion.md";
 const NOT_WORLDS: [&str; 7] = ["node_modules", "target", "dist", "build", "archive", "old", "export"];
 
 /// How many folders down the library is searched for worlds. Mike keeps some worlds
-/// inside project folders, such as The M Files four folders down (Mike, October 28).
+/// inside project folders, such as a world four folders down (Mike, October 28).
 const LIBRARY_DEPTH: usize = 6;
 
 /// Every world in the library: any folder up to six levels down with a `world.md`. A
@@ -199,7 +199,7 @@ fn remember(app: &AppHandle, path: &str) {
 
 const IMAGE_EXTENSIONS: [&str; 4] = ["jpg", "jpeg", "png", "webp"];
 
-/// The image that belongs to a file stem, such as `world` or `wiki/people/cerys`.
+/// The image that belongs to a file stem, such as `world` or `wiki/people/wren`.
 fn image_for(stem: &Path) -> Option<PathBuf> {
     IMAGE_EXTENSIONS.iter().map(|ext| stem.with_extension(ext)).find(|p| p.is_file())
 }
@@ -1333,29 +1333,29 @@ mod tests {
     fn the_library_finds_worlds_deep_down_and_skips_the_rest() {
         let lib = std::env::temp_dir().join(format!("immersion-library-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&lib);
-        for dir in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", ".git/x", "bear/oddfish/leviathan/m-files", "deep/a/b/c/d/e/f", "notes"] {
+        for dir in ["harbor", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", ".git/x", "attic/drafts/series/tide-letters", "deep/a/b/c/d/e/f", "notes"] {
             std::fs::create_dir_all(lib.join(dir)).unwrap();
         }
-        for world in ["project-sc", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", "bear/oddfish/leviathan/m-files", "deep/a/b/c/d/e/f"] {
+        for world in ["harbor", "games/ashfall", "games/ashfall/wiki", "node_modules/pkg", "attic/drafts/series/tide-letters", "deep/a/b/c/d/e/f"] {
             std::fs::write(lib.join(world).join("world.md"), "# A world\n").unwrap();
         }
         let found = library_worlds(&lib);
-        assert_eq!(found, vec![lib.join("bear/oddfish/leviathan/m-files"), lib.join("games").join("ashfall"), lib.join("project-sc")]);
+        assert_eq!(found, vec![lib.join("attic/drafts/series/tide-letters"), lib.join("games").join("ashfall"), lib.join("harbor")]);
 
         let elsewhere = "/somewhere/else/world".to_string();
         let settings = Settings {
             library: Some(lib.to_string_lossy().into_owned()),
-            worlds: vec![lib.join("project-sc").to_string_lossy().into_owned(), elsewhere.clone()],
+            worlds: vec![lib.join("harbor").to_string_lossy().into_owned(), elsewhere.clone()],
             hidden: vec![lib.join("games").join("ashfall").to_string_lossy().into_owned()],
             ..Default::default()
         };
-        let m_files = lib.join("bear/oddfish/leviathan/m-files").to_string_lossy().into_owned();
-        assert_eq!(shelf_paths(&settings), vec![(m_files, false), (lib.join("project-sc").to_string_lossy().into_owned(), false), (elsewhere.clone(), true)]);
+        let deep_world = lib.join("attic/drafts/series/tide-letters").to_string_lossy().into_owned();
+        assert_eq!(shelf_paths(&settings), vec![(deep_world, false), (lib.join("harbor").to_string_lossy().into_owned(), false), (elsewhere.clone(), true)]);
         // The world opened most recently comes first.
         let mut recent = settings;
         recent.opened.insert(elsewhere.clone(), 5);
         assert_eq!(shelf_paths(&recent)[0], (elsewhere.clone(), true));
-        assert!(super::on_shelf(&recent, &lib.join("project-sc").to_string_lossy()));
+        assert!(super::on_shelf(&recent, &lib.join("harbor").to_string_lossy()));
         let _ = std::fs::remove_dir_all(&lib);
     }
 
@@ -1542,15 +1542,15 @@ mod tests {
         let parked = std::env::temp_dir().join(format!("{}{}-test.png", super::STASH_PREFIX, std::process::id()));
         std::fs::write(&parked, b"png").unwrap();
         assert!(super::is_stash(&parked));
-        let placed = place_image(&dir.join("cerys"), &parked).unwrap();
+        let placed = place_image(&dir.join("wren"), &parked).unwrap();
         assert_eq!(std::fs::read(&placed).unwrap(), b"png");
         assert!(!parked.exists());
         // A picture chosen from disk stays where it was.
         let chosen = dir.join("chosen.jpg");
         std::fs::write(&chosen, b"jpg").unwrap();
         assert!(!super::is_stash(&chosen));
-        place_image(&dir.join("cerys"), &chosen).unwrap();
-        assert!(chosen.exists() && !dir.join("cerys.png").exists());
+        place_image(&dir.join("wren"), &chosen).unwrap();
+        assert!(chosen.exists() && !dir.join("wren.png").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

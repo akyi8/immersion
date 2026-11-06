@@ -1,21 +1,65 @@
 # Immersion
 
-Immersion is a desktop app for solo tabletop roleplaying, worldbuilding, and writing fiction. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with git.
+Immersion is a desktop app for worldbuilding, writing fiction, and solo tabletop roleplaying. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with Git.
 
-Immersion is early in development. Today it keeps a shelf of worlds, makes new ones with starter folders, and turns any folder of writing into a world by adding a `world.md`. Inside a world it presents the wiki: every entry is readable and editable, names that match other entries become links that open side by side as sliding panes, a working-set sidebar gathers the people and places around the open entry, and back and forward work across the app. Entries and folders can be created in the app, edits save on their own, and changes made in other programs appear immediately. The Story module holds the writing: a binder of declared manuscripts with their chapters and word counts, a drawer of every other piece sorted by when it was last touched, and a drafting mode that hides everything but the page. Outlines, an activity heatmap, and a play module with an AI narrator follow.
+Immersion is in active development. The World, Story, and Boards modules work today. Play, which will run solo roleplaying sessions with an AI narrator, comes next, and the Character module is still being designed.
+
+## What it does
+
+### The library and the Worlds page
+
+A library is one folder that holds a writer's worlds. The app asks where the library lives on first run, finds every world in it up to six folders deep, and lists them on the Worlds page with their cover pictures. Any folder of writing becomes a world when it gains a `world.md`, and the app can create a new world with starter categories for people, places, factions, and history.
+
+When the library is a Git repository, Immersion keeps it in sync. It commits and syncs an open world every five minutes, three minutes after typing stops, whenever the app comes back to the front, and when the world closes. The header shows how many files are waiting to go out and how many are waiting to come in, and a button syncs at once.
+
+### World
+
+The World module is the wiki. Every entry is a markdown file, and any name that matches another entry becomes a link. Linked entries open side by side as sliding panes, and a sidebar gathers the people and places around the open entry. The World home page opens with a band of faces: every entry with a picture, people first, with the ones opened most recently at the front.
+
+Each entry can carry a picture. The writer frames the picture by dragging and zooming it, and the picture file itself is never changed. People show their picture as a portrait, and places, factions, and other entries show theirs as a banner across the top of the entry, with the name over it. Any entry can switch between the two.
+
+The wiki has two views. Narrator view shows everything. Protagonist view hides passages marked as the narrator's secrets, so the wiki can be shown to players without giving anything away.
+
+### Story
+
+The Story module holds the writing, sorted into three places: the drawer for ideas, the desk for work in progress, and the shelf for finished work. A piece of writing is either a note, which is a single file, or a manuscript, which is a folder of chapters with a title page. Title pages carry the subtitle, series, author, and copyright, and can draw the author from a shared author profile.
+
+The writing view is a live markdown editor. Markdown marks stay hidden until the cursor reaches them, names from the wiki link as they are typed, and a selection bar offers bold, italic, underline, and making a new wiki entry from a name. Each chapter's beat, its plan in a sentence or two, folds above the prose, and a Beats panel shows the chapter's beats on every thread beside the writing. Drafting mode hides everything but the page.
+
+The vault keeps private stories encrypted. One passphrase unlocks every world's vault. The passphrase becomes a key through Argon2id, the stories are encrypted with AES-256-GCM, and a computer can remember the key in its own keychain. Real World is a journal world that the app creates for the writer, and its stories live in the vault.
+
+### Boards
+
+The Boards module draws the plan of the world as grids, with time or order along one side and threads along the other:
+
+- **The timeline** sets every dated wiki entry in order, with eras drawn as bands beside the events inside them.
+- **A manuscript's board** has one card per chapter, with its beat on each thread.
+- **A series board** has one card per book, so a series can be planned before its books are written.
+
+A board can carry a story structure, such as Kishōtenketsu, the Story Circle, or four acts. The board then groups its cards by the structure's parts, and guidance for each structure is a click away. Cards can be dragged, moved by name from a right-click menu, and edited in place.
+
+### Across the app
+
+- **Quick finder.** Ctrl or Cmd K finds any entry, chapter, board, or action in the open world.
+- **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
+- **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.
 
 ## What a world looks like
 
-A world is any folder that contains a `world.md` file:
+A world is any folder that contains a `world.md`:
 
 ```
-my-world/
-  world.md        name, tagline, and which folders hold the wiki and stories
-  world.jpg       the loading-screen image (PNG, JPEG, or WebP)
-  wiki/           one markdown file per entry, in category folders
+harrowgate/
+  world.md          the world's name, tagline, and folders
+  world.jpg         the cover picture
+  wiki/             one markdown file per entry, in category folders
     people/
+      wren-okafor.md
+      wren-okafor.jpg
     places/
-  stories/        manuscripts
+  stories/          the desk: work in progress
+    ideas/          the drawer
+    finished/       the shelf
 ```
 
 `world.md` starts with a YAML header:
@@ -29,21 +73,24 @@ stories: stories
 ---
 ```
 
-An image beside an entry with the same name, such as `wren-okafor.png` next to `wren-okafor.md`, becomes that entry's portrait. Aliases come from a YAML `aliases:` list or a `**Aliases:** a, b` line. A passage written as a `> [!narrator]` callout is shown in Narrator view and hidden in Protagonist view.
+[docs/world-format.md](docs/world-format.md) describes every file and header field the app reads, including entries, pictures and framing, dates and eras, manuscripts, beats and threads, series, and story structures.
 
 ## Building
 
 - `npm install` installs the frontend dependencies.
-- `npm run dev` serves the app in a browser at http://localhost:1420 with a built-in demo world.
+- `npm run dev` serves the app in a browser at http://localhost:1420, with Harrowgate, a small built-in demo world.
 - `npm test` runs the unit tests, and `npm run check` type-checks the code.
+- `cargo test` in `src-tauri/` runs the Rust tests.
 - `npx tauri dev` runs the desktop app. It needs Rust and, on Linux, the WebKitGTK development libraries.
 - `npx tauri build` builds an installer for the current platform. Release builds sign their update files, so a local build needs the update key in `TAURI_SIGNING_PRIVATE_KEY`, or `--config '{"bundle":{"createUpdaterArtifacts":false}}'` to skip signing.
 
-GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. The app checks for a newer release when it starts and offers to install it. Updates are signed with the project's update key, and the app refuses any update not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
+## Releases
+
+GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. Updates are signed with the project's update key, and the app refuses any update that is not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
 
 ## Stack
 
-Tauri 2 with a small Rust backend, Svelte 5 and TypeScript for the screens, and Vite. Fonts are bundled: Bebas Neue, Atkinson Hyperlegible, and IBM Plex Mono.
+Tauri 2 with a Rust backend, Svelte 5 and TypeScript for the screens, CodeMirror 6 for the editor, and Vite. Fonts are bundled, so every theme works offline.
 
 ## License
 
