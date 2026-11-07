@@ -2,7 +2,7 @@
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
   import { account } from '../lib/account.svelte';
-  import { BOARD_FONTS, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
+  import { BOARD_FONTS, MODULES, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
   import { zoom } from '../lib/zoom.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import { sync } from '../lib/sync.svelte';
@@ -124,6 +124,25 @@
         </label>
         <p class="hint">Seen through frosted glass, so only its colors come through.</p>
       {/if}
+      <h3 class="label">Modules</h3>
+      <p class="hint">The modules shown along the top. World, Boards, and Story are on from the start.</p>
+      <div class="modules">
+        {#each MODULES as [id, name, about]}
+          {@const on = account.look.modules.includes(id)}
+          <label class="check module">
+            <input
+              type="checkbox"
+              checked={on}
+              disabled={on && account.look.modules.length === 1}
+              onchange={(e) => {
+                const want = (e.currentTarget as HTMLInputElement).checked;
+                const modules = MODULES.map(([m]) => m).filter((m) => (m === id ? want : account.look.modules.includes(m)));
+                run(() => account.saveLook({ ...account.look, modules }));
+              }} />
+            <span><strong>{name}</strong> <span class="about">{about}</span></span>
+          </label>
+        {/each}
+      </div>
       <h3 class="label">Arriving</h3>
       <label class="check">
         <input type="checkbox" checked={account.look.autoEnter} onchange={(e) => run(() => account.saveLook({ ...account.look, autoEnter: (e.currentTarget as HTMLInputElement).checked }))} />
@@ -476,6 +495,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .modules {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .check.module {
+    align-items: baseline;
+  }
+  .check.module .about {
+    color: var(--muted);
+    font-size: calc(13px * var(--type));
   }
   .row {
     display: flex;

@@ -1,5 +1,5 @@
 import type { Library, LibraryInfo } from './library/types';
-import { DEFAULT_LOOK, readYou, withLook, withProfiles, type Look, type Profile } from './you.ts';
+import { DEFAULT_LOOK, moduleList, readYou, withLook, withProfiles, type Look, type Profile } from './you.ts';
 import { splitHeader, withHeader } from './world.ts';
 import type { KeyParams } from './vault/crypto.ts';
 
@@ -16,7 +16,7 @@ const LOOK_KEY = 'immersion.look';
 function localLook(): Look {
   try {
     const saved = JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null') as Partial<Look> | null;
-    if (saved) return { ...DEFAULT_LOOK, ...saved, layout: saved.layout === 'soft' ? 'soft' : 'classic', backdrop: saved.backdrop !== false, autoEnter: saved.autoEnter !== false };
+    if (saved) return { ...DEFAULT_LOOK, ...saved, layout: saved.layout === 'soft' ? 'soft' : 'classic', backdrop: saved.backdrop !== false, autoEnter: saved.autoEnter !== false, modules: moduleList(saved.modules) };
   } catch {
     // Nothing kept, or nothing readable.
   }

@@ -18,6 +18,12 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[derive(Default)]
 struct OpenWorld(Mutex<Option<PathBuf>>);
 
+/// The engine folder the open world's game is built on, if any (Mike, November 7). It
+/// lives in the library beside the worlds, holds the core elements every game shares, and
+/// is read and written through its own commands so a world never reaches outside itself.
+#[derive(Default)]
+struct OpenEngine(Mutex<Option<PathBuf>>);
+
 /// Watches the open world folder. Dropping it stops the watching.
 #[derive(Default)]
 struct WorldWatcher(Mutex<Option<RecommendedWatcher>>);
@@ -322,9 +328,10 @@ fn sync_in_background(app: &AppHandle, root: Option<PathBuf>) {
         return;
     }
     let you = you_file(app);
+    let engine = engine_path(app);
     in_background(move || {
         let name = root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        let _ = sync_folder(&root, &name, you.as_deref());
+        let _ = sync_with_engine(&root, &name, you.as_deref(), engine.as_deref());
     });
 }
 
@@ -696,9 +703,66 @@ async fn sync_library(app: AppHandle) -> Result<SyncReport, String> {
 /// repository, such as a Claude session's unfinished work, are never committed. A
 /// conflict stops the sync and is reported, and nothing is merged by guesswork.
 fn sync_folder(root: &Path, name: &str, you: Option<&Path>) -> SyncReport {
+    sync_with_engine(root, name, you, None)
+}
+
+/// Syncs a world, `immersion.md`, and the engine its game is built on, in one commit.
+fn sync_with_engine(root: &Path, name: &str, you: Option<&Path>, engine: Option<&Path>) -> SyncReport {
     let mut specs = vec![".".to_string()];
     specs.extend(you.and_then(|f| repo_spec(root, f)));
+    specs.extend(engine.filter(|e| e.is_dir()).and_then(|e| repo_relative(root, e)).map(|rel| format!(":(top,literal){rel}")));
     sync_paths(root, &specs, &format!("Immersion: {name}"))
+}
+
+fn engine_path(app: &AppHandle) -> Option<PathBuf> {
+    app.state::<OpenEngine>().0.lock().unwrap().clone()
+}
+
+/// Opens the engine a world's game names, given as a path from the library's top, such
+/// as `games/example-engine`, or closes it with none. The engine must be inside the
+/// library and hold an `engine.md`.
+#[tauri::command]
+fn open_engine(rel: Option<String>, state: State<OpenEngine>, app: AppHandle) -> Result<(), String> {
+    let Some(rel) = rel.filter(|r| !r.trim().is_empty()) else {
+        *state.0.lock().unwrap() = None;
+        return Ok(());
+    };
+    let Some(lib) = load_settings(&app).library.map(PathBuf::from) else {
+        *state.0.lock().unwrap() = None;
+        return Err("The engine is found through the library, and this computer has no library yet.".to_string());
+    };
+    let folder = inside(&lib, &rel)?;
+    if !folder.join("engine.md").is_file() {
+        *state.0.lock().unwrap() = None;
+        return Err(format!("{rel} has no engine.md, so it is not an engine folder"));
+    }
+    *state.0.lock().unwrap() = Some(folder);
+    Ok(())
+}
+
+fn engine_root(state: &State<OpenEngine>) -> Result<PathBuf, String> {
+    state.0.lock().unwrap().clone().ok_or_else(|| "No engine is open".to_string())
+}
+
+#[tauri::command]
+fn engine_read_text(rel: String, state: State<OpenEngine>) -> Result<String, String> {
+    let path = inside(&engine_root(&state)?, &rel)?;
+    fs::read_to_string(&path).map_err(|e| format!("Could not read {rel}: {e}"))
+}
+
+#[tauri::command]
+fn engine_read_dir(rel: String, state: State<OpenEngine>) -> Result<Vec<DirEntry>, String> {
+    list_dir(&inside(&engine_root(&state)?, &rel)?, &rel)
+}
+
+#[tauri::command]
+fn engine_exists(rel: String, state: State<OpenEngine>) -> bool {
+    engine_root(&state).and_then(|r| inside(&r, &rel)).map(|p| p.exists()).unwrap_or(false)
+}
+
+#[tauri::command]
+fn engine_write_text(rel: String, content: String, state: State<OpenEngine>) -> Result<(), String> {
+    save_file(&inside(&engine_root(&state)?, &rel)?, &rel, content)
 }
 
 /// Syncs the library's `immersion.md` alone, for when it changes with no world open, and
@@ -769,7 +833,8 @@ async fn sync_world(name: String, state: State<'_, OpenWorld>, app: AppHandle) -
     }
     let root = root(&state)?;
     let you = you_file(&app);
-    tauri::async_runtime::spawn_blocking(move || sync_folder(&root, &name, you.as_deref())).await.map_err(|e| e.to_string())
+    let engine = engine_path(&app);
+    tauri::async_runtime::spawn_blocking(move || sync_with_engine(&root, &name, you.as_deref(), engine.as_deref())).await.map_err(|e| e.to_string())
 }
 
 /// Syncs `immersion.md` now and says how it went.
@@ -1076,8 +1141,11 @@ fn read_text(rel: String, state: State<OpenWorld>) -> Result<String, String> {
 
 #[tauri::command]
 fn read_dir(rel: String, state: State<OpenWorld>) -> Result<Vec<DirEntry>, String> {
-    let path = inside(&root(&state)?, &rel)?;
-    let entries = fs::read_dir(&path).map_err(|e| format!("Could not list {rel}: {e}"))?;
+    list_dir(&inside(&root(&state)?, &rel)?, &rel)
+}
+
+fn list_dir(path: &Path, rel: &str) -> Result<Vec<DirEntry>, String> {
+    let entries = fs::read_dir(path).map_err(|e| format!("Could not list {rel}: {e}"))?;
     Ok(entries
         .filter_map(Result::ok)
         .map(|entry| {
@@ -1098,7 +1166,11 @@ fn read_dir(rel: String, state: State<OpenWorld>) -> Result<Vec<DirEntry>, Strin
 /// the original, so the file on disk is always either the old version or the new one.
 #[tauri::command]
 fn write_text(rel: String, content: String, state: State<OpenWorld>) -> Result<(), String> {
-    let path = inside(&root(&state)?, &rel)?;
+    save_file(&inside(&root(&state)?, &rel)?, &rel, content)
+}
+
+fn save_file(path: &Path, rel: &str, content: String) -> Result<(), String> {
+    let path = path.to_path_buf();
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("Could not create the folder for {rel}: {e}"))?;
     }
@@ -1212,7 +1284,7 @@ pub fn run() {
                 if let Some(root) = open {
                     if load_settings(app).git_sync {
                         let name = root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                        let _ = sync_folder(&root, &name, you_file(app).as_deref());
+                        let _ = sync_with_engine(&root, &name, you_file(app).as_deref(), engine_path(app).as_deref());
                     }
                 }
             }
@@ -1225,6 +1297,7 @@ pub fn run() {
         // left to open fresh.
         .plugin(tauri_plugin_window_state::Builder::new().with_filter(|label| label == "main").build())
         .manage(OpenWorld::default())
+        .manage(OpenEngine::default())
         .manage(WorldWatcher::default())
         .register_uri_scheme_protocol("world", |ctx, request| {
             serve_world_file(ctx.app_handle(), request.uri().path())
@@ -1262,6 +1335,11 @@ pub fn run() {
             write_world_md,
             writing_activity,
             sync_world,
+            open_engine,
+            engine_read_text,
+            engine_read_dir,
+            engine_exists,
+            engine_write_text,
             vault_list,
             vault_read,
             vault_write,
@@ -1465,6 +1543,15 @@ mod tests {
         assert_eq!(sync_folder(&world, "Ashfall", Some(&you)).state, "synced");
         let last = g(&here, &["show", "--name-only", "--pretty=format:%s", "HEAD"]);
         assert!(last.contains("immersion.md") && last.contains("ashfall/world.md") && !last.contains("notes.md"));
+
+        // A world's sync carries the engine its game is built on, beside it in the library.
+        let engine = here.join("games").join("example-engine");
+        std::fs::create_dir_all(engine.join("elements")).unwrap();
+        std::fs::write(engine.join("engine.md"), "# Example Engine\n").unwrap();
+        std::fs::write(engine.join("elements").join("rope.md"), "---\nname: Rope\n---\n").unwrap();
+        assert_eq!(super::sync_with_engine(&world, "Ashfall", Some(&you), Some(&engine)).state, "synced");
+        let last = g(&here, &["show", "--name-only", "--pretty=format:%s", "HEAD"]);
+        assert!(last.contains("games/example-engine/engine.md") && last.contains("games/example-engine/elements/rope.md") && !last.contains("notes.md"));
 
         // With no world open, immersion.md syncs alone.
         std::fs::write(&you, "---\nlayout: classic\n---\n").unwrap();

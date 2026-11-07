@@ -1,3 +1,4 @@
+import type { GameFs } from '../game/game';
 import { MemoryFs } from '../fs/memory';
 import { imageExtension, type ImageSource, type Pending, type SyncReport, type WorldFs } from '../fs/types';
 import { describeWorld } from '../world';
@@ -18,9 +19,20 @@ export class MemoryLibrary implements Library {
   private library: LibraryInfo = { path: null, asked: false, gitSync: true, isGit: true };
   private you: string | null = null;
 
-  constructor(sample: MemoryFs) {
+  private engines: Record<string, MemoryFs>;
+
+  /**
+   * `extra` holds more worlds for the shelf, by path, and `engines` the engines their games
+   * are built on, by their path from the library's top.
+   */
+  constructor(sample: MemoryFs, extra: Record<string, MemoryFs> = {}, engines: Record<string, MemoryFs> = {}) {
+    this.engines = engines;
     this.worlds.set('/worlds/sample', sample);
     this.shelf.push('/worlds/sample');
+    for (const [path, fs] of Object.entries(extra)) {
+      this.worlds.set(path, fs);
+      this.shelf.push(path);
+    }
     this.lastOpen = '/worlds/sample';
     this.folders.set(
       '/notes/old-campaign',
@@ -56,6 +68,13 @@ export class MemoryLibrary implements Library {
   async open(path: string): Promise<WorldFs> {
     this.lastOpen = path;
     return this.worlds.get(path)!;
+  }
+
+  async openEngine(rel: string | null): Promise<GameFs | null> {
+    if (!rel) return null;
+    const engine = this.engines[rel];
+    if (!engine) throw new Error(`${rel} has no engine.md, so it is not an engine folder`);
+    return engine;
   }
 
   async close(): Promise<void> {

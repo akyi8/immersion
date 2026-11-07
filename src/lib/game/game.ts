@@ -1,0 +1,131 @@
+import { readElement, readGameFile, readKind, type Element, type Kind } from './elements.ts';
+import { withHeader } from '../world.ts';
+import type { DirEntry } from '../fs/types';
+
+/**
+ * A game as the Game module shows it (Mike, November 7): the engine's elements and the
+ * world's own, put together. Core elements appear in every game, except the ones a world
+ * sets aside or reskins. A world records those choices in its own folder, never on the
+ * core element, so the engine stays the same for every game built on it.
+ */
+
+/** The few file operations a game needs, which a world's files and an engine's both offer. */
+export interface GameFs {
+  readText(path: string): Promise<string>;
+  readDir(path: string): Promise<DirEntry[]>;
+  exists(path: string): Promise<boolean>;
+  writeText(path: string, content: string): Promise<void>;
+}
+
+export type Origin = 'engine' | 'world';
+
+export interface Source {
+  origin: Origin;
+  name: string;
+  fs: GameFs;
+  /** The folder inside `fs` that holds `kinds/` and `elements/`: '' for an engine, `game` for a world. */
+  dir: string;
+}
+
+export interface Placed {
+  /** Unique across the game: origin, kind, and file id, such as `engine:technique/public-exposure`. */
+  key: string;
+  origin: Origin;
+  element: Element;
+  /** A core element this world sets aside, which stays visible but leaves the game. */
+  setAside: boolean;
+  /** For a core element: the world's reskin that takes its place. */
+  reskinnedBy: Placed | null;
+  /** For a reskin: the core element whose mechanics it uses. */
+  base: Placed | null;
+}
+
+export interface Game {
+  engine: Source | null;
+  world: Source;
+  kinds: Map<string, Kind & { origin: Origin }>;
+  elements: Placed[];
+  setAside: Set<string>;
+}
+
+/** An element's reference within its folder, as `game.md` and `reskins:` write it: `kind/id`. */
+export const refOf = (e: Element) => `${e.kind}/${e.id}`;
+
+const join = (dir: string, path: string) => (dir ? `${dir}/${path}` : path);
+
+async function listMd(fs: GameFs, dir: string): Promise<string[]> {
+  if (!(await fs.exists(dir))) return [];
+  return (await fs.readDir(dir)).filter((d) => !d.isDir && /\.md$/i.test(d.name) && !d.name.startsWith('.')).map((d) => d.name);
+}
+
+async function readSource(src: Source): Promise<{ kinds: Kind[]; elements: Element[] }> {
+  const kinds: Kind[] = [];
+  for (const name of await listMd(src.fs, join(src.dir, 'kinds'))) {
+    kinds.push(readKind(name.replace(/\.md$/i, ''), await src.fs.readText(join(src.dir, `kinds/${name}`))));
+  }
+  const elements: Element[] = [];
+  const root = join(src.dir, 'elements');
+  if (await src.fs.exists(root)) {
+    for (const folder of (await src.fs.readDir(root)).filter((d) => d.isDir && !d.name.startsWith('.'))) {
+      for (const name of await listMd(src.fs, `${root}/${folder.name}`)) {
+        const rel = `elements/${folder.name}/${name}`;
+        elements.push(readElement(rel, await src.fs.readText(join(src.dir, rel))));
+      }
+    }
+  }
+  return { kinds, elements };
+}
+
+export async function loadGame(engine: Source | null, world: Source): Promise<Game> {
+  const e = engine ? await readSource(engine) : { kinds: [], elements: [] };
+  const w = await readSource(world);
+  const gameFile = (await world.fs.exists(join(world.dir, 'game.md'))) ? await world.fs.readText(join(world.dir, 'game.md')) : null;
+  const setAside = new Set(readGameFile(gameFile).setAside);
+
+  // The engine's kinds come first. A world adds kinds of its own but never redefines one.
+  const kinds = new Map<string, Kind & { origin: Origin }>();
+  for (const k of e.kinds) kinds.set(k.id, { ...k, origin: 'engine' });
+  for (const k of w.kinds) if (!kinds.has(k.id)) kinds.set(k.id, { ...k, origin: 'world' });
+
+  const placed: Placed[] = [
+    ...e.elements.map((el): Placed => ({ key: `engine:${refOf(el)}`, origin: 'engine', element: el, setAside: setAside.has(refOf(el)), reskinnedBy: null, base: null })),
+    ...w.elements.map((el): Placed => ({ key: `world:${refOf(el)}`, origin: 'world', element: el, setAside: false, reskinnedBy: null, base: null })),
+  ];
+  const core = new Map(placed.filter((p) => p.origin === 'engine').map((p) => [refOf(p.element), p]));
+  for (const p of placed) {
+    if (p.origin !== 'world' || !p.element.reskins) continue;
+    const base = core.get(p.element.reskins);
+    if (base) {
+      p.base = base;
+      base.reskinnedBy = p;
+    }
+  }
+  placed.sort((a, b) => a.element.name.localeCompare(b.element.name));
+  return { engine, world, kinds, elements: placed, setAside };
+}
+
+/**
+ * What an element says in this game. A reskin takes its name and flavor from the world
+ * and every mechanic from the core element, so a fix to the core reaches every reskin.
+ */
+export function effective(p: Placed): Element {
+  if (!p.base) return p.element;
+  const core = p.base.element;
+  return { ...core, path: p.element.path, id: p.element.id, name: p.element.name, flavor: p.element.flavor, reskins: p.element.reskins };
+}
+
+/** Whether an element is part of the game being played, rather than set aside or replaced. */
+export const inPlay = (p: Placed) => !p.setAside && !p.reskinnedBy;
+
+/** The source an element is written to. */
+export const sourceOf = (game: Game, p: Placed): Source => (p.origin === 'engine' && game.engine ? game.engine : game.world);
+
+export function pathIn(src: Source, path: string): string {
+  return join(src.dir, path);
+}
+
+/** The new text of `game.md` with this set-aside list, keeping anything else in it. */
+export function gameFileWith(source: string | null, setAside: string[]): string {
+  const base = source ?? "# Game\n\nThis world's choices about its engine's core elements. Immersion keeps this file.\n";
+  return withHeader(base, { set_aside: setAside.length ? setAside : undefined });
+}

@@ -20,15 +20,22 @@ test('author profiles round-trip through immersion.md', () => {
 
 test('the layout is kept in immersion.md, beside the profiles', () => {
   const start = withProfiles(null, [{ id: 'mara-vell', author: 'Mara Vell', copyright: '' }]);
-  assert.deepEqual(readYou(start).look, { layout: 'classic', backdrop: true, autoEnter: true, boardFont: 'theme' });
-  const soft = withLook(start, { layout: 'soft', backdrop: true, autoEnter: true, boardFont: 'theme' });
+  assert.deepEqual(readYou(start).look, { layout: 'classic', backdrop: true, autoEnter: true, boardFont: 'theme', modules: ['world', 'boards', 'story'] });
+  const soft = withLook(start, { layout: 'soft', backdrop: true, autoEnter: true, boardFont: 'theme', modules: ['world', 'boards', 'story'] });
   assert.match(soft, /layout: soft/);
   assert.doesNotMatch(soft, /backdrop/);
   assert.equal(readYou(soft).profiles[0].author, 'Mara Vell');
-  const plain = withLook(soft, { layout: 'soft', backdrop: false, autoEnter: false, boardFont: 'cabin' });
-  assert.deepEqual(readYou(plain).look, { layout: 'soft', backdrop: false, autoEnter: false, boardFont: 'cabin' });
+  const plain = withLook(soft, { layout: 'soft', backdrop: false, autoEnter: false, boardFont: 'cabin', modules: ['world', 'story', 'game'] });
+  assert.deepEqual(readYou(plain).look, { layout: 'soft', backdrop: false, autoEnter: false, boardFont: 'cabin', modules: ['world', 'story', 'game'] });
+  assert.match(plain, /modules:/);
   assert.match(plain, /board_font: cabin/);
   assert.match(plain, /enter: wait/);
   // Classic with the picture on is what a file with neither line means.
-  assert.doesNotMatch(withLook(plain, DEFAULT_LOOK), /layout|backdrop|enter|board_font/);
+  assert.doesNotMatch(withLook(plain, DEFAULT_LOOK), /layout|backdrop|enter|board_font|modules/);
+});
+
+test('modules keep header order, drop unknown names, and never leave the header empty', () => {
+  const text = withLook(null, { ...DEFAULT_LOOK, modules: ['story', 'game', 'world'] });
+  assert.deepEqual(readYou(text).look.modules, ['world', 'story', 'game']);
+  assert.deepEqual(readYou(withProfiles(null, []).replace('# Immersion', '---\nmodules: [nonsense]\n---\n# Immersion')).look.modules, ['world', 'boards', 'story']);
 });

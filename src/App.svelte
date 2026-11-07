@@ -197,8 +197,12 @@
       const { DiskLibrary } = await import('./lib/library/disk');
       library = new DiskLibrary();
     } else {
-      const [{ MemoryLibrary }, { sampleWorld }] = await Promise.all([import('./lib/library/memory'), import('./lib/sample')]);
-      library = new MemoryLibrary(sampleWorld());
+      const [{ MemoryLibrary }, { sampleWorld }, game] = await Promise.all([import('./lib/library/memory'), import('./lib/sample'), import('./lib/sample/game')]);
+      const trial = game.trialGame();
+      library = new MemoryLibrary(sampleWorld(), trial ? { '/worlds/game-trial': trial.world } : {}, {
+        [game.SAMPLE_ENGINE]: game.sampleEngine(),
+        ...(trial ? { [trial.engine]: trial.engineFs } : {}),
+      });
     }
     await account.attach(library);
     updates.start();
@@ -240,6 +244,9 @@
     onShowShelf={showShelf}
     onTheme={editTheme}
     onDetails={editDetails}
+    engineRel={world.engine}
+    gameDir={world.gameDir}
+    openEngine={(rel) => (library ? library.openEngine(rel) : Promise.resolve(null))}
   />
   {#if detailsFor && library}
     <WorldDetails

@@ -1,3 +1,4 @@
+import type { GameFs } from '../game/game';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { DiskFs } from '../fs/disk';
@@ -41,6 +42,13 @@ export class DiskLibrary implements Library {
   async open(path: string): Promise<WorldFs> {
     await invoke('open_world', { path });
     return new DiskFs(path);
+  }
+
+  async openEngine(rel: string | null): Promise<GameFs | null> {
+    await invoke('open_engine', { rel });
+    if (!rel) return null;
+    const { EngineFs } = await import('../fs/engine');
+    return new EngineFs();
   }
 
   close(): Promise<void> {

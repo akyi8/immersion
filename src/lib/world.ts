@@ -16,6 +16,10 @@ export interface World {
   journal: boolean;
   /** True when the journal keeps a page for each day. Off unless the writer turns it on. */
   daily: boolean;
+  /** The engine this world's game is built on, as a path from the library's top, or ''. */
+  engine: string;
+  /** The folder that holds this world's own game elements (Mike, November 7). */
+  gameDir: string;
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -50,6 +54,8 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     theme: themeFrom(header),
     journal: header.journal === true,
     daily: header.daily === true,
+    engine: text(header.engine, ''),
+    gameDir: text(header.game, 'game'),
   };
 }
 

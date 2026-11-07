@@ -16,12 +16,13 @@ The examples use Harrowgate, the small demo world that the browser build opens. 
 8. [Formatting](#8-formatting)
 9. [Files the app keeps for itself](#9-files-the-app-keeps-for-itself)
 10. [Editing a world while the app is open](#10-editing-a-world-while-the-app-is-open)
+11. [Games: engines and elements](#11-games-engines-and-elements)
 
 ## 1. The library
 
 A library is one folder that holds a writer's worlds. Immersion asks for its location the first time it runs, and the Worlds page lists every world it finds there. The app looks for worlds up to six folders deep, so a world can sit inside a project folder. It skips hidden folders, `node_modules`, and any folder inside a world.
 
-The library's root can hold `immersion.md`, which belongs to the app. That file stores the writer's author profiles, the vault's key settings, and per-writer choices such as layout. When the library is a Git repository, `immersion.md` syncs along with the worlds, so those choices follow the writer to other computers.
+The library's root can hold `immersion.md`, which belongs to the app. That file stores the writer's author profiles, the vault's key settings, and per-writer choices such as layout and which modules the header shows. When the library is a Git repository, `immersion.md` syncs along with the worlds, so those choices follow the writer to other computers.
 
 ## 2. A world
 
@@ -43,6 +44,7 @@ stories: stories
 - `profile:` names the author profile that new manuscripts in this world use.
 - `series_threads:` and `series_structures:` belong to series boards, which section 6 describes.
 - `journal:` and `daily:` mark the writer's journal world, which the app creates and manages.
+- `engine:` names the engine this world's game is built on, as the engine folder's path from the top of the library. `game:` names the folder that holds the world's own game elements, and defaults to `game`. Section 11 describes both.
 
 A picture named `world.jpg`, `world.png`, or `world.webp` beside `world.md` is the world's cover. The app shows the cover on the Worlds page and on the world's loading screen, and can blur it behind the world as a glass backdrop.
 
@@ -287,3 +289,117 @@ Immersion watches the world's folder while it runs. A file changed in another pr
 When the library is a Git repository, the app also commits and syncs each open world. It commits everything in the world's folder, together with `immersion.md`, then pulls and pushes. It does so every five minutes, three minutes after typing stops, whenever the app comes back to the front, and when the world closes. Its commits are named `Immersion: <world name>`.
 
 That sync has one consequence for any other tool writing into an open world. A file that is only half written can be committed by the app and reach other computers. A tool should therefore write each file whole in one step, pull before it starts, and commit promptly when it finishes.
+
+## 11. Games: engines and elements
+
+The Game module holds a tabletop game's rules as separate elements, one markdown file each. An element is one aspect, such as a piece of gear or a need, or one rule, such as a keyword. The module is off until the writer turns it on in Settings.
+
+A game is built on an engine. The engine holds the core elements, which appear in every game built on it. Each world's game adds elements of its own, and can set aside or reskin core elements from its own side, so the engine stays the same for every game.
+
+### The engine folder
+
+An engine is a folder anywhere in the library that holds an `engine.md`. It is not a world, so it never appears on the Worlds page:
+
+```
+games/example-engine/
+  engine.md                 the engine's name
+  kinds/
+    gear.md                 the shape of a kind: its fields and their order
+    need.md
+  elements/
+    gear/
+      rope.md               one element
+      lantern.md
+    need/
+      rest.md
+```
+
+A world points at its engine with `engine: games/example-engine` in its `world.md`. While the world is open, the app reads and writes the engine folder beside it, and Git sync carries the engine's changes in the same commit as the world's.
+
+### A world's game folder
+
+A world keeps its own game in its game folder, `game/` unless `world.md` names another:
+
+```
+harrowgate/
+  world.md
+  game/
+    game.md                 the world's choices about core elements
+    kinds/                  kinds the world brings, if any
+    elements/
+      gear/
+        salt-knife.md
+        storm-lamp.md
+      vendor/
+        the-chandler.md
+```
+
+A world can bring kinds of its own, such as a magic system, in its `kinds/` folder. A world never redefines a kind its engine already has.
+
+### Kinds
+
+Each kind's shape file lists the fields every element of that kind carries, and the order its parts print in:
+
+```markdown
+---
+name: Gear
+fields:
+  - { key: availability, label: Availability, type: line }
+  - { key: rules, label: Rules, type: list }
+  - { key: burned, label: Burned, type: text }
+layout: [ availability, flavor, rules, burned ]
+---
+
+What a protagonist carries.
+```
+
+A field's type decides how the app edits it. A `line` field is one line, a `text` field is a paragraph, and a `list` field holds one item a line, such as an element's rules. The `layout` places the element's flavor, its body text, among its fields. The body of the shape file says what the kind is.
+
+### Elements
+
+An element's structured fields live in its header, and its flavor text is its body:
+
+```markdown
+---
+name: Salt Knife
+kind: gear
+tags: [ harbor, gear, weapon ]
+vendor: the-chandler
+availability: "2"
+rules:
+  - "**Weapon** *(clears no trouble)*."
+burned: Rusted to the handle.
+---
+
+A dock knife with a cork grip, so it floats.
+```
+
+- `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
+- `tags` says where the element belongs and what it is. A `core` tag marks an engine's element.
+- `vendor` names the id of the vendor element that sells it, in the same world.
+- Every other key is one of the kind's fields.
+
+### Setting aside and reskinning
+
+A world records its choices about core elements on its own side. Its `game.md` lists the core elements it sets aside, each written as kind and id:
+
+```yaml
+---
+set_aside:
+  - need/rest
+---
+```
+
+A reskin is a world's element that names a core element in `reskins:`. It carries only a new name and new flavor. Its mechanics are read from the core element, so a change to the core element reaches every reskin of it, and the core element itself leaves that world's game:
+
+```markdown
+---
+name: Storm Lamp
+kind: gear
+tags: [ harbor, gear, tool ]
+reskins: gear/lantern
+---
+
+A brass lamp that stays lit in the narrows' wind.
+```
+

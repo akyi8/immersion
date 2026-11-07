@@ -1,5 +1,6 @@
 import { MemoryFs } from '../fs/memory';
 import worldImage from './world.jpg';
+import { SAMPLE_ENGINE, SAMPLE_GAME } from './game';
 
 /**
  * Harrowgate, a small demo world for browser testing. It exists only to exercise the
@@ -17,10 +18,12 @@ name: Harrowgate
 tagline: A harbor town · demo world
 wiki: wiki
 stories: stories
+engine: ${SAMPLE_ENGINE}
 ---
 
 # Harrowgate
 `,
+    ...SAMPLE_GAME,
     'world.jpg': worldImage,
     'wiki/people/wren-okafor.md': `# Marta "Wren" Okafor
 

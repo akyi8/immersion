@@ -9,3 +9,4 @@ src/lib/sample/full.generated.json
 
 # Screenshots from testing never belong in the repository.
 /*.png
+src/lib/sample/game.generated.json

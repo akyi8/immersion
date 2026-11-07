@@ -2,7 +2,7 @@
 
 Immersion is a desktop app for worldbuilding, writing fiction, and solo tabletop roleplaying. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with Git.
 
-Immersion is in active development. The World, Story, and Boards modules work today. Play, which will run solo roleplaying sessions with an AI narrator, comes next, and the Character module is still being designed.
+Immersion is in active development. The World, Story, and Boards modules work today, and a first version of the Game module holds a tabletop game's rules. Play, which will run solo roleplaying sessions with an AI narrator, comes next, and the Character module is still being designed.
 
 ## What it does
 
@@ -38,10 +38,15 @@ The Boards module draws the plan of the world as grids, with time or order along
 
 A board can carry a story structure, such as Kishōtenketsu, the Story Circle, or four acts. The board then groups its cards by the structure's parts, and guidance for each structure is a click away. Cards can be dragged, moved by name from a right-click menu, and edited in place.
 
+### Game
+
+The Game module holds a tabletop game's rules as separate elements: each aspect and each rule is one file with its own fields, edited as a form. A game is built on an engine, whose core elements appear in every game built on it. Each world adds elements of its own, brings new kinds of element if it needs them, and can set aside or reskin a core element, giving it a new name and flavor while keeping its mechanics. The module is off until it is turned on in Settings.
+
 ### Across the app
 
 - **Quick finder.** Ctrl or Cmd K finds any entry, chapter, board, or action in the open world.
 - **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
+- **Modules.** Settings show or hide each module in the header. World, Boards, and Story are on from the start, and Character, Play, and Game wait until they are turned on.
 - **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.
 
 ## What a world looks like
@@ -73,7 +78,7 @@ stories: stories
 ---
 ```
 
-[docs/world-format.md](docs/world-format.md) describes every file and header field the app reads, including entries, pictures and framing, dates and eras, manuscripts, beats and threads, series, and story structures.
+[docs/world-format.md](docs/world-format.md) describes every file and header field the app reads, including entries, pictures and framing, dates and eras, manuscripts, beats and threads, series, story structures, and game engines and elements.
 
 ## Building
 

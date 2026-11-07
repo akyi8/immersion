@@ -12,6 +12,10 @@
   import BoardsModule from './boards/BoardsModule.svelte';
   import UpdateButton from './UpdateButton.svelte';
   import Finder from './Finder.svelte';
+  import { account } from '../lib/account.svelte';
+  import { MODULES } from '../lib/you';
+  import GameModule from './game/GameModule.svelte';
+  import type { GameFs } from '../lib/game/game';
 
   let {
     index,
@@ -25,6 +29,9 @@
     onShowShelf,
     onTheme,
     onDetails,
+    engineRel = '',
+    gameDir = 'game',
+    openEngine = async () => null,
   }: {
     index: WikiIndex | null;
     fs: WorldFs;
@@ -40,6 +47,10 @@
     onTheme: () => void;
     /** Opens the world's name and tagline. */
     onDetails: () => void;
+    /** The engine this world's game is built on, as a path from the library's top. */
+    engineRel?: string;
+    gameDir?: string;
+    openEngine?: (rel: string | null) => Promise<GameFs | null>;
   } = $props();
 
   const nav = new Navigator();
@@ -89,20 +100,21 @@
     }
   }
 
-  const TABS: [Module, string][] = [
-    ['character', 'Character'],
-    ['play', 'Play'],
-    ['world', 'World'],
-    ['boards', 'Boards'],
-    ['story', 'Story'],
-  ];
+  // The header shows the modules the writer has turned on in Settings (Mike, November 7).
+  const TABS = $derived(MODULES.filter(([id]) => account.look.modules.includes(id)).map(([id, label]) => [id, label] as [Module, string]));
   const COMING: Record<Module, string> = {
     character: 'The Character module gets its own design session first.',
-    play: 'Play is built after World and Story.',
+    play: 'Play is built after the Game module.',
     story: '',
     world: '',
     boards: '',
+    game: '',
   };
+  // A module switched off while it is on screen gives way to the first one still shown.
+  $effect(() => {
+    const shown = TABS.map(([id]) => id);
+    if (shown.length && !shown.includes(nav.current.module) && !(journal && nav.current.module === 'story')) nav.show(shown[0]);
+  });
 
   // Real World opens on its journal (Mike, October 26).
   onMount(() => {
@@ -199,6 +211,8 @@
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}
+  {:else if nav.current.module === 'game'}
+    <GameModule {fs} {nav} {worldName} {engineRel} {gameDir} {openEngine} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}

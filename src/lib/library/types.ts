@@ -1,3 +1,4 @@
+import type { GameFs } from '../game/game';
 import type { ImageSource, Pending, SyncReport, WorldFs } from '../fs/types';
 
 /**
@@ -44,6 +45,11 @@ export interface Library {
   last(): Promise<string | null>;
   /** Opens a world on the shelf and returns its files. */
   open(path: string): Promise<WorldFs>;
+  /**
+   * Opens the engine a world's game is built on, named by its path from the library's top,
+   * or closes it with null (Mike, November 7). Returns null when there is no engine.
+   */
+  openEngine(rel: string | null): Promise<GameFs | null>;
   /** Closes the open world. It stays on the shelf. */
   close(): Promise<void>;
   /** Takes a world off the shelf. Its files are untouched. */

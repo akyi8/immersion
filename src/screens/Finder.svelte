@@ -9,6 +9,7 @@
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
   import { sync } from '../lib/sync.svelte';
+  import { account } from '../lib/account.svelte';
 
   /**
    * The quick finder (Mike, October 31). Typing finds any entry, manuscript, note,
@@ -49,7 +50,9 @@
     run();
   };
 
-  const actions: Findable[] = [
+  // Only the modules the header shows are offered (Mike, November 7).
+  const shown = (m: string) => account.look.modules.includes(m as never);
+  const allActions: Findable[] = [
     { kind: 'Go to', name: 'World', detail: 'The wiki', run: go(() => nav.show('world')) },
     { kind: 'Go to', name: 'Story', detail: 'Desk, drawer, and shelf', run: go(() => nav.show('story')) },
     { kind: 'Go to', name: 'Boards', detail: 'Timeline, series, and manuscripts', run: go(() => nav.show('boards')) },
@@ -61,6 +64,7 @@
     { kind: 'Open', name: 'Loading screen', detail: "This world's picture", run: go(() => onShowLoading()) },
     { kind: 'Do', name: 'Sync now', detail: 'Git', run: go(() => sync.retry()) },
   ];
+  const actions = allActions.filter((a) => a.kind !== 'Go to' || !['World', 'Story', 'Boards'].includes(a.name) || shown(a.name.toLowerCase()));
 
   const entries: Findable[] = $derived(
     index

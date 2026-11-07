@@ -30,16 +30,43 @@ export interface Look {
   autoEnter: boolean;
   /** The face of the text on boards: the world's prose font, or a condensed one (Mike, October 31). */
   boardFont: BoardFont;
+  /** The modules the header shows, in header order. */
+  modules: ModuleId[];
 }
 
 export type BoardFont = 'theme' | 'cabin' | 'plex';
+
+/**
+ * The modules the header shows (Mike, November 7). World, Boards, and Story are on from
+ * the start. Character, Play, and Game serve fewer writers, so each waits until the
+ * writer turns it on in Settings.
+ */
+export type ModuleId = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game';
+export const MODULES: [ModuleId, string, string][] = [
+  ['character', 'Character', 'Protagonists for play. Still being designed.'],
+  ['play', 'Play', 'Solo sessions with a narrator. Coming after the Game module.'],
+  ['world', 'World', "The world's wiki."],
+  ['boards', 'Boards', 'The timeline, series boards, and manuscript boards.'],
+  ['story', 'Story', 'The desk, the drawer, and the shelf.'],
+  ['game', 'Game', "A game's rules, kept as separate elements, for writing a tabletop game."],
+];
+export const DEFAULT_MODULES: ModuleId[] = ['world', 'boards', 'story'];
 export const BOARD_FONTS: [BoardFont, string, string][] = [
   ['theme', "The world's prose font", ''],
   ['cabin', 'Cabin Condensed', "'Cabin Condensed', sans-serif"],
   ['plex', 'IBM Plex Sans Condensed', "'IBM Plex Sans Condensed', sans-serif"],
 ];
 
-export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true, autoEnter: true, boardFont: 'theme' };
+export const DEFAULT_LOOK: Look = { layout: 'classic', backdrop: true, autoEnter: true, boardFont: 'theme', modules: [...DEFAULT_MODULES] };
+
+/** A list of modules in header order, keeping only real ones, or the defaults when none is left. */
+export function moduleList(value: unknown): ModuleId[] {
+  const wanted = Array.isArray(value) ? value.map(String) : [];
+  const list = MODULES.map(([id]) => id).filter((id) => wanted.includes(id));
+  return list.length ? list : [...DEFAULT_MODULES];
+}
+
+const sameModules = (a: ModuleId[], b: ModuleId[]) => a.length === b.length && a.every((m, i) => m === b[i]);
 
 export interface You {
   profiles: Profile[];
@@ -54,6 +81,7 @@ export function readLook(header: Record<string, unknown>): Look {
     backdrop: header.backdrop !== false,
     autoEnter: header.enter !== 'wait',
     boardFont: header.board_font === 'cabin' || header.board_font === 'plex' ? header.board_font : 'theme',
+    modules: moduleList(header.modules),
   };
 }
 
@@ -79,6 +107,7 @@ export function withLook(source: string | null, look: Look): string {
     backdrop: look.backdrop ? undefined : false,
     enter: look.autoEnter ? undefined : 'wait',
     board_font: look.boardFont === 'theme' ? undefined : look.boardFont,
+    modules: sameModules(look.modules, DEFAULT_MODULES) ? undefined : look.modules,
   });
 }
 
