@@ -42,6 +42,8 @@ A board can carry a story structure, such as Kishōtenketsu, the Story Circle, o
 
 The Game module holds a tabletop game's rules as separate elements: each aspect and each rule is one file with its own fields, edited as a form. A game is built on an engine, whose core elements appear in every game built on it. Each world adds elements of its own, brings new kinds of element if it needs them, and can set aside or reskin a core element, giving it a new name and flavor while keeping its mechanics. The module is off until it is turned on in Settings.
 
+A game's rulebook is kept as a book of chapters and modules. A module is one major rule, or a major rule with a few minor ones. A core module has two pieces, shown side by side: the engine's text, which every game built on the engine prints, and the world's add-on, which holds the world's own rules and examples. A world's own modules have only the world's piece. The Game sidebar lists the book's chapters in order, and each piece saves a moment after typing stops.
+
 ### Across the app
 
 - **Quick finder.** Ctrl or Cmd K finds any entry, chapter, board, or action in the open world.

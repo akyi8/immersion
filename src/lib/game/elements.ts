@@ -34,6 +34,8 @@ export interface Kind {
   layout: string[];
   /** What the kind is, from the shape file's body. */
   about: string;
+  /** What an element's body is called in the form, such as Text for a module. Flavor when unsaid. */
+  body?: string;
 }
 
 export interface Element {
@@ -138,7 +140,9 @@ export function readKind(id: string, source: string): Kind {
   }
   const name = text(header.name) || id;
   const layout = Array.isArray(header.layout) ? header.layout.map(text).filter(Boolean) : ['flavor', ...fields.map((f) => f.key)];
-  return { id, name, plural: text(header.plural) || name, fields, layout, about: body.trim() };
+  const kind: Kind = { id, name, plural: text(header.plural) || name, fields, layout, about: body.trim() };
+  if (text(header.body)) kind.body = text(header.body);
+  return kind;
 }
 
 /** Writes a kind's shape file. */
@@ -157,6 +161,7 @@ export function writeKind(k: Kind): string {
   const layout = doc.createNode(k.layout);
   layout.flow = true;
   doc.set('layout', layout);
+  if (k.body) doc.set('body', k.body);
   return `---\n${doc.toString({ lineWidth: 0 }).trim()}\n---\n${k.about ? `\n${k.about}\n` : ''}`;
 }
 

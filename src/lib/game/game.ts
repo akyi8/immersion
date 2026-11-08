@@ -1,5 +1,5 @@
 import { readElement, readGameFile, readKind, type Element, type Kind } from './elements.ts';
-import { withHeader } from '../world.ts';
+import { splitHeader, withHeader } from '../world.ts';
 import type { DirEntry } from '../fs/types';
 
 /**
@@ -40,12 +40,51 @@ export interface Placed {
   base: Placed | null;
 }
 
+/** A book's chapters in order, by reference, such as `engine:chapter/3-rolling-for-trouble`. */
+export interface Book {
+  name: string;
+  chapters: string[];
+}
+
 export interface Game {
   engine: Source | null;
   world: Source;
   kinds: Map<string, Kind & { origin: Origin }>;
   elements: Placed[];
   setAside: Set<string>;
+  /** The engine's book, which is the base game, and the world's own book (Mike, November 8). */
+  books: { engine: Book | null; world: Book | null };
+  /** The world's piece of each core module, by the module it extends, such as `module/the-edge`. */
+  addOns: Map<string, Placed>;
+}
+
+/** One item of a chapter, as the book view shows it. */
+export type BookItem =
+  | { type: 'heading'; text: string }
+  | { type: 'module'; placed: Placed; hasWorldPiece: boolean }
+  | { type: 'element'; placed: Placed; kindName: string }
+  | { type: 'missing'; ref: string };
+
+/** A chapter's items, resolved: modules, catalog elements, and `heading:` lines. */
+export function chapterItems(game: Game, chapter: Placed, byKey: Map<string, Placed>): BookItem[] {
+  const list = chapter.element.fields.items;
+  return (Array.isArray(list) ? list : []).map((ref): BookItem => {
+    if (ref.startsWith('heading:')) return { type: 'heading', text: ref.slice(8).trim() };
+    // A reference without engine: or world: points into the chapter's own folder.
+    const key = /^(engine|world):/.test(ref) ? ref : `${chapter.origin}:${ref}`;
+    const p = byKey.get(key);
+    if (!p) return { type: 'missing', ref };
+    if (p.element.kind === 'module') return { type: 'module', placed: p, hasWorldPiece: game.addOns.has(refOf(p.element)) };
+    return { type: 'element', placed: p, kindName: game.kinds.get(p.element.kind)?.name ?? p.element.kind };
+  });
+}
+
+/** Reads a `book.md`: its name and its chapters in order. */
+export function readBook(source: string | null): Book | null {
+  if (!source) return null;
+  const { header } = splitHeader(source);
+  const chapters = Array.isArray(header.chapters) ? header.chapters.map((c) => String(c).trim()).filter(Boolean) : [];
+  return { name: typeof header.name === 'string' ? header.name : 'Book', chapters };
 }
 
 /** An element's reference within its folder, as `game.md` and `reskins:` write it: `kind/id`. */
@@ -101,7 +140,13 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
     }
   }
   placed.sort((a, b) => a.element.name.localeCompare(b.element.name));
-  return { engine, world, kinds, elements: placed, setAside };
+  const addOns = new Map<string, Placed>();
+  for (const p of placed) {
+    const extendsRef = p.origin === 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
+    if (typeof extendsRef === 'string' && extendsRef) addOns.set(extendsRef, p);
+  }
+  const bookOf = async (src: Source | null) => (src && (await src.fs.exists(join(src.dir, 'book.md'))) ? readBook(await src.fs.readText(join(src.dir, 'book.md'))) : null);
+  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns };
 }
 
 /**

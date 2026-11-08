@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { readElement, readKind, writeElement, writeKind, newElement, type Kind } from './elements.ts';
-import { effective, gameFileWith, inPlay, loadGame } from './game.ts';
+import { chapterItems, effective, gameFileWith, inPlay, loadGame } from './game.ts';
 
 const gear: Kind = {
   id: 'gear',
@@ -64,4 +64,43 @@ test('a game is the core elements plus the world, minus what the world sets asid
   assert.equal(lamp.flavor, 'A lamp for the narrows.');
   assert.equal(lamp.fields.burned, 'Shattered.', 'mechanics come from the core element');
   assert.match(gameFileWith(await world.readText('game/game.md'), []), /^# Game/);
+});
+
+test('a book lists its chapters, and a world piece is found by the module it extends', async () => {
+  const engine = new MemoryFs({
+    'engine.md': '# Example Engine\n',
+    'book.md': '---\nname: Example Engine\nchapters:\n  - engine:chapter/rolling\n---\n',
+    'elements/chapter/rolling.md': '---\nname: Rolling\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - engine:module/the-edge\n---\n\nHow a roll works.\n',
+    'elements/module/the-edge.md': '---\nname: The Edge\nkind: module\ntags: [ core, module ]\n---\n\nYour edge starts at 7.\n',
+  });
+  const world = new MemoryFs({
+    'world.md': '---\nname: Harrowgate\n---\n',
+    'game/book.md': '---\nname: Harrowgate\nchapters:\n  - engine:chapter/rolling\n  - world:chapter/the-harbor\n---\n',
+    'game/elements/add-on/the-edge.md': '---\nname: The Edge\nkind: add-on\ntags: [ harbor, add-on ]\nextends: module/the-edge\n---\n\n*Wren climbs the pier.*\n',
+  });
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Harrowgate', fs: world, dir: 'game' });
+  assert.deepEqual(game.books.engine?.chapters, ['engine:chapter/rolling']);
+  assert.deepEqual(game.books.world?.chapters, ['engine:chapter/rolling', 'world:chapter/the-harbor']);
+  assert.equal(game.addOns.get('module/the-edge')?.element.flavor, '*Wren climbs the pier.*');
+});
+
+test('a chapter resolves its items, reading a bare reference in its own folder', async () => {
+  const engine = new MemoryFs({
+    'engine.md': '# Example Engine\n',
+    'elements/chapter/rolling.md': '---\nname: Rolling\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/the-edge\n  - "heading: Tools"\n  - engine:gear/rope\n  - module/gone\n---\n',
+    'elements/module/the-edge.md': '---\nname: The Edge\nkind: module\ntags: [ core, module ]\n---\n\nYour edge starts at 7.\n',
+    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\ntags: [ core, gear ]\n---\n',
+  });
+  const world = new MemoryFs({
+    'world.md': '---\nname: Harrowgate\n---\n',
+    'game/elements/add-on/the-edge.md': '---\nname: The Edge\nkind: add-on\ntags: [ add-on ]\nextends: module/the-edge\n---\n\n*Wren climbs the pier.*\n',
+  });
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Harrowgate', fs: world, dir: 'game' });
+  const byKey = new Map(game.elements.map((p) => [p.key, p]));
+  const chapter = byKey.get('engine:chapter/rolling')!;
+  const items = chapterItems(game, chapter, byKey);
+  assert.deepEqual(
+    items.map((i) => (i.type === 'heading' ? `heading ${i.text}` : i.type === 'missing' ? `missing ${i.ref}` : i.type === 'module' ? `module ${i.placed.element.name} ${i.hasWorldPiece}` : `element ${i.placed.element.name}`)),
+    ['module The Edge true', 'heading Tools', 'element Rope', 'missing module/gone'],
+  );
 });

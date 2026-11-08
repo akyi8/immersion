@@ -157,7 +157,7 @@
     {#each kind?.layout ?? ['flavor'] as part (part)}
       {#if part === 'flavor'}
         <label class="field">
-          <span class="label">Flavor</span>
+          <span class="label">{kind?.body ?? 'Flavor'}</span>
           <textarea use:grow rows="3" bind:value={draft.flavor} oninput={changed}></textarea>
         </label>
       {:else}

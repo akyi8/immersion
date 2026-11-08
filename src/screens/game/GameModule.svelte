@@ -4,7 +4,9 @@
   import type { Navigator } from '../../lib/nav.svelte';
   import { splitHeader } from '../../lib/world';
   import { newElement, writeElement, type Element } from '../../lib/game/elements';
-  import { gameFileWith, loadGame, pathIn, refOf, sourceOf, type Game, type GameFs, type Origin, type Placed, type Source } from '../../lib/game/game';
+  import { chapterItems, gameFileWith, loadGame, pathIn, refOf, sourceOf, type BookItem, type Game, type GameFs, type Origin, type Placed, type Source } from '../../lib/game/game';
+  import BookChapter from './BookChapter.svelte';
+  import BookModule from './BookModule.svelte';
   import { ui } from '../../lib/ui.svelte';
   import Panes from '../Panes.svelte';
   import GameKind from './GameKind.svelte';
@@ -36,6 +38,8 @@
 
   const KIND = '@kind:';
   const EL = '@el:';
+  const CHAPTER = '@chapter:';
+  const MODULE = '@module:';
 
   let game = $state.raw<Game | null>(null);
   let engineName = $state('Engine');
@@ -94,16 +98,48 @@
     return game.elements.filter((p) => p.element.name.toLowerCase().includes(q) || p.element.tags.some((t) => t.toLowerCase() === q)).slice(0, 60);
   });
 
-  const row = $derived(nav.panes.filter((id) => (id.startsWith(EL) && byKey.has(id.slice(EL.length))) || (id.startsWith(KIND) && game?.kinds.has(id.split(':')[2]))));
+  // The book the sidebar shows: the world's own, or the engine's base game when the world has none.
+  const book = $derived(game?.books.world ?? game?.books.engine ?? null);
+  const bookName = $derived(game?.books.world ? worldName : engineName);
+  const chapters = $derived((book?.chapters ?? []).map((ref) => byKey.get(ref)).filter((p): p is Placed => !!p));
+  const chapterOf = (moduleKey: string) => chapters.find((c) => (c.element.fields.items as string[] | undefined)?.includes(moduleKey)) ?? null;
+
+  const row = $derived(
+    nav.panes.filter(
+      (id) =>
+        ([EL, CHAPTER, MODULE].some((pre) => id.startsWith(pre)) && byKey.has(id.slice(id.indexOf(':', 1) + 1))) ||
+        (id.startsWith(KIND) && game?.kinds.has(id.split(':')[2])),
+    ),
+  );
 
   function label(id: string): string {
-    if (id.startsWith(EL)) return byKey.get(id.slice(EL.length))?.element.name ?? 'Element';
+    for (const pre of [EL, CHAPTER, MODULE]) if (id.startsWith(pre)) return byKey.get(id.slice(pre.length))?.element.name ?? 'Element';
     const [, origin, kind] = id.split(':');
     return `${game?.kinds.get(kind)?.plural ?? kind} (${origin === 'engine' ? engineName : worldName})`;
   }
 
   const openKind = (origin: Origin, kind: string, from?: number) => nav.open(`${KIND}${origin}:${kind}`, from);
   const openElement = (key: string, from?: number) => nav.open(`${EL}${key}`, from);
+  const openChapter = (key: string, from?: number) => nav.open(`${CHAPTER}${key}`, from);
+  const openItem = (item: BookItem, from: number) => {
+    if (item.type === 'module') nav.open(`${MODULE}${item.placed.key}`, from);
+    else if (item.type === 'element') openElement(item.placed.key, from);
+  };
+
+  async function saveModule(p: Placed, name: string, text: string) {
+    await save(p, { ...p.element, name, flavor: text });
+  }
+
+  /** Saves this world's piece of a core module, writing its add-on file the first time. */
+  async function saveWorldPiece(p: Placed, text: string) {
+    if (!game) return;
+    const existing = game.addOns.get(refOf(p.element));
+    if (existing) return save(existing, { ...existing.element, flavor: text });
+    const kind = game.kinds.get('add-on') ?? null;
+    const e: Element = { path: `elements/add-on/${p.element.id}.md`, id: p.element.id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: refOf(p.element) }, flavor: text };
+    await fs.writeText(`${gameDir}/${e.path}`, writeElement(e, kind));
+    await load();
+  }
 
   /** Replaces one element in the game after it is written, so every pane sees the change. */
   function swap(p: Placed, next: Element) {
@@ -172,6 +208,14 @@
           <p class="hint">Nothing by that name or tag.</p>
         {/each}
       {:else}
+        {#if chapters.length}
+          <h2 class="label">{bookName}'s book</h2>
+          {#each chapters as c (c.key)}
+            <button type="button" class="item" class:on={nav.panes.includes(`${CHAPTER}${c.key}`)} onclick={() => openChapter(c.key)}>
+              <span>{c.element.name}</span><span class="n">{c.origin === 'engine' ? 'core' : ''}</span>
+            </button>
+          {/each}
+        {/if}
         {#if game?.engine}
           <h2 class="label">{engineName}</h2>
           {#each engineKinds as { kind, count } (kind.id)}
@@ -194,7 +238,28 @@
   {#if row.length && game}
     <Panes {nav} ids={row} {label} canWindow={() => false}>
       {#snippet pane(id, i)}
-        {#if id.startsWith(KIND)}
+        {#if id.startsWith(CHAPTER)}
+          {@const c = byKey.get(id.slice(CHAPTER.length))!}
+          <BookChapter
+            chapter={c}
+            {bookName}
+            {worldName}
+            items={chapterItems(game!, c, byKey)}
+            onOpen={(item) => openItem(item, i)}
+            onEdit={() => openElement(c.key, i)} />
+        {:else if id.startsWith(MODULE)}
+          {@const m = byKey.get(id.slice(MODULE.length))!}
+          {#key m.key}
+            <BookModule
+              module={m}
+              worldPiece={game!.addOns.get(refOf(m.element)) ?? null}
+              chapterName={chapterOf(m.key)?.element.name ?? bookName}
+              {engineName}
+              {worldName}
+              onSaveModule={(name, text) => saveModule(m, name, text)}
+              onSaveWorldPiece={(text) => saveWorldPiece(m, text)} />
+          {/key}
+        {:else if id.startsWith(KIND)}
           {@const [, origin, kindId] = id.split(':')}
           {@const kind = game!.kinds.get(kindId)!}
           <GameKind

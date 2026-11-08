@@ -379,6 +379,56 @@ A dock knife with a cork grip, so it floats.
 - `vendor` names the id of the vendor element that sells it, in the same world.
 - Every other key is one of the kind's fields.
 
+### The book
+
+A game's rulebook is assembled from a `book.md` and two more kinds of element: chapters and modules. The engine can have a `book.md` of its own, which is the base game's book, and a world's game folder can have one, which is that world's book. When a world has a book, the app shows it, and otherwise it shows the engine's.
+
+A `book.md` names the book and lists its chapters in order. Each chapter is written as a reference: `engine:` or `world:`, then the chapter element's kind and id:
+
+```markdown
+---
+name: Harrowgate
+chapters:
+  - world:chapter/welcome
+  - engine:chapter/taking-risks
+  - world:chapter/the-harbor
+---
+```
+
+A chapter is an element of kind `chapter`. Its body is the chapter's introduction, and its `items` list the modules, catalog elements, and headings it holds, in order. A heading is written as `heading:` and its text. A reference without `engine:` or `world:` points into the chapter's own folder, so this core chapter's `module/when-to-roll` is the engine's:
+
+```markdown
+---
+name: Taking Risks
+kind: chapter
+tags: [ core, chapter ]
+items:
+  - module/when-to-roll
+  - module/reading-the-dice
+  - "heading: Gear for risky work"
+  - gear/rope
+---
+
+When a protagonist tries something uncertain, the dice decide.
+```
+
+A module is an element of kind `module`, and its body is its text. An engine's module is a core module. A world adds its own piece to a core module with an element of kind `add-on` in `elements/add-on/`, named for the module, whose `extends` names the module it belongs to:
+
+```markdown
+---
+name: When to Roll
+kind: add-on
+tags: [ add-on ]
+extends: module/when-to-roll
+---
+
+*Wren decides the harbor guard is worth a roll.*
+```
+
+The app creates the add-on the first time the writer types in a module's world piece. A module of the world's own has no add-on, because all of its text is already the world's.
+
+A kind's shape file can name its body with `body:`, such as `body: Text` for modules or `body: Introduction` for chapters. The form shows that name above the body instead of Flavor.
+
 ### Setting aside and reskinning
 
 A world records its choices about core elements on its own side. Its `game.md` lists the core elements it sets aside, each written as kind and id:
