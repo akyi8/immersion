@@ -303,6 +303,7 @@ An engine is a folder anywhere in the library that holds an `engine.md`. It is n
 ```
 games/example-engine/
   engine.md                 the engine's name
+  book.md                   the base game's book: its front page and divisions
   kinds/
     gear.md                 the shape of a kind: its fields and their order
     need.md
@@ -312,6 +313,13 @@ games/example-engine/
       lantern.md
     need/
       rest.md
+    division/
+      the-protagonist.md    a division of the book, with its front page
+    chapter/
+      taking-risks.md       a rule section
+    module/
+      when-to-roll.md       a rule
+      when-to-roll.png      the rule's header picture
 ```
 
 A world points at its engine with `engine: games/example-engine` in its `world.md`. While the world is open, the app reads and writes the engine folder beside it, and Git sync carries the engine's changes in the same commit as the world's.
@@ -325,6 +333,7 @@ harrowgate/
   world.md
   game/
     game.md                 the world's choices about core elements
+    book.md                 the world's book: its front page and divisions
     kinds/                  kinds the world brings, if any
     elements/
       gear/
@@ -332,6 +341,10 @@ harrowgate/
         storm-lamp.md
       vendor/
         the-chandler.md
+      add-on/
+        when-to-roll.md     the world's piece of a core rule
+    expansions/
+      fogbound/             an expansion, with elements of its own
 ```
 
 A world can bring kinds of its own, such as a magic system, in its `kinds/` folder. A world never redefines a kind its engine already has.
