@@ -17,6 +17,7 @@
     inWorld,
     place,
     worldName,
+    names,
     picture,
     choices,
     onFrame,
@@ -27,6 +28,8 @@
     inWorld: boolean;
     place: string;
     worldName: string;
+    /** The name of an origin: the engine, the world, or an expansion. */
+    names: (origin: string) => string;
     picture: { url: string; frame: Frame | null } | null;
     choices: PictureChoice[];
     onFrame: (frame: Frame) => Promise<void>;
@@ -78,7 +81,13 @@
           {#if item.worldPiece?.element.flavor}
             <div class="prose world" aria-label="{worldName}'s piece">{@html renderRule(item.worldPiece.element.flavor)}</div>
           {/if}
-          {#if inWorld && item.placed.origin === 'world'}<span class="own">{worldName}'s own rule</span>{/if}
+          {#each item.expansionPieces.filter((x) => x.element.flavor) as x (x.key)}
+            <div class="prose world expansion">
+              <span class="own">{names(x.origin)}</span>
+              {@html renderRule(x.element.flavor)}
+            </div>
+          {/each}
+          {#if inWorld && item.placed.origin !== 'engine'}<span class="own">{names(item.placed.origin)}'s own rule</span>{/if}
         </section>
       {/if}
     {/each}
@@ -185,6 +194,9 @@
     padding-left: 16px;
     border-left: 2px solid var(--structure-deep, var(--line));
     color: var(--text-soft);
+  }
+  .prose.expansion {
+    border-left-style: dashed;
   }
   .empty {
     color: var(--muted);

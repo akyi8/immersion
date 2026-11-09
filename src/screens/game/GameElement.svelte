@@ -10,6 +10,9 @@
    * A core element shown in a world can be set aside in that world, or reskinned for it.
    * A reskin changes only the name and the flavor, so its mechanics show here read-only,
    * as the core element has them.
+   *
+   * An element of the world's own, or of one of its expansions, can move between them
+   * (Mike, November 9), such as a piece of gear that belongs in an expansion after all.
    */
   let {
     placed,
@@ -21,6 +24,9 @@
     onSetAside,
     onReskin,
     onOpen,
+    where,
+    homes = [],
+    onMove,
   }: {
     placed: Placed;
     kind: Kind | null;
@@ -32,7 +38,27 @@
     onSetAside: (on: boolean) => void;
     onReskin: () => void;
     onOpen: (key: string) => void;
+    /** The name of the engine, world, or expansion the element belongs to. */
+    where: string;
+    /** Where this element could live instead: the world and each expansion. Empty when it cannot move. */
+    homes?: { origin: string; name: string }[];
+    onMove?: (origin: string) => Promise<void>;
   } = $props();
+
+  let moving = $state(false);
+  async function moveTo(origin: string) {
+    if (!onMove || origin === placed.origin) return;
+    moving = true;
+    problem = '';
+    try {
+      await onMove(origin);
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+      status = 'problem';
+    } finally {
+      moving = false;
+    }
+  }
 
   const SAVE_DELAY_MS = 600;
 
@@ -44,7 +70,6 @@
 
   const reskin = $derived(!!placed.base);
   const shown = $derived(effective({ ...placed, element: draft }));
-  const where = $derived(placed.origin === 'engine' ? engineName : worldName);
 
   function changed() {
     status = 'waiting';
@@ -140,7 +165,16 @@
         <span class="hint">Where it belongs and what it is, separated by commas, such as core, gear, weapon.</span>
       </label>
     {/if}
-    {#if placed.origin === 'world' && !reskin && draft.kind !== 'vendor' && vendors.length}
+    {#if homes.length > 1 && onMove}
+      <label class="field">
+        <span class="label">Belongs to</span>
+        <select value={placed.origin} disabled={moving} onchange={(e) => moveTo((e.currentTarget as HTMLSelectElement).value)}>
+          {#each homes as h (h.origin)}<option value={h.origin}>{h.name}</option>{/each}
+        </select>
+        <span class="hint">{worldName} itself, or one of its expansions. Moving it moves its file and its picture.</span>
+      </label>
+    {/if}
+    {#if placed.origin !== 'engine' && !reskin && draft.kind !== 'vendor' && vendors.length}
       <label class="field">
         <span class="label">Sold by</span>
         <select

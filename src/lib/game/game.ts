@@ -23,7 +23,15 @@ export interface GameFs {
   move(from: string, to: string): Promise<void>;
 }
 
-export type Origin = 'engine' | 'world';
+/**
+ * Where an element comes from: `engine`, `world`, or an expansion's id, such as
+ * `harborpunk` (Mike, November 9). An expansion adds to its world and changes nothing
+ * in it, so any mix of expansions makes a sound game.
+ */
+export type Origin = string;
+
+/** Whose book it is: the engine's base game or the world's. Expansions have no book yet. */
+export type BookOrigin = 'engine' | 'world';
 
 export interface Source {
   origin: Origin;
@@ -76,7 +84,20 @@ export interface Game {
   books: { engine: Book | null; world: Book | null };
   /** The world's piece of each core module, by the module it extends, such as `module/the-edge`. */
   addOns: Map<string, Placed>;
+  /** The world's expansions, each a folder in the game folder's `expansions/`, in name order. */
+  expansions: Expansion[];
+  /** Each expansion's pieces of an element, by the element's key, such as `engine:module/the-edge`. */
+  pieces: Map<string, Placed[]>;
 }
+
+/** An expansion: its own folder of elements inside the world's game folder. */
+export interface Expansion extends Source {
+  /** What the expansion is: the body of its `expansion.md`. */
+  about: string;
+}
+
+/** Origins an expansion's folder name cannot take. */
+const TAKEN_ORIGINS = new Set(['engine', 'world', 'heading']);
 
 /** One item of a chapter, as the book view shows it. */
 export type BookItem =
@@ -169,6 +190,19 @@ async function readSource(src: Source): Promise<{ kinds: Kind[]; elements: Eleme
 export async function loadGame(engine: Source | null, world: Source): Promise<Game> {
   const e = engine ? await readSource(engine) : { kinds: [], elements: [], images: new Map<string, string>() };
   const w = await readSource(world);
+  const expansions: Expansion[] = [];
+  const shelf = join(world.dir, 'expansions');
+  if (await world.fs.exists(shelf)) {
+    for (const d of (await world.fs.readDir(shelf)).filter((d) => d.isDir && !d.name.startsWith('.'))) {
+      const id = d.name.toLowerCase();
+      if (TAKEN_ORIGINS.has(id) || !(await world.fs.exists(`${shelf}/${d.name}/expansion.md`))) continue;
+      const { header, body } = splitHeader(await world.fs.readText(`${shelf}/${d.name}/expansion.md`));
+      const name = (typeof header.name === 'string' && header.name.trim()) || d.name;
+      expansions.push({ origin: id, name, fs: world.fs, dir: `${shelf}/${d.name}`, about: body.replace(/^\n+/, '').replace(/\n+$/, '') });
+    }
+  }
+  expansions.sort((a, b) => a.name.localeCompare(b.name));
+  const x = await Promise.all(expansions.map((src) => readSource(src)));
   const gameFile = (await world.fs.exists(join(world.dir, 'game.md'))) ? await world.fs.readText(join(world.dir, 'game.md')) : null;
   const setAside = new Set(readGameFile(gameFile).setAside);
 
@@ -176,10 +210,17 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
   const kinds = new Map<string, Kind & { origin: Origin }>();
   for (const k of e.kinds) kinds.set(k.id, { ...k, origin: 'engine' });
   for (const k of w.kinds) if (!kinds.has(k.id)) kinds.set(k.id, { ...k, origin: 'world' });
+  x.forEach((src, i) => src.kinds.forEach((k) => kinds.has(k.id) || kinds.set(k.id, { ...k, origin: expansions[i].origin })));
 
   const placed: Placed[] = [
     ...e.elements.map((el): Placed => ({ key: `engine:${refOf(el)}`, origin: 'engine', element: el, setAside: setAside.has(refOf(el)), reskinnedBy: null, base: null, image: e.images.get(el.path) ?? null })),
     ...w.elements.map((el): Placed => ({ key: `world:${refOf(el)}`, origin: 'world', element: el, setAside: false, reskinnedBy: null, base: null, image: w.images.get(el.path) ?? null })),
+    ...x.flatMap((src, i) =>
+      src.elements.map((el): Placed => {
+        const origin = expansions[i].origin;
+        return { key: `${origin}:${refOf(el)}`, origin, element: el, setAside: false, reskinnedBy: null, base: null, image: src.images.get(el.path) ?? null };
+      }),
+    ),
   ];
   const core = new Map(placed.filter((p) => p.origin === 'engine').map((p) => [refOf(p.element), p]));
   for (const p of placed) {
@@ -196,13 +237,21 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
     const extendsRef = p.origin === 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
     if (typeof extendsRef === 'string' && extendsRef) addOns.set(extendsRef, p);
   }
+  // An expansion's piece extends a core element, written `module/x`, or a world's, written `world:module/x`.
+  const pieces = new Map<string, Placed[]>();
+  for (const p of placed) {
+    const ext = p.origin !== 'engine' && p.origin !== 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
+    if (typeof ext !== 'string' || !ext) continue;
+    const key = keyOf(ext, 'engine');
+    pieces.set(key, [...(pieces.get(key) ?? []), p]);
+  }
   const bookOf = async (src: Source | null): Promise<Book | null> => {
     if (!src || !(await src.fs.exists(join(src.dir, 'book.md')))) return null;
     const book = readBook(await src.fs.readText(join(src.dir, 'book.md')));
     if (book) book.image = imageBeside(await src.fs.readDir(src.dir), 'book');
     return book;
   };
-  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns };
+  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns, expansions, pieces };
 }
 
 /**
@@ -219,7 +268,11 @@ export function effective(p: Placed): Element {
 export const inPlay = (p: Placed) => !p.setAside && !p.reskinnedBy;
 
 /** The source an element is written to. */
-export const sourceOf = (game: Game, p: Placed): Source => (p.origin === 'engine' && game.engine ? game.engine : game.world);
+export const sourceOf = (game: Game, p: Placed): Source =>
+  p.origin === 'engine' && game.engine ? game.engine : (game.expansions.find((x) => x.origin === p.origin) ?? game.world);
+
+/** Whether an origin is one of the world's expansions. */
+export const isExpansion = (origin: Origin) => origin !== 'engine' && origin !== 'world';
 
 export function pathIn(src: Source, path: string): string {
   return join(src.dir, path);
@@ -242,6 +295,8 @@ export interface RuleNode {
   placed: Placed;
   /** This world's piece of a core rule, in a world's book. */
   worldPiece: Placed | null;
+  /** Each expansion's piece of the rule, in a world's book. */
+  expansionPieces: Placed[];
 }
 export interface HeadingNode {
   type: 'heading';
@@ -264,7 +319,7 @@ export interface DivisionNode {
 }
 export interface BookTree {
   /** Whose book it is: the engine's base game or the world's. */
-  origin: Origin;
+  origin: BookOrigin;
   book: Book;
   divisions: DivisionNode[];
   /** Sections the book lists outside any division. */
@@ -275,14 +330,14 @@ export interface BookTree {
 }
 
 /** A reference's key in the game: one without `engine:` or `world:` points into `origin`. */
-export const keyOf = (ref: string, origin: Origin) => (/^(engine|world):/.test(ref) ? ref : `${origin}:${ref}`);
+export const keyOf = (ref: string, origin: Origin) => (/^[a-z0-9_-]+:/i.test(ref) ? ref : `${origin}:${ref}`);
 
 const listField = (p: Placed, key: string): string[] => {
   const v = p.element.fields[key];
   return Array.isArray(v) ? v : typeof v === 'string' && v.trim() ? [v.trim()] : [];
 };
 
-export function bookTree(game: Game, origin: Origin): BookTree | null {
+export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
   const book = game.books[origin];
   if (!book) return null;
   const inWorld = origin === 'world';
@@ -299,7 +354,13 @@ export function bookTree(game: Game, origin: Origin): BookTree | null {
       }
       const hit = byKey.get(keyOf(ref, p.origin));
       if (!visible(hit)) continue;
-      if (hit.element.kind === 'module') items.push({ type: 'rule', placed: hit, worldPiece: inWorld && hit.origin === 'engine' ? (game.addOns.get(refOf(hit.element)) ?? null) : null });
+      if (hit.element.kind === 'module')
+        items.push({
+          type: 'rule',
+          placed: hit,
+          worldPiece: inWorld && hit.origin === 'engine' ? (game.addOns.get(refOf(hit.element)) ?? null) : null,
+          expansionPieces: inWorld ? (game.pieces.get(hit.key) ?? []) : [],
+        });
       else elements.push(hit);
     }
     return { placed: p, items, elements };

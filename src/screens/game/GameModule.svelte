@@ -7,6 +7,7 @@
   import {
     bookTree,
     gameFileWith,
+    isExpansion,
     keyOf,
     loadGame,
     pathIn,
@@ -17,6 +18,7 @@
     type DivisionNode,
     type Game,
     type GameFs,
+    type BookOrigin,
     type Origin,
     type Placed,
     type SectionNode,
@@ -65,6 +67,7 @@
   const CAT = '@cat:';
   const EL = '@el:';
   const KIND = '@kind:';
+  const EXP = '@exp:';
 
   let game = $state.raw<Game | null>(null);
   let engineName = $state('Engine');
@@ -72,6 +75,8 @@
   let notice = $state('');
   let filter = $state('');
   let allOpen = $state(false);
+  let naming = $state(false);
+  let newName = $state('');
 
   async function load() {
     try {
@@ -119,10 +124,16 @@
   });
 
   const byKey = $derived(new Map((game?.elements ?? []).map((p) => [p.key, p])));
+  const expansionOf = (origin: Origin) => game?.expansions.find((x) => x.origin === origin) ?? null;
+  /** The engine's, the world's, or an expansion's name. */
+  const originName = (origin: Origin) => (origin === 'engine' ? engineName : origin === 'world' ? worldName : (expansionOf(origin)?.name ?? origin));
+  // Where a world's own element can live: the world itself or one of its expansions (Mike, November 9).
+  const homes = $derived([{ origin: 'world', name: worldName }, ...(game?.expansions ?? []).map((x) => ({ origin: x.origin, name: x.name }))]);
+  const MOVABLE = (kind: string) => !['module', 'chapter', 'division', 'add-on'].includes(kind);
 
   // The book open in the sidebar: the world's own, unless the writer switches to the base game.
-  let chosen = $state<Origin | null>(null);
-  const bookOrigin = $derived<Origin | null>(chosen && game?.books[chosen] ? chosen : game?.books.world ? 'world' : game?.books.engine ? 'engine' : null);
+  let chosen = $state<BookOrigin | null>(null);
+  const bookOrigin = $derived<BookOrigin | null>(chosen && game?.books[chosen] ? chosen : game?.books.world ? 'world' : game?.books.engine ? 'engine' : null);
   const inWorld = $derived(bookOrigin === 'world');
   const tree = $derived(game && bookOrigin ? bookTree(game, bookOrigin) : null);
   const bookSource = $derived<Source | null>(game ? (bookOrigin === 'engine' ? game.engine : game.world) : null);
@@ -148,7 +159,7 @@
       .sort((a, b) => a.kind.plural.localeCompare(b.kind.plural));
   const engineKinds = $derived(game?.engine ? kindsIn('engine') : []);
   const worldKinds = $derived(game ? kindsIn('world') : []);
-  const vendors = $derived((game?.elements ?? []).filter((p) => p.origin === 'world' && p.element.kind === 'vendor').map((p) => ({ id: p.element.id, name: p.element.name })));
+  const vendors = $derived((game?.elements ?? []).filter((p) => p.origin !== 'engine' && p.element.kind === 'vendor').map((p) => ({ id: p.element.id, name: p.element.name })));
   const results = $derived.by(() => {
     const q = filter.trim().toLowerCase();
     if (!q || !game) return [];
@@ -162,6 +173,7 @@
       if (id.startsWith(FRONT)) return id === `${FRONT}${bookOrigin}` && !!tree;
       if (id.startsWith(CAT)) return !!catalogOf(keyIn(id));
       if (id.startsWith(KIND)) return game.kinds.has(id.split(':')[2]);
+      if (id.startsWith(EXP)) return !!expansionOf(keyIn(id));
       if (id.startsWith(SEC)) return places.sections.has(keyIn(id));
       return [DIV, RULE, EL].some((pre) => id.startsWith(pre)) && byKey.has(keyIn(id));
     }),
@@ -172,8 +184,9 @@
     if (id.startsWith(CAT)) return catalogOf(keyIn(id))?.kind.plural ?? 'Aspects';
     if (id.startsWith(KIND)) {
       const [, origin, kind] = id.split(':');
-      return `${game?.kinds.get(kind)?.plural ?? kind} (${origin === 'engine' ? engineName : worldName})`;
+      return `${game?.kinds.get(kind)?.plural ?? kind} (${originName(origin)})`;
     }
+    if (id.startsWith(EXP)) return expansionOf(keyIn(id))?.name ?? 'Expansion';
     return byKey.get(keyIn(id))?.element.name ?? 'Element';
   }
 
@@ -204,13 +217,75 @@
     if (!game) throw new Error('The game is not open');
     const existing = game.addOns.get(refOf(p.element));
     if (existing) return existing;
-    const kind = game.kinds.get('add-on') ?? null;
-    // A module's add-on is named for the module; any other kind's carries its kind first.
-    const id = p.element.kind === 'module' ? p.element.id : `${p.element.kind}-${p.element.id}`;
-    const e: Element = { path: `elements/add-on/${id}.md`, id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: refOf(p.element) }, flavor: '' };
-    await fs.writeText(`${gameDir}/${e.path}`, writeElement(e, kind));
-    await load();
+    await writeAddOn(game.world, p, refOf(p.element));
     return game!.addOns.get(refOf(p.element))!;
+  }
+
+  /** An expansion's piece of a core or world element, created the first time. */
+  async function expansionPieceOf(p: Placed, origin: Origin): Promise<Placed> {
+    if (!game) throw new Error('The game is not open');
+    const find = () => game!.pieces.get(p.key)?.find((x) => x.origin === origin);
+    const existing = find();
+    if (existing) return existing;
+    const src = expansionOf(origin);
+    if (!src) throw new Error(`There is no expansion called ${origin}.`);
+    await writeAddOn(src, p, p.origin === 'engine' ? refOf(p.element) : p.key);
+    return find()!;
+  }
+
+  async function writeAddOn(src: Source, p: Placed, extendsRef: string) {
+    const kind = game?.kinds.get('add-on') ?? null;
+    // A module's add-on is named for the module; any other kind's carries its kind first.
+    const id = (p.element.kind === 'module' ? p.element.id : `${p.element.kind}-${p.element.id}`) + (p.origin === 'world' && src.origin !== 'world' ? '-world' : '');
+    const e: Element = { path: `elements/add-on/${id}.md`, id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: extendsRef }, flavor: '' };
+    await src.fs.writeText(pathIn(src, e.path), writeElement(e, kind));
+    await load();
+  }
+
+  async function savePiece(p: Placed, origin: Origin, text: string) {
+    const piece = await expansionPieceOf(p, origin);
+    await save(piece, { ...piece.element, flavor: text });
+  }
+
+  /** Moves a world's own element into an expansion, or back (Mike, November 9). */
+  async function moveTo(p: Placed, origin: Origin, from: number) {
+    if (!game || origin === p.origin) return;
+    const src = sourceOf(game, p);
+    const target: Source | null = origin === 'world' ? game.world : expansionOf(origin);
+    if (!target) return;
+    const taken = new Set(game.elements.filter((x) => x.origin === origin).map((x) => refOf(x.element)));
+    let id = p.element.id;
+    for (let n = 2; taken.has(`${p.element.kind}/${id}`); n++) id = `${p.element.id}-${n}`;
+    const path = `elements/${p.element.kind}/${id}.md`;
+    await src.fs.move(pathIn(src, p.element.path), pathIn(target, path));
+    if (p.image) await src.fs.move(pathIn(src, p.image), pathIn(target, `elements/${p.element.kind}/${id}${p.image.slice(p.image.lastIndexOf('.'))}`));
+    await load();
+    nav.replace(`${EL}${p.key}`, `${EL}${origin}:${p.element.kind}/${id}`);
+    void from;
+  }
+
+  async function saveExpansion(x: Source, changes: { name: string; body: string }) {
+    const file = `${x.dir}/expansion.md`;
+    const text = withBody(withHeader(await fs.readText(file), { name: changes.name }), changes.body);
+    await fs.writeText(file, text);
+    if (!game) return;
+    game = { ...game, expansions: game.expansions.map((e) => (e.origin === x.origin ? { ...e, name: changes.name, about: changes.body } : e)) };
+  }
+
+  async function addExpansion(e: SubmitEvent) {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name || !game) return;
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'expansion';
+    if (['engine', 'world', 'heading'].includes(id) || expansionOf(id)) {
+      notice = `${worldName} already has an expansion called ${name}, or the name is taken.`;
+      return;
+    }
+    await fs.writeText(`${gameDir}/expansions/${id}/expansion.md`, `---\nname: ${JSON.stringify(name)}\n---\n`);
+    naming = false;
+    newName = '';
+    await load();
+    nav.open(`${EXP}${id}`);
   }
 
   async function saveWorldPiece(p: Placed, text: string) {
@@ -364,8 +439,8 @@
     if (!kind) throw new Error(`This game has no ${kindId} kind yet.`);
     const taken = new Set(game.elements.filter((p) => p.origin === origin).map((p) => refOf(p.element)));
     const e = newElement(name, kind, taken);
-    e.tags = origin === 'engine' ? ['core', kind.id] : [kind.id];
-    const src: Source = origin === 'engine' && game.engine ? game.engine : game.world;
+    e.tags = origin === 'engine' ? ['core', kind.id] : isExpansion(origin) ? [origin, kind.id] : [kind.id];
+    const src: Source = origin === 'engine' && game.engine ? game.engine : (expansionOf(origin) ?? game.world);
     await src.fs.writeText(pathIn(src, e.path), writeElement(e, kind));
     return `${origin}:${refOf(e)}`;
   }
@@ -454,8 +529,25 @@
             onOpen={(id) => nav.open(id)}
             onMoveRule={(r, f, t, b) => void moveRule(r, f, t, b).catch((e) => (notice = String(e)))}
             onMoveSection={(sec, f, t, b) => void moveSection(sec, f, t, b).catch((e) => (notice = String(e)))}
+            names={originName}
             onAddRule={addRule}
             onAddSection={addSection} />
+        {/if}
+        {#if game && (game.expansions.length || bookOrigin === 'world')}
+          <h2 class="label">Expansions</h2>
+          {#each game.expansions as x (x.origin)}
+            <button type="button" class="item" class:on={nav.panes.includes(`${EXP}${x.origin}`)} onclick={() => nav.open(`${EXP}${x.origin}`)}>
+              <span>{x.name}</span><span class="n">{game.elements.filter((p) => p.origin === x.origin && p.element.kind !== 'add-on').length}</span>
+            </button>
+          {/each}
+          {#if naming}
+            <form class="new-exp" onsubmit={addExpansion}>
+              <!-- svelte-ignore a11y_autofocus -->
+              <input bind:value={newName} placeholder="Name the expansion" aria-label="New expansion name" autofocus onkeydown={(e) => e.key === 'Escape' && (naming = false)} />
+            </form>
+          {:else}
+            <button type="button" class="item add" onclick={() => (naming = true)}><span>+ New expansion</span></button>
+          {/if}
         {/if}
         <button type="button" class="all label" aria-expanded={allOpen || !tree} onclick={() => (allOpen = !allOpen)}>{allOpen || !tree ? '▾' : '▸'} Every element by kind</button>
         {#if allOpen || !tree}
@@ -520,6 +612,7 @@
               {inWorld}
               place="{places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section"
               {worldName}
+              names={originName}
               picture={pictureFor(s.placed)}
               choices={choicesFor(s.placed)}
               onFrame={(frame) => saveFrame(s.placed, frame)}
@@ -539,7 +632,25 @@
               choices={choicesFor(r)}
               onFrame={(frame) => saveFrame(r, frame)}
               onSave={(c) => save(r, { ...r.element, name: c.name, tags: c.tags, flavor: c.text })}
-              onSaveWorld={(text) => saveWorldPiece(r, text)} />
+              onSaveWorld={(text) => saveWorldPiece(r, text)}
+              expansions={inWorld ? (game?.expansions ?? []).map((x) => ({ origin: x.origin, name: x.name })) : []}
+              pieces={inWorld ? (game!.pieces.get(r.key) ?? []) : []}
+              onSavePiece={(origin, text) => savePiece(r, origin, text)} />
+          {:else if id.startsWith(EXP)}
+            {@const x = expansionOf(keyIn(id))!}
+            <FrontPage
+              place="{worldName} · Expansion"
+              name={x.name}
+              body={x.about}
+              picture={null}
+              choices={[]}
+              onFrame={async () => {}}
+              onSave={(c) => saveExpansion(x, c)}
+              contents={[...game!.kinds.values()]
+                .filter((k) => k.id !== 'add-on')
+                .map((k) => ({ k, n: game!.elements.filter((p) => p.origin === x.origin && p.element.kind === k.id).length }))
+                .filter(({ k, n }) => n > 0 || ['gear', 'chrome', 'vendor', 'module'].includes(k.id))
+                .map(({ k, n }) => ({ label: k.plural, note: `${n}`, open: () => nav.open(`${KIND}${x.origin}:${k.id}`, i) }))} />
           {:else if id.startsWith(CAT)}
             {@const c = catalogOf(keyIn(id))!}
             <GameKind
@@ -554,7 +665,7 @@
             {@const kind = game!.kinds.get(kindId)!}
             <GameKind
               {kind}
-              where={origin === 'engine' ? engineName : worldName}
+              where={originName(origin)}
               {worldName}
               elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
               onOpen={(key) => openElement(key, i)}
@@ -570,7 +681,10 @@
               onSave={(next) => save(p, next)}
               onSetAside={(on) => setAside(p, on)}
               onReskin={() => reskin(p, i)}
-              onOpen={(key) => openElement(key, i)} />
+              onOpen={(key) => openElement(key, i)}
+              where={originName(p.origin)}
+              homes={p.origin !== 'engine' && MOVABLE(p.element.kind) && !p.base ? homes : []}
+              onMove={(origin) => moveTo(p, origin, i)} />
           {/if}
         {/key}
       {/snippet}
@@ -659,6 +773,24 @@
     border: 1px solid var(--edge);
     border-radius: var(--round);
     padding: 1px 8px;
+  }
+  .item.add span {
+    color: var(--structure);
+    font-size: calc(13px * var(--type));
+  }
+  .new-exp {
+    padding: 2px 18px 6px;
+  }
+  .new-exp input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: calc(13px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 4px 8px;
   }
   .all {
     display: block;

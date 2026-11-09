@@ -15,6 +15,7 @@
     onOpen,
     onMoveRule,
     onMoveSection,
+    names,
     onAddRule,
     onAddSection,
   }: {
@@ -25,6 +26,8 @@
     onOpen: (id: string) => void;
     onMoveRule: (rule: string, from: string, to: string, before: string | null) => void;
     onMoveSection: (section: string, from: string | null, to: string, before: string | null) => void;
+    /** The name of an origin: the engine, the world, or an expansion. */
+    names: (origin: string) => string;
     onAddRule: (section: string, name: string) => Promise<void>;
     onAddSection: (division: string, name: string) => Promise<void>;
   } = $props();
@@ -167,6 +170,7 @@
           {:else if item.worldPiece}
             <span class="own" title="With {worldName}'s piece">+</span>
           {/if}
+          {#if item.expansionPieces.length}<span class="own" title="With pieces from {item.expansionPieces.map((x) => names(x.origin)).join(', ')}">◇</span>{/if}
         </div>
       {/if}
     {/each}
@@ -210,7 +214,8 @@
         {#each c.elements as p (p.key)}
           <div class="row leaf" class:on={isOpen(`@el:${p.key}`)} style="--depth: 2" role="treeitem" aria-selected={isOpen(`@el:${p.key}`)} tabindex="-1">
             <button type="button" class="name" onclick={() => onOpen(`@el:${p.key}`)}>{p.element.name}</button>
-            {#if tree.origin === 'world' && p.origin === 'world'}<span class="own" title="{worldName}'s own">◆</span>{/if}
+            {#if tree.origin === 'world' && p.origin === 'world'}<span class="own" title="{worldName}'s own">◆</span>
+            {:else if p.origin !== 'engine'}<span class="n" title="From the {names(p.origin)} expansion">{names(p.origin)}</span>{/if}
           </div>
         {/each}
       {/if}

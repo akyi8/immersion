@@ -466,6 +466,27 @@ Any page of the book can carry a header picture: the front page, a division, a s
 
 A kind's shape file can name its body with `body:`, such as `body: Text` for rules or `body: Front page` for divisions. The form shows that name above the body instead of Flavor.
 
+### Expansions
+
+A world's game can have expansions, each a folder of its own in the game folder's `expansions/`. An expansion adds to its world and never changes it, so any mix of expansions makes a sound game: a table that owns two of a world's expansions has those two folders and plays with them, and a table without the rest never has their files. The app shows every expansion whose folder is present.
+
+```
+harrowgate/game/expansions/
+  fogbound/
+    expansion.md            the expansion's name, and what it is about as its body
+    elements/
+      gear/
+        dark-lantern.md
+      add-on/
+        when-to-roll.md     Fogbound's piece of a core rule
+```
+
+An expansion's elements have the expansion's folder name as their origin, so a reference to one is written `fogbound:gear/dark-lantern`, and two expansions can each have an element with the same id. An expansion's gear, vendors, and other aspects appear in the world book's catalog lists, marked with the expansion's name. The engine's base game never shows them.
+
+An expansion adds its own piece to a rule with an add-on in its own `elements/add-on/`. Its `extends` names a core rule as `module/<id>`, or a rule of the world's own as `world:module/<id>`. The piece prints after the world's piece, for a table that has the expansion.
+
+An element of the world's own can move into one of its expansions, or back, with Belongs to in its form. The app moves the file and its picture. The folder names `engine`, `world`, and `heading` cannot name an expansion.
+
 ### Setting aside and reskinning
 
 A world records its choices about core elements on its own side. Its `game.md` lists the core elements it sets aside, each written as kind and id:

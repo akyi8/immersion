@@ -24,6 +24,9 @@
     onFrame,
     onSave,
     onSaveWorld,
+    expansions = [],
+    pieces = [],
+    onSavePiece,
   }: {
     rule: Placed;
     worldPiece: Placed | null;
@@ -37,7 +40,26 @@
     onFrame: (frame: Frame) => Promise<void>;
     onSave: (changes: { name: string; tags: string[]; text: string }) => Promise<void>;
     onSaveWorld: (text: string) => Promise<void>;
+    /** The world's expansions, each of which can add its own piece to this rule (Mike, November 9). */
+    expansions?: { origin: string; name: string }[];
+    /** The pieces expansions have written for this rule so far. */
+    pieces?: Placed[];
+    onSavePiece?: (origin: string, text: string) => Promise<void>;
   } = $props();
+
+  // The expansion boxes shown: those with a piece, and any the writer has just added.
+  let added = $state<string[]>([]);
+  const shownPieces = $derived(
+    expansions
+      .filter((x) => pieces.some((p) => p.origin === x.origin) || added.includes(x.origin))
+      .map((x) => ({ ...x, text: pieces.find((p) => p.origin === x.origin)?.element.flavor ?? '' })),
+  );
+  const missing = $derived(expansions.filter((x) => !shownPieces.some((y) => y.origin === x.origin)));
+  const savers = new Map<string, Saver<string>>();
+  const saverFor = (origin: string) => {
+    if (!savers.has(origin)) savers.set(origin, new Saver<string>((t) => onSavePiece?.(origin, t) ?? Promise.resolve()));
+    return savers.get(origin)!;
+  };
 
   const core = $derived(rule.origin === 'engine');
   // Seeded once from the files; the page then holds the writer's own copy.
@@ -50,6 +72,7 @@
   onDestroy(() => {
     void own.flush();
     void world.flush();
+    for (const x of savers.values()) void x.flush();
   });
 </script>
 
@@ -89,6 +112,32 @@
       <p class="hint">{worldName}'s examples and additions to this rule. Only {worldName}'s book prints this.</p>
       <GameText text={worldPiece?.element.flavor ?? ''} label="{worldName} text" placeholder="Examples and rules that are {worldName}'s alone." onChange={(t) => world.push(t)} />
     </section>
+  {/if}
+  {#each shownPieces as x (x.origin)}
+    {@const sv = saverFor(x.origin)}
+    <section class="piece world">
+      <div class="head">
+        <span class="label">{x.name}</span>
+        <span class="status">{said(sv.status)}</span>
+      </div>
+      <p class="hint">What {x.name} adds to this rule. It prints only for a table that has {x.name}.</p>
+      <GameText text={x.text} label="{x.name} text" placeholder="What {x.name} adds." onChange={(t) => sv.push(t)} />
+    </section>
+  {/each}
+  {#if inWorld && missing.length && onSavePiece}
+    <label class="add-piece">
+      <span class="label">Add an expansion's piece</span>
+      <select
+        value=""
+        onchange={(e) => {
+          const v = (e.currentTarget as HTMLSelectElement).value;
+          if (v) added = [...added, v];
+          (e.currentTarget as HTMLSelectElement).value = '';
+        }}>
+        <option value="">Choose an expansion</option>
+        {#each missing as x (x.origin)}<option value={x.origin}>{x.name}</option>{/each}
+      </select>
+    </label>
   {/if}
 </article>
 
@@ -170,6 +219,24 @@
     margin: 2px 0 10px;
     font-size: calc(12px * var(--type));
     color: var(--muted);
+  }
+  .add-piece {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .add-piece .label {
+    font-size: calc(11px * var(--type));
+  }
+  .add-piece select {
+    font: inherit;
+    font-size: calc(13px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 4px 8px;
   }
   .problem {
     color: var(--danger);

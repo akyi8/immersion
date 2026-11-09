@@ -163,3 +163,39 @@ test('a new body keeps the header exactly', () => {
   assert.equal(withBody('Plain.\n', 'Other.'), 'Other.\n');
 });
 
+test('an expansion adds elements and pieces, and the book shows them only in the world', async () => {
+  const engine = new MemoryFs({
+    'engine.md': '# Example Engine\n',
+    'kinds/gear.md': '---\nname: Gear\n---\n',
+    'book.md': '---\nname: Example Engine\ndivisions: [ division/aspects ]\n---\n',
+    'elements/division/aspects.md': '---\nname: The Aspects\nkind: division\ncatalog: [ gear ]\n---\n',
+    'elements/module/the-edge.md': '---\nname: The Edge\nkind: module\n---\n\nYour edge starts at 7.\n',
+    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\n---\n',
+  });
+  const world = new MemoryFs({
+    'world.md': '---\nname: Harrowgate\n---\n',
+    'game/book.md': '---\nname: Harrowgate\ndivisions: [ division/aspects, division/rules ]\n---\n',
+    'game/elements/division/aspects.md': '---\nname: The Aspects\nkind: division\ncatalog: [ gear ]\n---\n',
+    'game/elements/division/rules.md': '---\nname: Rules\nkind: division\nsections: [ chapter/tides ]\n---\n',
+    'game/elements/chapter/tides.md': '---\nname: Tides\nkind: chapter\nitems: [ engine:module/the-edge, module/low-water ]\n---\n',
+    'game/elements/module/low-water.md': '---\nname: Low Water\nkind: module\n---\n',
+    'game/expansions/fogbound/expansion.md': '---\nname: Fogbound\n---\n\nThe smugglers of the outer banks.\n',
+    'game/expansions/fogbound/elements/gear/rope.md': '---\nname: Tarred Rope\nkind: gear\n---\n',
+    'game/expansions/fogbound/elements/add-on/the-edge.md': '---\nname: The Edge\nkind: add-on\nextends: module/the-edge\n---\n\n*In fog, the edge starts at 6.*\n',
+    'game/expansions/fogbound/elements/add-on/low-water-world.md': '---\nname: Low Water\nkind: add-on\nextends: world:module/low-water\n---\n\nSmugglers land at low water.\n',
+    'game/expansions/world/expansion.md': '---\nname: Not Allowed\n---\n',
+  });
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Harrowgate', fs: world, dir: 'game' });
+  assert.deepEqual(game.expansions.map((x) => [x.origin, x.name, x.about]), [['fogbound', 'Fogbound', 'The smugglers of the outer banks.']]);
+  assert.ok(game.elements.some((p) => p.key === 'fogbound:gear/rope'));
+
+  const mine = bookTree(game, 'world')!;
+  assert.deepEqual(mine.divisions[0].catalog[0].elements.map((p) => p.key), ['engine:gear/rope', 'fogbound:gear/rope']);
+  const [edge, low] = mine.divisions[1].sections[0].items;
+  assert.equal(edge.type === 'rule' && edge.expansionPieces[0].element.flavor, '*In fog, the edge starts at 6.*');
+  assert.equal(low.type === 'rule' && low.expansionPieces[0].element.flavor, 'Smugglers land at low water.');
+
+  const base = bookTree(game, 'engine')!;
+  assert.deepEqual(base.divisions[0].catalog[0].elements.map((p) => p.key), ['engine:gear/rope']);
+});
+
