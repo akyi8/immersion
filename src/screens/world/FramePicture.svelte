@@ -16,6 +16,7 @@
     banner: bannerStart,
     busy,
     problem,
+    bannerOnly = false,
     onSave,
     onCancel,
   }: {
@@ -27,6 +28,8 @@
     banner: Frame | null;
     busy: boolean;
     problem: string;
+    /** Frames the banner alone, for a page that never shows a portrait, such as a rule in a game's book. */
+    bannerOnly?: boolean;
     onSave: (result: { shape: Shape | null; portrait: Frame; banner: Frame }) => void;
     onCancel: () => void;
   } = $props();
@@ -120,18 +123,18 @@
 {/snippet}
 
 <Dialog title="Frame the picture" action="Save" ready={true} {busy} {problem} onSubmit={save} {onCancel} wide>
-  <div class="shows">
+  {#if !bannerOnly}<div class="shows">
     <span class="label">Shows at the top as</span>
     <div class="seg" role="group" aria-label="Shows at the top as">
       <button type="button" class:on={shape === 'banner'} aria-pressed={shape === 'banner'} onclick={() => (shape = 'banner')}>Banner</button>
       <button type="button" class:on={shape === 'portrait'} aria-pressed={shape === 'portrait'} onclick={() => (shape = 'portrait')}>Portrait</button>
     </div>
     <span class="hint">{fallback === 'portrait' ? 'People' : 'Entries outside People'} show a {fallback} unless you choose otherwise.</span>
-  </div>
+  </div>{/if}
   <p class="hint">Drag the picture to move it, and zoom with the slider or the scroll wheel.</p>
   <div class="frames">
     {@render framer('banner', 'Banner', '')}
-    {@render framer('portrait', 'Portrait', 'also its face')}
+    {#if !bannerOnly}{@render framer('portrait', 'Portrait', 'also its face')}{/if}
   </div>
 </Dialog>
 

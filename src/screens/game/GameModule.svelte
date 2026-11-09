@@ -1,23 +1,45 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { WorldFs } from '../../lib/fs/types';
+  import type { WorldFs, ImageSource } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
-  import { splitHeader } from '../../lib/world';
+  import { splitHeader, withHeader } from '../../lib/world';
   import { newElement, writeElement, type Element } from '../../lib/game/elements';
-  import { chapterItems, gameFileWith, loadGame, pathIn, refOf, sourceOf, type BookItem, type Game, type GameFs, type Origin, type Placed, type Source } from '../../lib/game/game';
-  import BookChapter from './BookChapter.svelte';
-  import BookModule from './BookModule.svelte';
+  import {
+    bookTree,
+    gameFileWith,
+    keyOf,
+    loadGame,
+    pathIn,
+    pictureOf,
+    refOf,
+    sourceOf,
+    withBody,
+    type DivisionNode,
+    type Game,
+    type GameFs,
+    type Origin,
+    type Placed,
+    type SectionNode,
+    type Source,
+  } from '../../lib/game/game';
+  import { readFrame, writeFrame, type Frame } from '../../lib/index/frame';
   import { ui } from '../../lib/ui.svelte';
   import Panes from '../Panes.svelte';
   import GameKind from './GameKind.svelte';
   import GameElement from './GameElement.svelte';
+  import BookTree from './BookTree.svelte';
+  import FrontPage from './FrontPage.svelte';
+  import SectionPage from './SectionPage.svelte';
+  import RulePage from './RulePage.svelte';
+  import type { PictureChoice } from './GameBanner.svelte';
 
   /**
-   * The Game module (Mike, November 7): a tabletop game's rules, kept as separate
-   * elements. The sidebar lists the kinds of element in the engine and in this world, a
-   * kind opens as a list, and an element opens as a form. Core elements belong to the
-   * engine and appear in every game built on it. This world's own elements, and its
-   * choices about the core ones, live in its game folder.
+   * The Game module (Mike, November 7 and 9): a tabletop game's rules, kept as separate
+   * elements and read as a book. The sidebar shows the book as a tree: its front page,
+   * its divisions, their rule sections, and the rules. A rule opens for writing, with the
+   * core text and, in a world's book, the world's own text below it. Core elements belong
+   * to the engine and appear in every game built on it; this world's own elements, and
+   * its choices about the core ones, live in its game folder.
    */
   let {
     fs,
@@ -36,15 +58,20 @@
     openEngine: (rel: string | null) => Promise<GameFs | null>;
   } = $props();
 
-  const KIND = '@kind:';
+  const FRONT = '@front:';
+  const DIV = '@div:';
+  const SEC = '@sec:';
+  const RULE = '@rule:';
+  const CAT = '@cat:';
   const EL = '@el:';
-  const CHAPTER = '@chapter:';
-  const MODULE = '@module:';
+  const KIND = '@kind:';
 
   let game = $state.raw<Game | null>(null);
   let engineName = $state('Engine');
   let problem = $state('');
+  let notice = $state('');
   let filter = $state('');
+  let allOpen = $state(false);
 
   async function load() {
     try {
@@ -81,12 +108,42 @@
     });
   });
 
+  onMount(() => {
+    void load();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    return fs.onChange((paths) => {
+      if (!paths.some((p) => p.startsWith(gameDir + '/'))) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(load, 400);
+    });
+  });
+
   const byKey = $derived(new Map((game?.elements ?? []).map((p) => [p.key, p])));
+
+  // The book open in the sidebar: the world's own, unless the writer switches to the base game.
+  let chosen = $state<Origin | null>(null);
+  const bookOrigin = $derived<Origin | null>(chosen && game?.books[chosen] ? chosen : game?.books.world ? 'world' : game?.books.engine ? 'engine' : null);
+  const inWorld = $derived(bookOrigin === 'world');
+  const tree = $derived(game && bookOrigin ? bookTree(game, bookOrigin) : null);
+  const bookSource = $derived<Source | null>(game ? (bookOrigin === 'engine' ? game.engine : game.world) : null);
+
+  // Where each section and rule sits, for a page's place line.
+  const places = $derived.by(() => {
+    const sectionIn = new Map<string, DivisionNode>();
+    const ruleIn = new Map<string, SectionNode>();
+    const sections = new Map<string, SectionNode>();
+    for (const d of tree?.divisions ?? []) for (const s of d.sections) sectionIn.set(s.placed.key, d);
+    for (const s of [...(tree?.divisions ?? []).flatMap((d) => d.sections), ...(tree?.loose ?? [])]) {
+      sections.set(s.placed.key, s);
+      for (const i of s.items) if (i.type === 'rule') ruleIn.set(i.placed.key, s);
+    }
+    return { sectionIn, ruleIn, sections };
+  });
+  const catalogOf = (kind: string) => (tree?.divisions ?? []).flatMap((d) => d.catalog).find((c) => c.kind.id === kind) ?? null;
+
   const kindsIn = (origin: Origin) =>
     [...(game?.kinds.values() ?? [])]
       .map((k) => ({ kind: k, count: (game?.elements ?? []).filter((p) => p.origin === origin && p.element.kind === k.id).length }))
-      // The engine lists the kinds it has elements of, such as no vendors, which each world
-      // writes for itself (Mike, November 7). The world lists every kind, so it can add to any.
       .filter((x) => origin === 'world' || x.count > 0)
       .sort((a, b) => a.kind.plural.localeCompare(b.kind.plural));
   const engineKinds = $derived(game?.engine ? kindsIn('engine') : []);
@@ -98,48 +155,29 @@
     return game.elements.filter((p) => p.element.name.toLowerCase().includes(q) || p.element.tags.some((t) => t.toLowerCase() === q)).slice(0, 60);
   });
 
-  // The book the sidebar shows: the world's own, or the engine's base game when the world has none.
-  const book = $derived(game?.books.world ?? game?.books.engine ?? null);
-  const bookName = $derived(game?.books.world ? worldName : engineName);
-  const chapters = $derived((book?.chapters ?? []).map((ref) => byKey.get(ref)).filter((p): p is Placed => !!p));
-  const chapterOf = (moduleKey: string) => chapters.find((c) => (c.element.fields.items as string[] | undefined)?.includes(moduleKey)) ?? null;
-
+  const keyIn = (id: string) => id.slice(id.indexOf(':', 1) + 1);
   const row = $derived(
-    nav.panes.filter(
-      (id) =>
-        ([EL, CHAPTER, MODULE].some((pre) => id.startsWith(pre)) && byKey.has(id.slice(id.indexOf(':', 1) + 1))) ||
-        (id.startsWith(KIND) && game?.kinds.has(id.split(':')[2])),
-    ),
+    nav.panes.filter((id) => {
+      if (!game) return false;
+      if (id.startsWith(FRONT)) return id === `${FRONT}${bookOrigin}` && !!tree;
+      if (id.startsWith(CAT)) return !!catalogOf(keyIn(id));
+      if (id.startsWith(KIND)) return game.kinds.has(id.split(':')[2]);
+      if (id.startsWith(SEC)) return places.sections.has(keyIn(id));
+      return [DIV, RULE, EL].some((pre) => id.startsWith(pre)) && byKey.has(keyIn(id));
+    }),
   );
 
   function label(id: string): string {
-    for (const pre of [EL, CHAPTER, MODULE]) if (id.startsWith(pre)) return byKey.get(id.slice(pre.length))?.element.name ?? 'Element';
-    const [, origin, kind] = id.split(':');
-    return `${game?.kinds.get(kind)?.plural ?? kind} (${origin === 'engine' ? engineName : worldName})`;
+    if (id.startsWith(FRONT)) return tree?.book.name ?? 'Book';
+    if (id.startsWith(CAT)) return catalogOf(keyIn(id))?.kind.plural ?? 'Aspects';
+    if (id.startsWith(KIND)) {
+      const [, origin, kind] = id.split(':');
+      return `${game?.kinds.get(kind)?.plural ?? kind} (${origin === 'engine' ? engineName : worldName})`;
+    }
+    return byKey.get(keyIn(id))?.element.name ?? 'Element';
   }
 
-  const openKind = (origin: Origin, kind: string, from?: number) => nav.open(`${KIND}${origin}:${kind}`, from);
   const openElement = (key: string, from?: number) => nav.open(`${EL}${key}`, from);
-  const openChapter = (key: string, from?: number) => nav.open(`${CHAPTER}${key}`, from);
-  const openItem = (item: BookItem, from: number) => {
-    if (item.type === 'module') nav.open(`${MODULE}${item.placed.key}`, from);
-    else if (item.type === 'element') openElement(item.placed.key, from);
-  };
-
-  async function saveModule(p: Placed, name: string, text: string) {
-    await save(p, { ...p.element, name, flavor: text });
-  }
-
-  /** Saves this world's piece of a core module, writing its add-on file the first time. */
-  async function saveWorldPiece(p: Placed, text: string) {
-    if (!game) return;
-    const existing = game.addOns.get(refOf(p.element));
-    if (existing) return save(existing, { ...existing.element, flavor: text });
-    const kind = game.kinds.get('add-on') ?? null;
-    const e: Element = { path: `elements/add-on/${p.element.id}.md`, id: p.element.id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: refOf(p.element) }, flavor: text };
-    await fs.writeText(`${gameDir}/${e.path}`, writeElement(e, kind));
-    await load();
-  }
 
   /** Replaces one element in the game after it is written, so every pane sees the change. */
   function swap(p: Placed, next: Element) {
@@ -155,26 +193,215 @@
     swap(p, next);
   }
 
-  async function add(origin: Origin, kindId: string, name: string, from: number) {
+  const list = (p: Placed, field: string): string[] => {
+    const v = p.element.fields[field];
+    return Array.isArray(v) ? [...v] : [];
+  };
+  const withList = (p: Placed, field: string, items: string[]): Element => ({ ...p.element, fields: { ...p.element.fields, [field]: items } });
+
+  /** Writes this world's piece of a core element, creating its add-on file the first time. */
+  async function worldPieceOf(p: Placed): Promise<Placed> {
+    if (!game) throw new Error('The game is not open');
+    const existing = game.addOns.get(refOf(p.element));
+    if (existing) return existing;
+    const kind = game.kinds.get('add-on') ?? null;
+    // A module's add-on is named for the module; any other kind's carries its kind first.
+    const id = p.element.kind === 'module' ? p.element.id : `${p.element.kind}-${p.element.id}`;
+    const e: Element = { path: `elements/add-on/${id}.md`, id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: refOf(p.element) }, flavor: '' };
+    await fs.writeText(`${gameDir}/${e.path}`, writeElement(e, kind));
+    await load();
+    return game!.addOns.get(refOf(p.element))!;
+  }
+
+  async function saveWorldPiece(p: Placed, text: string) {
+    const piece = await worldPieceOf(p);
+    await save(piece, { ...piece.element, flavor: text });
+  }
+
+  // Pictures: a file beside the element with the same name. A world's own picture for a
+  // core element sits beside the world's piece of it.
+  const stemOf = (path: string) => path.replace(/\.md$/i, '');
+
+  async function setPicture(owner: Placed, image: ImageSource) {
     if (!game) return;
-    const kind = game.kinds.get(kindId)!;
+    const src = sourceOf(game, owner);
+    await src.fs.setImage(pathIn(src, stemOf(owner.element.path)), image);
+    await load();
+  }
+
+  async function archive(src: Source, path: string) {
+    const name = path.split('/').pop()!;
+    const dot = name.lastIndexOf('.');
+    let target = pathIn(src, `archive/${name}`);
+    for (let n = 2; await src.fs.exists(target); n++) target = pathIn(src, `archive/${name.slice(0, dot)}-${n}${name.slice(dot)}`);
+    await src.fs.move(pathIn(src, path), target);
+  }
+
+  async function removePicture(owner: Placed) {
+    if (!game || !owner.image) return;
+    await archive(sourceOf(game, owner), owner.image);
+    await load();
+  }
+
+  function pictureFor(p: Placed) {
+    if (!game) return null;
+    const pic = pictureOf(game, p, inWorld);
+    return pic ? { url: pic.src.fs.imageUrl(pathIn(pic.src, pic.path)), frame: readFrame(pic.owner.element.fields.banner_frame) } : null;
+  }
+
+  function choicesFor(p: Placed): PictureChoice[] {
+    if (!game) return [];
+    const piece = game.addOns.get(refOf(p.element)) ?? null;
+    const core: PictureChoice = { label: inWorld && p.origin === 'engine' ? `${engineName} picture` : 'picture', set: (image) => setPicture(p, image), remove: p.image ? () => removePicture(p) : null };
+    if (!(inWorld && p.origin === 'engine')) return [core];
+    return [
+      core,
+      {
+        label: `${worldName} picture`,
+        set: async (image) => setPicture(await worldPieceOf(p), image),
+        remove: piece?.image ? () => removePicture(piece) : null,
+      },
+    ];
+  }
+
+  async function saveFrame(p: Placed, frame: Frame) {
+    if (!game) return;
+    const owner = pictureOf(game, p, inWorld)?.owner ?? p;
+    const fields = { ...owner.element.fields };
+    const value = writeFrame(frame);
+    if (value) fields.banner_frame = value;
+    else delete fields.banner_frame;
+    await save(owner, { ...owner.element, fields });
+  }
+
+  // The book's own front page lives in `book.md`, beside its divisions.
+  async function saveBook(changes: { name?: string; body?: string; frame?: Frame }) {
+    if (!game || !bookSource || !bookOrigin) return;
+    const file = pathIn(bookSource, 'book.md');
+    let text = await bookSource.fs.readText(file);
+    if (changes.name !== undefined) text = withHeader(text, { name: changes.name });
+    if (changes.frame !== undefined) text = withHeader(text, { banner_frame: writeFrame(changes.frame) });
+    if (changes.body !== undefined) text = withBody(text, changes.body);
+    await bookSource.fs.writeText(file, text);
+    const book = game.books[bookOrigin]!;
+    const next = { ...book, name: changes.name ?? book.name, body: changes.body ?? book.body, frame: changes.frame ? (writeFrame(changes.frame) ?? '') : book.frame };
+    game = { ...game, books: { ...game.books, [bookOrigin]: next } };
+  }
+
+  const bookPicture = $derived(tree?.book.image && bookSource ? { url: bookSource.fs.imageUrl(pathIn(bookSource, tree.book.image)), frame: readFrame(tree.book.frame) } : null);
+  const bookChoices = $derived<PictureChoice[]>(
+    bookSource && tree
+      ? [
+          {
+            label: 'picture',
+            set: async (image) => {
+              await bookSource!.fs.setImage(pathIn(bookSource!, 'book'), image);
+              await load();
+            },
+            remove: tree.book.image
+              ? async () => {
+                  await archive(bookSource!, tree!.book.image!);
+                  await load();
+                }
+              : null,
+          },
+        ]
+      : [],
+  );
+
+  // Moving and adding in the tree. A rule of the world's own stays in the world's
+  // sections, and a section of the world's own in the world's divisions, so a core
+  // section or division never names something only one world has.
+  async function moveRule(ruleKey: string, fromKey: string, toKey: string, before: string | null) {
+    const rule = byKey.get(ruleKey);
+    const from = byKey.get(fromKey);
+    const to = byKey.get(toKey);
+    if (!rule || !from || !to || ruleKey === before) return;
+    if (to.origin === 'engine' && rule.origin === 'world') {
+      notice = `${rule.element.name} is ${worldName}'s own rule, so it can go into ${worldName}'s sections but not a core one.`;
+      return;
+    }
+    notice = '';
+    const without = (p: Placed) => list(p, 'items').filter((r) => keyOf(r, p.origin) !== ruleKey);
+    const target = without(to);
+    const at = before ? target.findIndex((r) => keyOf(r, to.origin) === before) : -1;
+    if (at < 0) target.push(ruleKey);
+    else target.splice(at, 0, ruleKey);
+    if (from !== to) await save(from, withList(from, 'items', without(from)));
+    await save(to, withList(to, 'items', target));
+  }
+
+  async function moveSection(secKey: string, fromKey: string | null, toKey: string, before: string | null) {
+    if (!game || !bookSource) return;
+    const sec = byKey.get(secKey);
+    const to = byKey.get(toKey);
+    if (!sec || !to || secKey === before) return;
+    if (to.origin === 'engine' && sec.origin === 'world') {
+      notice = `${sec.element.name} is ${worldName}'s own section, so it belongs in ${worldName}'s book.`;
+      return;
+    }
+    notice = '';
+    const target = list(to, 'sections').filter((r) => keyOf(r, to.origin) !== secKey);
+    const at = before ? target.findIndex((r) => keyOf(r, to.origin) === before) : -1;
+    if (at < 0) target.push(secKey);
+    else target.splice(at, 0, secKey);
+    const from = fromKey ? byKey.get(fromKey) : null;
+    if (from && from !== to) await save(from, withList(from, 'sections', list(from, 'sections').filter((r) => keyOf(r, from.origin) !== secKey)));
+    if (!fromKey) {
+      // A section from before divisions leaves the book's loose list.
+      const file = pathIn(bookSource, 'book.md');
+      const book = game.books[bookOrigin!]!;
+      const rest = book.chapters.filter((r) => keyOf(r, bookOrigin!) !== secKey);
+      await bookSource.fs.writeText(file, withHeader(await bookSource.fs.readText(file), { chapters: rest.length ? rest : undefined }));
+    }
+    await save(to, withList(to, 'sections', target));
+    if (!fromKey) await load();
+  }
+
+  async function addElement(origin: Origin, kindId: string, name: string): Promise<string> {
+    if (!game) throw new Error('The game is not open');
+    const kind = game.kinds.get(kindId);
+    if (!kind) throw new Error(`This game has no ${kindId} kind yet.`);
     const taken = new Set(game.elements.filter((p) => p.origin === origin).map((p) => refOf(p.element)));
     const e = newElement(name, kind, taken);
-    if (origin === 'engine') e.tags = ['core', kind.id];
+    e.tags = origin === 'engine' ? ['core', kind.id] : [kind.id];
     const src: Source = origin === 'engine' && game.engine ? game.engine : game.world;
     await src.fs.writeText(pathIn(src, e.path), writeElement(e, kind));
+    return `${origin}:${refOf(e)}`;
+  }
+
+  async function addRule(secKey: string, name: string) {
+    const sec = byKey.get(secKey);
+    if (!sec) return;
+    const key = await addElement(sec.origin, 'module', name);
+    await save(sec, withList(sec, 'items', [...list(sec, 'items'), key]));
     await load();
-    openElement(`${origin}:${refOf(e)}`, from);
+    nav.open(`${RULE}${key}`);
+  }
+
+  async function addSection(divKey: string, name: string) {
+    const div = byKey.get(divKey);
+    if (!div) return;
+    const key = await addElement(div.origin, 'chapter', name);
+    await save(div, withList(div, 'sections', [...list(div, 'sections'), key]));
+    await load();
+    nav.open(`${SEC}${key}`);
+  }
+
+  async function add(origin: Origin, kindId: string, name: string, from: number) {
+    const key = await addElement(origin, kindId, name);
+    await load();
+    openElement(key, from);
   }
 
   async function setAside(p: Placed, on: boolean) {
     if (!game) return;
     const file = `${gameDir}/game.md`;
     const source = (await fs.exists(file)) ? await fs.readText(file) : null;
-    const list = new Set(game.setAside);
-    if (on) list.add(refOf(p.element));
-    else list.delete(refOf(p.element));
-    await fs.writeText(file, gameFileWith(source, [...list].sort()));
+    const set = new Set(game.setAside);
+    if (on) set.add(refOf(p.element));
+    else set.delete(refOf(p.element));
+    await fs.writeText(file, gameFileWith(source, [...set].sort()));
     await load();
   }
 
@@ -192,86 +419,144 @@
   }
 
   const count = (origin: Origin) => (game?.elements ?? []).filter((p) => p.origin === origin).length;
+  const bookLabel = (origin: Origin) => (origin === 'world' ? worldName : engineName);
 </script>
 
 <div class="game">
   {#if !ui.full}
     <nav class="sidebar" aria-label="Game">
       <input class="find" type="search" placeholder="Find an element" bind:value={filter} aria-label="Find an element" />
+      {#if notice}
+        <p class="notice" role="status">{notice} <button type="button" onclick={() => (notice = '')}>OK</button></p>
+      {/if}
       {#if filter.trim()}
         <h2 class="label">Found</h2>
         {#each results as p (p.key)}
-          <button type="button" class="item" onclick={() => openElement(p.key)}>
+          <button type="button" class="item" onclick={() => (p.element.kind === 'module' ? nav.open(`${RULE}${p.key}`) : openElement(p.key))}>
             <span>{p.element.name}</span><span class="n">{game?.kinds.get(p.element.kind)?.name ?? p.element.kind}</span>
           </button>
         {:else}
           <p class="hint">Nothing by that name or tag.</p>
         {/each}
       {:else}
-        {#if chapters.length}
-          <h2 class="label">{bookName}'s book</h2>
-          {#each chapters as c (c.key)}
-            <button type="button" class="item" class:on={nav.panes.includes(`${CHAPTER}${c.key}`)} onclick={() => openChapter(c.key)}>
-              <span>{c.element.name}</span><span class="n">{c.origin === 'engine' ? 'core' : ''}</span>
-            </button>
-          {/each}
+        {#if game?.books.world && game.books.engine}
+          <div class="books" role="group" aria-label="Which book">
+            {#each ['world', 'engine'] as const as o (o)}
+              <button type="button" class:on={bookOrigin === o} aria-pressed={bookOrigin === o} onclick={() => (chosen = o)}>{bookLabel(o)}</button>
+            {/each}
+          </div>
         {/if}
-        {#if game?.engine}
-          <h2 class="label">{engineName}</h2>
-          {#each engineKinds as { kind, count } (kind.id)}
-            <button type="button" class="item" class:on={nav.panes.includes(`${KIND}engine:${kind.id}`)} onclick={() => openKind('engine', kind.id)}>
+        {#if tree}
+          <BookTree
+            {tree}
+            {worldName}
+            open={nav.panes}
+            onOpen={(id) => nav.open(id)}
+            onMoveRule={(r, f, t, b) => void moveRule(r, f, t, b).catch((e) => (notice = String(e)))}
+            onMoveSection={(sec, f, t, b) => void moveSection(sec, f, t, b).catch((e) => (notice = String(e)))}
+            onAddRule={addRule}
+            onAddSection={addSection} />
+        {/if}
+        <button type="button" class="all label" aria-expanded={allOpen || !tree} onclick={() => (allOpen = !allOpen)}>{allOpen || !tree ? '▾' : '▸'} Every element by kind</button>
+        {#if allOpen || !tree}
+          {#if game?.engine}
+            <h2 class="label">{engineName}</h2>
+            {#each engineKinds as { kind, count } (kind.id)}
+              <button type="button" class="item" class:on={nav.panes.includes(`${KIND}engine:${kind.id}`)} onclick={() => nav.open(`${KIND}engine:${kind.id}`)}>
+                <span>{kind.plural}</span><span class="n">{count}</span>
+              </button>
+            {/each}
+          {/if}
+          <h2 class="label">{worldName}</h2>
+          {#each worldKinds as { kind, count } (kind.id)}
+            <button type="button" class="item" class:empty={count === 0} class:on={nav.panes.includes(`${KIND}world:${kind.id}`)} onclick={() => nav.open(`${KIND}world:${kind.id}`)}>
               <span>{kind.plural}</span><span class="n">{count}</span>
             </button>
+          {:else}
+            <p class="hint">No elements of this world's own yet. A world can bring kinds of its own in its game folder.</p>
           {/each}
         {/if}
-        <h2 class="label">{worldName}</h2>
-        {#each worldKinds as { kind, count } (kind.id)}
-          <button type="button" class="item" class:empty={count === 0} class:on={nav.panes.includes(`${KIND}world:${kind.id}`)} onclick={() => openKind('world', kind.id)}>
-            <span>{kind.plural}</span><span class="n">{count}</span>
-          </button>
-        {:else}
-          <p class="hint">No elements of this world's own yet. Open a kind above and add one, or a world can bring kinds of its own in its game folder.</p>
-        {/each}
       {/if}
     </nav>
   {/if}
   {#if row.length && game}
     <Panes {nav} ids={row} {label} canWindow={() => false}>
       {#snippet pane(id, i)}
-        {#if id.startsWith(CHAPTER)}
-          {@const c = byKey.get(id.slice(CHAPTER.length))!}
-          <BookChapter
-            chapter={c}
-            {bookName}
-            {worldName}
-            items={chapterItems(game!, c, byKey)}
-            onOpen={(item) => openItem(item, i)}
-            onEdit={() => openElement(c.key, i)} />
-        {:else if id.startsWith(MODULE)}
-          {@const m = byKey.get(id.slice(MODULE.length))!}
-          {#key m.key}
-            <BookModule
-              module={m}
-              worldPiece={game!.addOns.get(refOf(m.element)) ?? null}
-              chapterName={chapterOf(m.key)?.element.name ?? bookName}
+        {#key `${id}|${bookOrigin}`}
+          {#if id.startsWith(FRONT) && tree}
+            <FrontPage
+              place="{bookOrigin === 'engine' ? 'Base game' : `${worldName}'s game`} · Front page"
+              name={tree.book.name}
+              body={tree.book.body}
+              picture={bookPicture}
+              choices={bookChoices}
+              onFrame={(frame) => saveBook({ frame })}
+              onSave={(c) => saveBook(c)}
+              contents={tree.divisions.map((d) => ({ label: d.placed.element.name, note: d.catalog.length ? `${d.catalog.length} kinds` : `${d.sections.length} sections`, open: () => nav.open(`${DIV}${d.placed.key}`, i) }))} />
+          {:else if id.startsWith(DIV)}
+            {@const p = byKey.get(keyIn(id))!}
+            {@const d = tree?.divisions.find((x) => x.placed.key === p.key)}
+            <FrontPage
+              place="{tree?.book.name ?? ''} · Division"
+              name={p.element.name}
+              body={p.element.flavor}
+              picture={pictureFor(p)}
+              choices={choicesFor(p)}
+              onFrame={(frame) => saveFrame(p, frame)}
+              onSave={(c) => save(p, { ...p.element, name: c.name, flavor: c.body })}
+              contents={d
+                ? d.catalog.length
+                  ? d.catalog.map((c) => ({ label: c.kind.plural, note: `${c.elements.length}`, open: () => nav.open(`${CAT}${c.kind.id}`, i) }))
+                  : d.sections.map((x) => ({ label: x.placed.element.name, note: `${x.items.filter((r) => r.type === 'rule').length} rules`, open: () => nav.open(`${SEC}${x.placed.key}`, i) }))
+                : []} />
+          {:else if id.startsWith(SEC)}
+            {@const s = places.sections.get(keyIn(id))!}
+            <SectionPage
+              section={s}
+              {inWorld}
+              place="{places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section"
+              {worldName}
+              picture={pictureFor(s.placed)}
+              choices={choicesFor(s.placed)}
+              onFrame={(frame) => saveFrame(s.placed, frame)}
+              onSave={(c) => save(s.placed, { ...s.placed.element, name: c.name, flavor: c.intro })}
+              onOpen={(key, type) => nav.open(`${type === 'rule' ? RULE : EL}${key}`, i)} />
+          {:else if id.startsWith(RULE)}
+            {@const r = byKey.get(keyIn(id))!}
+            {@const sec = places.ruleIn.get(r.key)}
+            <RulePage
+              rule={r}
+              worldPiece={game!.addOns.get(refOf(r.element)) ?? null}
+              {inWorld}
+              place={[sec && places.sectionIn.get(sec.placed.key)?.placed.element.name, sec?.placed.element.name ?? 'Rule'].filter(Boolean).join(' · ')}
               {engineName}
               {worldName}
-              onSaveModule={(name, text) => saveModule(m, name, text)}
-              onSaveWorldPiece={(text) => saveWorldPiece(m, text)} />
-          {/key}
-        {:else if id.startsWith(KIND)}
-          {@const [, origin, kindId] = id.split(':')}
-          {@const kind = game!.kinds.get(kindId)!}
-          <GameKind
-            {kind}
-            where={origin === 'engine' ? engineName : worldName}
-            {worldName}
-            elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
-            onOpen={(key) => openElement(key, i)}
-            onNew={(name) => add(origin as Origin, kindId, name, i)} />
-        {:else}
-          {@const p = byKey.get(id.slice(EL.length))!}
-          {#key p.key}
+              picture={pictureFor(r)}
+              choices={choicesFor(r)}
+              onFrame={(frame) => saveFrame(r, frame)}
+              onSave={(c) => save(r, { ...r.element, name: c.name, tags: c.tags, flavor: c.text })}
+              onSaveWorld={(text) => saveWorldPiece(r, text)} />
+          {:else if id.startsWith(CAT)}
+            {@const c = catalogOf(keyIn(id))!}
+            <GameKind
+              kind={c.kind}
+              where={tree?.book.name ?? worldName}
+              {worldName}
+              elements={c.elements}
+              onOpen={(key) => openElement(key, i)}
+              onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)} />
+          {:else if id.startsWith(KIND)}
+            {@const [, origin, kindId] = id.split(':')}
+            {@const kind = game!.kinds.get(kindId)!}
+            <GameKind
+              {kind}
+              where={origin === 'engine' ? engineName : worldName}
+              {worldName}
+              elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
+              onOpen={(key) => openElement(key, i)}
+              onNew={(name) => add(origin as Origin, kindId, name, i)} />
+          {:else}
+            {@const p = byKey.get(keyIn(id))!}
             <GameElement
               placed={p}
               kind={game!.kinds.get(p.element.kind) ?? null}
@@ -282,8 +567,8 @@
               onSetAside={(on) => setAside(p, on)}
               onReskin={() => reskin(p, i)}
               onOpen={(key) => openElement(key, i)} />
-          {/key}
-        {/if}
+          {/if}
+        {/key}
       {/snippet}
     </Panes>
   {:else}
@@ -330,6 +615,56 @@
     overflow-y: auto;
     border-right: 1px solid var(--line);
     padding: 12px 0 24px;
+  }
+  .books {
+    display: flex;
+    margin: 6px 18px 8px;
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    overflow: hidden;
+  }
+  .books button {
+    flex: 1;
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
+    background: none;
+    border: 0;
+    padding: 5px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .books button.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+  }
+  .notice {
+    margin: 4px 18px 8px;
+    padding: 8px 10px;
+    font-size: calc(13px * var(--type));
+    line-height: 1.45;
+    color: var(--text);
+    background: var(--surface);
+    border-left: 2px solid var(--accent, var(--structure));
+  }
+  .notice button {
+    margin-left: 6px;
+    font-size: calc(12px * var(--type));
+    color: var(--structure);
+    background: none;
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 1px 8px;
+  }
+  .all {
+    display: block;
+    width: calc(100% - 20px);
+    margin: 14px 10px 2px;
+    text-align: left;
+    font-size: calc(11px * var(--type));
+    background: none;
+    border: 0;
+    padding: 6px 8px;
   }
   .find {
     display: block;

@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import type { DirEntry } from './types';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { picturePath, type DirEntry, type ImageSource } from './types';
 import type { GameFs } from '../game/game';
 
 /**
@@ -21,5 +21,22 @@ export class EngineFs implements GameFs {
 
   writeText(path: string, content: string): Promise<void> {
     return invoke('engine_write_text', { rel: path, content });
+  }
+
+  private imageVersion = 0;
+
+  /** The engine's files are served on the world scheme under `@engine/`. */
+  imageUrl(path: string): string {
+    return `${convertFileSrc(`@engine/${path.replace(/\\/g, '/')}`, 'world')}${this.imageVersion ? `?v=${this.imageVersion}` : ''}`;
+  }
+
+  async setImage(stem: string, image: ImageSource): Promise<string> {
+    const path = await invoke<string>('engine_set_image', { stem, source: await picturePath(image) });
+    this.imageVersion += 1;
+    return path;
+  }
+
+  move(from: string, to: string): Promise<void> {
+    return invoke('engine_move', { from, to });
   }
 }

@@ -765,6 +765,30 @@ fn engine_write_text(rel: String, content: String, state: State<OpenEngine>) -> 
     save_file(&inside(&engine_root(&state)?, &rel)?, &rel, content)
 }
 
+/// Copies a picture into the engine as the image for `stem`, such as a core rule's
+/// header picture beside its file. Returns the picture's path inside the engine.
+#[tauri::command]
+fn engine_set_image(stem: String, source: String, state: State<OpenEngine>) -> Result<String, String> {
+    let root = engine_root(&state)?;
+    let target = place_image(&inside(&root, &stem)?, Path::new(&source))?;
+    Ok(target.strip_prefix(&root).unwrap_or(&target).to_string_lossy().replace('\\', "/"))
+}
+
+/// Moves a file inside the engine, such as a picture taken away into its archive.
+#[tauri::command]
+fn engine_move(from: String, to: String, state: State<OpenEngine>) -> Result<(), String> {
+    let root = engine_root(&state)?;
+    let source = inside(&root, &from)?;
+    let target = inside(&root, &to)?;
+    if target.exists() {
+        return Err(format!("{to} already exists"));
+    }
+    if let Some(dir) = target.parent() {
+        fs::create_dir_all(dir).map_err(|e| format!("Could not create the folder for {to}: {e}"))?;
+    }
+    fs::rename(&source, &target).map_err(|e| format!("Could not move {from}: {e}"))
+}
+
 /// Syncs the library's `immersion.md` alone, for when it changes with no world open, and
 /// before a vault passphrase is chosen, so one chosen on another computer arrives first.
 fn sync_you_file(file: &Path) -> SyncReport {
@@ -1245,14 +1269,17 @@ fn serve_cover(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
 }
 
 /// Serves `world://localhost/<relative path>` from the open world folder.
+/// Where the world scheme serves the open engine's files from.
+const ENGINE_PREFIX: &str = "@engine/";
+
 fn serve_world_file(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
     let rel = percent_encoding::percent_decode_str(uri_path).decode_utf8_lossy().into_owned();
-    let found = app
-        .state::<OpenWorld>()
-        .0
-        .lock()
-        .unwrap()
-        .clone()
+    // The open engine's pictures, such as a core rule's header, are served under `@engine/`.
+    let (root, rel) = match rel.trim_start_matches('/').strip_prefix(ENGINE_PREFIX) {
+        Some(rest) => (engine_path(app), rest.to_string()),
+        None => (app.state::<OpenWorld>().0.lock().unwrap().clone(), rel),
+    };
+    let found = root
         .ok_or(())
         .and_then(|r| inside(&r, &rel).map_err(|_| ()))
         .and_then(|p| fs::read(&p).map(|bytes| (p, bytes)).map_err(|_| ()));
@@ -1340,6 +1367,8 @@ pub fn run() {
             engine_read_dir,
             engine_exists,
             engine_write_text,
+            engine_set_image,
+            engine_move,
             vault_list,
             vault_read,
             vault_write,

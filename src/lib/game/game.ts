@@ -1,6 +1,6 @@
 import { readElement, readGameFile, readKind, type Element, type Kind } from './elements.ts';
 import { splitHeader, withHeader } from '../world.ts';
-import type { DirEntry } from '../fs/types';
+import { IMAGE_EXTENSIONS, type DirEntry, type ImageSource } from '../fs/types.ts';
 
 /**
  * A game as the Game module shows it (Mike, November 7): the engine's elements and the
@@ -15,6 +15,12 @@ export interface GameFs {
   readDir(path: string): Promise<DirEntry[]>;
   exists(path: string): Promise<boolean>;
   writeText(path: string, content: string): Promise<void>;
+  /** A URL the webview can show a picture from. */
+  imageUrl(path: string): string;
+  /** Copies a picture in as the image for `stem`, a file's path without its extension. */
+  setImage(stem: string, image: ImageSource): Promise<string>;
+  /** Moves a file, such as a picture taken away into the archive. */
+  move(from: string, to: string): Promise<void>;
 }
 
 export type Origin = 'engine' | 'world';
@@ -38,12 +44,23 @@ export interface Placed {
   reskinnedBy: Placed | null;
   /** For a reskin: the core element whose mechanics it uses. */
   base: Placed | null;
+  /** The element's picture, a file beside it with the same name, as a path inside its folder. */
+  image: string | null;
 }
 
 /** A book's chapters in order, by reference, such as `engine:chapter/3-rolling-for-trouble`. */
 export interface Book {
   name: string;
+  /** The book's divisions in order, by reference, such as `world:division/the-protagonist` (Mike, November 9). */
+  divisions: string[];
+  /** Sections listed outside any division, from before books had divisions. */
   chapters: string[];
+  /** The book's front page: the body of `book.md`. */
+  body: string;
+  /** The front page's picture, `book.jpg` or the like beside `book.md`. */
+  image: string | null;
+  /** How the front page's picture is framed, as `banner_frame:` in `book.md` writes it. */
+  frame: string;
 }
 
 export interface Game {
@@ -82,9 +99,23 @@ export function chapterItems(game: Game, chapter: Placed, byKey: Map<string, Pla
 /** Reads a `book.md`: its name and its chapters in order. */
 export function readBook(source: string | null): Book | null {
   if (!source) return null;
-  const { header } = splitHeader(source);
-  const chapters = Array.isArray(header.chapters) ? header.chapters.map((c) => String(c).trim()).filter(Boolean) : [];
-  return { name: typeof header.name === 'string' ? header.name : 'Book', chapters };
+  const { header, body } = splitHeader(source);
+  const list = (v: unknown) => (Array.isArray(v) ? v.map((c) => String(c).trim()).filter(Boolean) : []);
+  return {
+    name: typeof header.name === 'string' ? header.name : 'Book',
+    divisions: list(header.divisions),
+    chapters: list(header.chapters),
+    body: body.replace(/^\n+/, '').replace(/\n+$/, ''),
+    image: null,
+    frame: typeof header.banner_frame === 'string' || typeof header.banner_frame === 'number' ? String(header.banner_frame) : '',
+  };
+}
+
+/** A file's new text with this body, keeping its header exactly as it was. */
+export function withBody(source: string, body: string): string {
+  const head = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(source)?.[0] ?? '';
+  if (!head) return body.trim() ? `${body.replace(/\n+$/, '')}\n` : '';
+  return `${head.replace(/\n?$/, '\n')}${body.trim() ? `\n${body.replace(/\n+$/, '')}\n` : ''}`;
 }
 
 /** An element's reference within its folder, as `game.md` and `reskins:` write it: `kind/id`. */
@@ -97,26 +128,41 @@ async function listMd(fs: GameFs, dir: string): Promise<string[]> {
   return (await fs.readDir(dir)).filter((d) => !d.isDir && /\.md$/i.test(d.name) && !d.name.startsWith('.')).map((d) => d.name);
 }
 
-async function readSource(src: Source): Promise<{ kinds: Kind[]; elements: Element[] }> {
+/** The picture beside a file, by the file's path without `.md`, among a folder's entries. */
+function imageBeside(entries: DirEntry[], stem: string): string | null {
+  for (const ext of IMAGE_EXTENSIONS) {
+    const hit = entries.find((d) => !d.isDir && d.name.toLowerCase() === `${stem.toLowerCase()}.${ext}`);
+    if (hit) return hit.name;
+  }
+  return null;
+}
+
+async function readSource(src: Source): Promise<{ kinds: Kind[]; elements: Element[]; images: Map<string, string> }> {
   const kinds: Kind[] = [];
   for (const name of await listMd(src.fs, join(src.dir, 'kinds'))) {
     kinds.push(readKind(name.replace(/\.md$/i, ''), await src.fs.readText(join(src.dir, `kinds/${name}`))));
   }
   const elements: Element[] = [];
+  // Each element's picture, by the element's path: a file beside it with the same name.
+  const images = new Map<string, string>();
   const root = join(src.dir, 'elements');
   if (await src.fs.exists(root)) {
     for (const folder of (await src.fs.readDir(root)).filter((d) => d.isDir && !d.name.startsWith('.'))) {
-      for (const name of await listMd(src.fs, `${root}/${folder.name}`)) {
-        const rel = `elements/${folder.name}/${name}`;
+      const entries = await src.fs.readDir(`${root}/${folder.name}`);
+      for (const d of entries) {
+        if (d.isDir || !/\.md$/i.test(d.name) || d.name.startsWith('.')) continue;
+        const rel = `elements/${folder.name}/${d.name}`;
         elements.push(readElement(rel, await src.fs.readText(join(src.dir, rel))));
+        const image = imageBeside(entries, d.name.replace(/\.md$/i, ''));
+        if (image) images.set(rel, `elements/${folder.name}/${image}`);
       }
     }
   }
-  return { kinds, elements };
+  return { kinds, elements, images };
 }
 
 export async function loadGame(engine: Source | null, world: Source): Promise<Game> {
-  const e = engine ? await readSource(engine) : { kinds: [], elements: [] };
+  const e = engine ? await readSource(engine) : { kinds: [], elements: [], images: new Map<string, string>() };
   const w = await readSource(world);
   const gameFile = (await world.fs.exists(join(world.dir, 'game.md'))) ? await world.fs.readText(join(world.dir, 'game.md')) : null;
   const setAside = new Set(readGameFile(gameFile).setAside);
@@ -127,8 +173,8 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
   for (const k of w.kinds) if (!kinds.has(k.id)) kinds.set(k.id, { ...k, origin: 'world' });
 
   const placed: Placed[] = [
-    ...e.elements.map((el): Placed => ({ key: `engine:${refOf(el)}`, origin: 'engine', element: el, setAside: setAside.has(refOf(el)), reskinnedBy: null, base: null })),
-    ...w.elements.map((el): Placed => ({ key: `world:${refOf(el)}`, origin: 'world', element: el, setAside: false, reskinnedBy: null, base: null })),
+    ...e.elements.map((el): Placed => ({ key: `engine:${refOf(el)}`, origin: 'engine', element: el, setAside: setAside.has(refOf(el)), reskinnedBy: null, base: null, image: e.images.get(el.path) ?? null })),
+    ...w.elements.map((el): Placed => ({ key: `world:${refOf(el)}`, origin: 'world', element: el, setAside: false, reskinnedBy: null, base: null, image: w.images.get(el.path) ?? null })),
   ];
   const core = new Map(placed.filter((p) => p.origin === 'engine').map((p) => [refOf(p.element), p]));
   for (const p of placed) {
@@ -145,7 +191,12 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
     const extendsRef = p.origin === 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
     if (typeof extendsRef === 'string' && extendsRef) addOns.set(extendsRef, p);
   }
-  const bookOf = async (src: Source | null) => (src && (await src.fs.exists(join(src.dir, 'book.md'))) ? readBook(await src.fs.readText(join(src.dir, 'book.md'))) : null);
+  const bookOf = async (src: Source | null): Promise<Book | null> => {
+    if (!src || !(await src.fs.exists(join(src.dir, 'book.md')))) return null;
+    const book = readBook(await src.fs.readText(join(src.dir, 'book.md')));
+    if (book) book.image = imageBeside(await src.fs.readDir(src.dir), 'book');
+    return book;
+  };
   return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns };
 }
 
@@ -174,3 +225,108 @@ export function gameFileWith(source: string | null, setAside: string[]): string 
   const base = source ?? "# Game\n\nThis world's choices about its engine's core elements. Immersion keeps this file.\n";
   return withHeader(base, { set_aside: setAside.length ? setAside : undefined });
 }
+
+/**
+ * The book as a tree (Mike, November 9): divisions, each with a front page, hold rule
+ * sections, and each section holds its rules. A core rule carries the world's piece
+ * beside it when the book is a world's. A division with a `catalog` lists every element
+ * of those kinds instead of sections, so the aspects print as lists.
+ */
+export interface RuleNode {
+  type: 'rule';
+  placed: Placed;
+  /** This world's piece of a core rule, in a world's book. */
+  worldPiece: Placed | null;
+}
+export interface HeadingNode {
+  type: 'heading';
+  text: string;
+}
+export interface SectionNode {
+  placed: Placed;
+  items: (RuleNode | HeadingNode)[];
+  /** Elements the section lists among its rules, from before the aspects had a division. */
+  elements: Placed[];
+}
+export interface CatalogNode {
+  kind: Kind;
+  elements: Placed[];
+}
+export interface DivisionNode {
+  placed: Placed;
+  sections: SectionNode[];
+  catalog: CatalogNode[];
+}
+export interface BookTree {
+  /** Whose book it is: the engine's base game or the world's. */
+  origin: Origin;
+  book: Book;
+  divisions: DivisionNode[];
+  /** Sections the book lists outside any division. */
+  loose: SectionNode[];
+}
+
+/** A reference's key in the game: one without `engine:` or `world:` points into `origin`. */
+export const keyOf = (ref: string, origin: Origin) => (/^(engine|world):/.test(ref) ? ref : `${origin}:${ref}`);
+
+const listField = (p: Placed, key: string): string[] => {
+  const v = p.element.fields[key];
+  return Array.isArray(v) ? v : typeof v === 'string' && v.trim() ? [v.trim()] : [];
+};
+
+export function bookTree(game: Game, origin: Origin): BookTree | null {
+  const book = game.books[origin];
+  if (!book) return null;
+  const inWorld = origin === 'world';
+  const byKey = new Map(game.elements.map((p) => [p.key, p]));
+  // The base game shows only the engine's own elements.
+  const visible = (p: Placed | undefined): p is Placed => !!p && (inWorld || p.origin === 'engine');
+  const section = (p: Placed): SectionNode => {
+    const items: (RuleNode | HeadingNode)[] = [];
+    const elements: Placed[] = [];
+    for (const ref of listField(p, 'items')) {
+      if (ref.startsWith('heading:')) {
+        items.push({ type: 'heading', text: ref.slice(8).trim() });
+        continue;
+      }
+      const hit = byKey.get(keyOf(ref, p.origin));
+      if (!visible(hit)) continue;
+      if (hit.element.kind === 'module') items.push({ type: 'rule', placed: hit, worldPiece: inWorld && hit.origin === 'engine' ? (game.addOns.get(refOf(hit.element)) ?? null) : null });
+      else elements.push(hit);
+    }
+    return { placed: p, items, elements };
+  };
+  const sections = (refs: string[], from: Origin) =>
+    refs
+      .map((r) => byKey.get(keyOf(r, from)))
+      .filter(visible)
+      .map(section);
+  const divisions = book.divisions
+    .map((r) => byKey.get(keyOf(r, origin)))
+    .filter(visible)
+    .map((d): DivisionNode => ({
+      placed: d,
+      sections: sections(listField(d, 'sections'), d.origin),
+      catalog: listField(d, 'catalog')
+        .map((id) => game.kinds.get(id))
+        .filter((k): k is Kind & { origin: Origin } => !!k)
+        .map((kind) => ({
+          kind,
+          elements: game.elements.filter((p) => p.element.kind === kind.id && (inWorld ? inPlay(p) : p.origin === 'engine')),
+        }))
+        .filter((c) => c.elements.length > 0),
+    }));
+  return { origin, book, divisions, loose: sections(book.chapters, origin) };
+}
+
+/**
+ * The picture at the top of an element's page. In a world's book, the world's piece of a
+ * core element can carry a picture of its own, which shows instead of the core one.
+ */
+export function pictureOf(game: Game, p: Placed, inWorld: boolean): { src: Source; path: string; owner: Placed } | null {
+  const piece = inWorld && p.origin === 'engine' ? game.addOns.get(refOf(p.element)) : undefined;
+  if (piece?.image) return { src: game.world, path: piece.image, owner: piece };
+  if (p.image) return { src: sourceOf(game, p), path: p.image, owner: p };
+  return null;
+}
+

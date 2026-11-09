@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { readElement, readKind, writeElement, writeKind, newElement, type Kind } from './elements.ts';
-import { chapterItems, effective, gameFileWith, inPlay, loadGame } from './game.ts';
+import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, pictureOf, withBody } from './game.ts';
 
 const gear: Kind = {
   id: 'gear',
@@ -104,3 +104,57 @@ test('a chapter resolves its items, reading a bare reference in its own folder',
     ['module The Edge true', 'heading Tools', 'element Rope', 'missing module/gone'],
   );
 });
+
+test('a book is a tree of divisions, sections, and rules, and the base game leaves out the world', async () => {
+  const engine = new MemoryFs({
+    'engine.md': '# Example Engine\n',
+    'kinds/gear.md': '---\nname: Gear\n---\n',
+    'book.md': '---\nname: Example Engine\ndivisions: [ division/the-protagonist ]\n---\n\nThe base game.\n',
+    'elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\nsections: [ chapter/rolling ]\n---\n',
+    'elements/chapter/rolling.md': '---\nname: Rolling\nkind: chapter\nitems:\n  - module/the-edge\n  - "heading: Gear"\n  - gear/rope\n---\n',
+    'elements/module/the-edge.md': '---\nname: The Edge\nkind: module\n---\n\nYour edge starts at 7.\n',
+    'elements/module/the-edge.png': 'picture',
+    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\n---\n',
+  });
+  const world = new MemoryFs({
+    'world.md': '---\nname: Harrowgate\n---\n',
+    'game/book.md': '---\nname: Harrowgate\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nSalt and fog.\n',
+    'game/book.jpg': 'picture',
+    'game/elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\nsections:\n  - engine:chapter/rolling\n  - chapter/the-tides\n---\n',
+    'game/elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ncatalog: [ gear, need ]\n---\n',
+    'game/elements/chapter/the-tides.md': '---\nname: The Tides\nkind: chapter\nitems: [ module/low-water ]\n---\n',
+    'game/elements/module/low-water.md': '---\nname: Low Water\nkind: module\n---\n',
+    'game/elements/add-on/the-edge.md': '---\nname: The Edge\nkind: add-on\nextends: module/the-edge\n---\n\n*Wren climbs the pier.*\n',
+    'game/elements/add-on/the-edge.webp': 'picture',
+    'game/elements/gear/salt-knife.md': '---\nname: Salt Knife\nkind: gear\n---\n',
+  });
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Harrowgate', fs: world, dir: 'game' });
+
+  const mine = bookTree(game, 'world')!;
+  assert.equal(mine.book.body, 'Salt and fog.');
+  assert.equal(mine.book.image, 'book.jpg');
+  assert.deepEqual(mine.divisions.map((d) => d.placed.element.name), ['The Protagonist', 'The Aspects']);
+  const [rolling, tides] = mine.divisions[0].sections;
+  const edge = rolling.items[0];
+  assert.equal(edge.type === 'rule' && edge.worldPiece?.element.flavor, '*Wren climbs the pier.*');
+  assert.deepEqual(rolling.items.map((i) => i.type), ['rule', 'heading']);
+  assert.deepEqual(rolling.elements.map((p) => p.element.name), ['Rope']);
+  assert.equal(tides.items.length, 1);
+  assert.deepEqual(mine.divisions[1].catalog.map((c) => [c.kind.id, c.elements.map((p) => p.element.name)]), [['gear', ['Rope', 'Salt Knife']]]);
+  // In the world's book, the world's own picture shows; in the base game, the core one.
+  const rule = edge.type === 'rule' ? edge.placed : null;
+  assert.equal(pictureOf(game, rule!, true)?.path, 'elements/add-on/the-edge.webp');
+  assert.equal(pictureOf(game, rule!, false)?.path, 'elements/module/the-edge.png');
+
+  const base = bookTree(game, 'engine')!;
+  assert.equal(base.divisions[0].sections.length, 1);
+  const baseEdge = base.divisions[0].sections[0].items[0];
+  assert.equal(baseEdge.type === 'rule' && baseEdge.worldPiece, null);
+});
+
+test('a new body keeps the header exactly', () => {
+  assert.equal(withBody('---\nname: Book\ndivisions: [ a ]\n---\n\nOld.\n', 'New text.'), '---\nname: Book\ndivisions: [ a ]\n---\n\nNew text.\n');
+  assert.equal(withBody('---\nname: Book\n---\n', ''), '---\nname: Book\n---\n');
+  assert.equal(withBody('Plain.\n', 'Other.'), 'Other.\n');
+});
+

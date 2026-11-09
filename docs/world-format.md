@@ -381,21 +381,49 @@ A dock knife with a cork grip, so it floats.
 
 ### The book
 
-A game's rulebook is assembled from a `book.md` and two more kinds of element: chapters and modules. The engine can have a `book.md` of its own, which is the base game's book, and a world's game folder can have one, which is that world's book. When a world has a book, the app shows it, and otherwise it shows the engine's.
+A game's rulebook is a book of divisions, rule sections, and rules. The book has a front page and is split into divisions, such as The Protagonist and The Narrator, and each division has a front page of its own. A division holds rule sections, and each section holds its rules in order. A rule is where the text lives: it prints under its own heading, and any subheadings inside its text are written as `###`.
 
-A `book.md` names the book and lists its chapters in order. Each chapter is written as a reference: `engine:` or `world:`, then the chapter element's kind and id:
+The engine can have a `book.md`, which is the base game's book, and a world's game folder can have one, which is that world's book. When both exist, the Game sidebar offers a switch between them. The body of `book.md` is the book's front page, and its header names the book and lists its divisions in order:
 
 ```markdown
 ---
 name: Harrowgate
-chapters:
-  - world:chapter/welcome
+divisions:
+  - division/the-protagonist
+  - division/the-harbor
+  - division/the-aspects
+---
+
+A game of salt, debt, and fog on the Harrowgate docks.
+```
+
+A reference names an element by `engine:` or `world:`, then its kind and id, such as `engine:chapter/taking-risks`. A reference without `engine:` or `world:` points into the folder of the file that names it, so a world's `book.md` names the world's own divisions.
+
+A division is an element of kind `division`. Its body is its front page, and its `sections` list its rule sections in order. A division with a `catalog` lists every element of those kinds instead, by kind and by name, so the book's aspects print as lists:
+
+```markdown
+---
+name: The Protagonist
+kind: division
+tags: [ harbor, division ]
+sections:
   - engine:chapter/taking-risks
-  - world:chapter/the-harbor
+  - chapter/the-tides
+---
+
+Who you play on the docks.
+```
+
+```markdown
+---
+name: The Aspects
+kind: division
+tags: [ harbor, division ]
+catalog: [ need, gear, vendor ]
 ---
 ```
 
-A chapter is an element of kind `chapter`. Its body is the chapter's introduction, and its `items` list the modules, catalog elements, and headings it holds, in order. A heading is written as `heading:` and its text. A reference without `engine:` or `world:` points into the chapter's own folder, so this core chapter's `module/when-to-roll` is the engine's:
+A rule section is an element of kind `chapter`. Its body is the section's introduction, and its `items` list its rules in order. A line written as `heading:` and its text is a divider between groups of rules:
 
 ```markdown
 ---
@@ -405,14 +433,12 @@ tags: [ core, chapter ]
 items:
   - module/when-to-roll
   - module/reading-the-dice
-  - "heading: Gear for risky work"
-  - gear/rope
 ---
 
 When a protagonist tries something uncertain, the dice decide.
 ```
 
-A module is an element of kind `module`, and its body is its text. An engine's module is a core module. A world adds its own piece to a core module with an element of kind `add-on` in `elements/add-on/`, named for the module, whose `extends` names the module it belongs to:
+A rule is an element of kind `module`, and its body is its text. An engine's rule is a core rule, which every game built on the engine prints. A world adds its own piece to a core rule with an element of kind `add-on` in `elements/add-on/`, whose `extends` names the rule it belongs to. The world's piece prints after the core text, and holds the world's examples and anything only that world adds:
 
 ```markdown
 ---
@@ -422,12 +448,14 @@ tags: [ add-on ]
 extends: module/when-to-roll
 ---
 
-*Wren decides the harbor guard is worth a roll.*
+*Wren wants to cross the pier in the fog. The narrator calls for a roll, because the guard is listening.*
 ```
 
-The app creates the add-on the first time the writer types in a module's world piece. A module of the world's own has no add-on, because all of its text is already the world's.
+The app creates the add-on the first time the writer types in a core rule's world piece. A rule of the world's own has no add-on, because all of its text is already the world's. A world's own rule goes only into the world's own sections, and a world's own section only into the world's divisions, so the engine's book never names something one world alone has.
 
-A kind's shape file can name its body with `body:`, such as `body: Text` for modules or `body: Introduction` for chapters. The form shows that name above the body instead of Flavor.
+Any page of the book can carry a header picture: the front page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, the world's piece of a core rule or section can carry a picture of its own beside the add-on, which shows instead of the core picture.
+
+A kind's shape file can name its body with `body:`, such as `body: Text` for rules or `body: Front page` for divisions. The form shows that name above the body instead of Flavor.
 
 ### Setting aside and reskinning
 
