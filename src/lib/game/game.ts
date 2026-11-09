@@ -25,7 +25,7 @@ export interface GameFs {
 
 /**
  * Where an element comes from: `engine`, `world`, or an expansion's id, such as
- * `harborpunk` (Mike, November 9). An expansion adds to its world and changes nothing
+ * `fogbound` (Mike, November 9). An expansion adds to its world and changes nothing
  * in it, so any mix of expansions makes a sound game.
  */
 export type Origin = string;
