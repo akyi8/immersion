@@ -55,6 +55,9 @@ export interface Book {
   divisions: string[];
   /** Sections listed outside any division, from before books had divisions. */
   chapters: string[];
+  /** The front matter and back matter (Mike, November 9): sections before and after the divisions, such as the license and the safety page. */
+  frontMatter: string[];
+  backMatter: string[];
   /** The book's front page: the body of `book.md`. */
   body: string;
   /** The front page's picture, `book.jpg` or the like beside `book.md`. */
@@ -105,6 +108,8 @@ export function readBook(source: string | null): Book | null {
     name: typeof header.name === 'string' ? header.name : 'Book',
     divisions: list(header.divisions),
     chapters: list(header.chapters),
+    frontMatter: list(header.front_matter),
+    backMatter: list(header.back_matter),
     body: body.replace(/^\n+/, '').replace(/\n+$/, ''),
     image: null,
     frame: typeof header.banner_frame === 'string' || typeof header.banner_frame === 'number' ? String(header.banner_frame) : '',
@@ -264,6 +269,9 @@ export interface BookTree {
   divisions: DivisionNode[];
   /** Sections the book lists outside any division. */
   loose: SectionNode[];
+  /** The front matter's sections, before the divisions, and the back matter's, after them. */
+  front: SectionNode[];
+  back: SectionNode[];
 }
 
 /** A reference's key in the game: one without `engine:` or `world:` points into `origin`. */
@@ -316,7 +324,7 @@ export function bookTree(game: Game, origin: Origin): BookTree | null {
         }))
         .filter((c) => c.elements.length > 0),
     }));
-  return { origin, book, divisions, loose: sections(book.chapters, origin) };
+  return { origin, book, divisions, loose: sections(book.chapters, origin), front: sections(book.frontMatter, origin), back: sections(book.backMatter, origin) };
 }
 
 /**

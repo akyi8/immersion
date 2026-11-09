@@ -118,7 +118,8 @@ test('a book is a tree of divisions, sections, and rules, and the base game leav
   });
   const world = new MemoryFs({
     'world.md': '---\nname: Harrowgate\n---\n',
-    'game/book.md': '---\nname: Harrowgate\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nSalt and fog.\n',
+    'game/book.md': '---\nname: Harrowgate\nfront_matter: [ chapter/front ]\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nSalt and fog.\n',
+    'game/elements/chapter/front.md': '---\nname: Front Matter\nkind: chapter\nitems: [ engine:module/the-edge ]\n---\n',
     'game/book.jpg': 'picture',
     'game/elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\nsections:\n  - engine:chapter/rolling\n  - chapter/the-tides\n---\n',
     'game/elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ncatalog: [ gear, need ]\n---\n',
@@ -134,6 +135,10 @@ test('a book is a tree of divisions, sections, and rules, and the base game leav
   assert.equal(mine.book.body, 'Salt and fog.');
   assert.equal(mine.book.image, 'book.jpg');
   assert.deepEqual(mine.divisions.map((d) => d.placed.element.name), ['The Protagonist', 'The Aspects']);
+  // The front matter is a world's own section that can print core pages with the world's piece.
+  const page = mine.front[0].items[0];
+  assert.equal(page.type === 'rule' && page.worldPiece?.element.flavor, '*Wren climbs the pier.*');
+  assert.deepEqual(mine.back, []);
   const [rolling, tides] = mine.divisions[0].sections;
   const edge = rolling.items[0];
   assert.equal(edge.type === 'rule' && edge.worldPiece?.element.flavor, '*Wren climbs the pier.*');

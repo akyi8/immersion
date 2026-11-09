@@ -47,7 +47,10 @@ A kind of place that sells, and the kind of person who runs it. Each world write
     'kinds/chapter.md': '---\nname: Section\nplural: Sections\nfields:\n  - { key: items, label: Rules, type: list }\nlayout: [ flavor, items ]\nbody: Introduction\n---\n\nA rule section of the book, with its rules in order.\n',
     'kinds/division.md': '---\nname: Division\nplural: Divisions\nfields:\n  - { key: sections, label: Sections, type: list }\n  - { key: catalog, label: Kinds listed, type: list }\nlayout: [ flavor, sections, catalog ]\nbody: Front page\n---\n\nA division of the book, with its own front page.\n',
     'kinds/add-on.md': '---\nname: Add-on\nplural: Add-ons\nfields:\n  - { key: extends, label: Adds to, type: line }\nbody: Text\n---\n\nA world\'s piece of a core element.\n',
-    'book.md': '---\nname: Example Engine\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nThe base game: everything every game built on the Example Engine shares.\n',
+    'elements/chapter/front-matter.md': '---\nname: Front Matter\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/safety\n---\n',
+    'elements/chapter/back-matter.md': '---\nname: Back Matter\nkind: chapter\ntags: [ core, chapter ]\n---\n',
+    'elements/module/safety.md': '---\nname: Safety\nkind: module\ntags: [ core, module ]\n---\n\nAgree before play on what belongs in the game, and stop whenever anyone asks.\n',
+    'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter ]\nback_matter: [ chapter/back-matter ]\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nThe base game: everything every game built on the Example Engine shares.\n',
     'elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\ntags: [ core, division ]\nsections:\n  - chapter/taking-risks\n---\n\nWho the player is, and how they get into trouble.\n',
     'elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ core, division ]\ncatalog: [ need, gear ]\n---\n\nEvery aspect, listed by kind.\n',
     'elements/chapter/taking-risks.md': '---\nname: Taking Risks\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/when-to-roll\n  - module/reading-the-dice\n---\n\nWhen a protagonist tries something uncertain, the dice decide.\n',
@@ -61,7 +64,10 @@ A kind of place that sells, and the kind of person who runs it. Each world write
 
 /** Harrowgate's own game files, which the sample world carries in `game/`. */
 export const SAMPLE_GAME: Record<string, string> = {
-  'game/book.md': '---\nname: Harrowgate\ndivisions:\n  - division/the-protagonist\n  - division/the-harbor\n  - division/the-aspects\n---\n\nA game of salt, debt, and fog on the Harrowgate docks.\n',
+  'game/elements/chapter/front-matter.md': '---\nname: Front Matter\nkind: chapter\ntags: [ harbor, chapter ]\nitems:\n  - engine:module/safety\n---\n',
+  'game/elements/chapter/back-matter.md': '---\nname: Back Matter\nkind: chapter\ntags: [ harbor, chapter ]\n---\n',
+  'game/elements/add-on/safety.md': '---\nname: Safety\nkind: add-on\ntags: [ add-on ]\nextends: module/safety\n---\n\nHarrowgate plays with drowning and debt. Name them before the first session.\n',
+  'game/book.md': '---\nname: Harrowgate\nfront_matter: [ chapter/front-matter ]\nback_matter: [ chapter/back-matter ]\ndivisions:\n  - division/the-protagonist\n  - division/the-harbor\n  - division/the-aspects\n---\n\nA game of salt, debt, and fog on the Harrowgate docks.\n',
   'game/elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\ntags: [ harbor, division ]\nsections:\n  - engine:chapter/taking-risks\n---\n\nWho you play on the docks.\n',
   'game/elements/division/the-harbor.md': '---\nname: The Harbor\nkind: division\ntags: [ harbor, division ]\nsections:\n  - chapter/the-tides\n---\n\nThe city, its water, and its weather.\n',
   'game/elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ harbor, division ]\ncatalog: [ need, gear, vendor ]\n---\n',

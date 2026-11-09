@@ -4,7 +4,8 @@
   /**
    * A game's book as a tree (Mike, November 9). The divisions are folders, each section
    * inside them is a folder, and the rules are where the text lives. A division with a
-   * catalog lists its kinds as folders, and their elements inside. Rules and sections can
+   * catalog lists its kinds as folders, and their elements inside. The front matter and
+   * back matter are folders of their own, before and after the divisions. Rules and sections can
    * be dragged to a new place, and the + on a folder adds a rule or a section to it.
    */
   let {
@@ -111,7 +112,7 @@
   {/if}
 {/snippet}
 
-{#snippet section(s: SectionNode, from: string | null, depth: number)}
+{#snippet section(s: SectionNode, from: string | null, depth: number, movable = true)}
   {@const key = s.placed.key}
   <div
     class="row folder {mark(key)}"
@@ -121,15 +122,15 @@
     aria-selected={isOpen(`@sec:${key}`)}
     aria-expanded={expanded.has(key)}
     tabindex="-1"
-    draggable="true"
+    draggable={movable}
     ondragstart={(e) => start(e, { type: 'section', key, from })}
     ondragend={end}
-    ondragover={(e) => (drag?.type === 'rule' ? hover(e, key, 'rule', 'into') : hover(e, key, 'section', 'before'))}
+    ondragover={(e) => (drag?.type === 'rule' ? hover(e, key, 'rule', 'into') : movable && hover(e, key, 'section', 'before'))}
     ondragleave={() => over?.key === key && (over = null)}
     ondrop={(e) => {
       e.preventDefault();
       if (drag?.type === 'rule' && drag.from) onMoveRule(drag.key, drag.from, key, null);
-      else if (drag?.type === 'section' && from) onMoveSection(drag.key, drag.from, from, key);
+      else if (drag?.type === 'section' && from && movable) onMoveSection(drag.key, drag.from, from, key);
       end();
     }}>
     <button type="button" class="twist" aria-label={expanded.has(key) ? 'Close' : 'Open'} onclick={() => toggle(key)}>{expanded.has(key) ? '▾' : '▸'}</button>
@@ -223,7 +224,10 @@
     <button type="button" class="name" onclick={() => onOpen(`@front:${tree.origin}`)}>{tree.book.name}</button>
     <span class="n">front page</span>
   </div>
+  <!-- The front and back matter sit at the top level, as folders of their own (Mike, November 9). -->
+  {#each tree.front as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}
   {#each tree.divisions as d (d.placed.key)}{@render division(d)}{/each}
+  {#each tree.back as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}
   {#if tree.loose.length}
     <div class="heading" style="--depth: 0">Not in a division</div>
     {#each tree.loose as s (s.placed.key)}{@render section(s, null, 0)}{/each}

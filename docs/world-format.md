@@ -397,6 +397,15 @@ divisions:
 A game of salt, debt, and fog on the Harrowgate docks.
 ```
 
+A book can also list front matter and back matter, each a list of rule sections that sit before and after the divisions, such as the license, the copyright page, and the safety page:
+
+```yaml
+front_matter: [ chapter/front-matter ]
+back_matter: [ chapter/back-matter ]
+```
+
+Each book lists its own, so a world's front matter is a section of the world's own. It can still print the engine's pages, each with the world's piece after it, and a page that belongs to one book alone sits only in that book's front matter.
+
 A reference names an element by `engine:` or `world:`, then its kind and id, such as `engine:chapter/taking-risks`. A reference without `engine:` or `world:` points into the folder of the file that names it, so a world's `book.md` names the world's own divisions.
 
 A division is an element of kind `division`. Its body is its front page, and its `sections` list its rule sections in order. A division with a `catalog` lists every element of those kinds instead, by kind and by name, so the book's aspects print as lists:

@@ -133,7 +133,7 @@
     const ruleIn = new Map<string, SectionNode>();
     const sections = new Map<string, SectionNode>();
     for (const d of tree?.divisions ?? []) for (const s of d.sections) sectionIn.set(s.placed.key, d);
-    for (const s of [...(tree?.divisions ?? []).flatMap((d) => d.sections), ...(tree?.loose ?? [])]) {
+    for (const s of [...(tree?.front ?? []), ...(tree?.divisions ?? []).flatMap((d) => d.sections), ...(tree?.loose ?? []), ...(tree?.back ?? [])]) {
       sections.set(s.placed.key, s);
       for (const i of s.items) if (i.type === 'rule') ruleIn.set(i.placed.key, s);
     }
@@ -492,7 +492,11 @@
               choices={bookChoices}
               onFrame={(frame) => saveBook({ frame })}
               onSave={(c) => saveBook(c)}
-              contents={tree.divisions.map((d) => ({ label: d.placed.element.name, note: d.catalog.length ? `${d.catalog.length} kinds` : `${d.sections.length} sections`, open: () => nav.open(`${DIV}${d.placed.key}`, i) }))} />
+              contents={[
+                ...tree.front.map((x) => ({ label: x.placed.element.name, note: `${x.items.length} pages`, open: () => nav.open(`${SEC}${x.placed.key}`, i) })),
+                ...tree.divisions.map((d) => ({ label: d.placed.element.name, note: d.catalog.length ? `${d.catalog.length} kinds` : `${d.sections.length} sections`, open: () => nav.open(`${DIV}${d.placed.key}`, i) })),
+                ...tree.back.map((x) => ({ label: x.placed.element.name, note: `${x.items.length} pages`, open: () => nav.open(`${SEC}${x.placed.key}`, i) })),
+              ]} />
           {:else if id.startsWith(DIV)}
             {@const p = byKey.get(keyIn(id))!}
             {@const d = tree?.divisions.find((x) => x.placed.key === p.key)}
