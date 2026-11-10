@@ -194,13 +194,10 @@
     outline: none;
     border-bottom-color: var(--structure);
   }
+  /* The same rule stands before each part of a rule: the base game's text, the world's, and each expansion's. */
   .piece {
-    border-top: 1px solid var(--line);
-    padding-top: 12px;
-    margin-top: 8px;
-  }
-  .piece.world {
     border-top: 2px solid var(--structure-deep, var(--line));
+    padding-top: 12px;
     margin-top: 20px;
   }
   .head {

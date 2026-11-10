@@ -16,6 +16,7 @@
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
+  import { pictureActions } from '../../lib/pane.svelte';
 
   let {
     index,
@@ -83,9 +84,9 @@
 
   // Behind the page (Mike, November 10): the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's
-  // first sentence sits top right as a card's storyline does, and the picture rises from
-  // the foot through smoke. The text thins out before it reaches the picture, so no word
-  // is ever set on the art.
+  // first sentence sits top right as a card's storyline does, and the picture sits in the
+  // lower right corner, fading up and to the left. Text thins out before it reaches the
+  // picture, so no word is ever set on the art.
   const card = $derived(!!entry.imagePath && picture === 'behind');
   const brief = $derived.by(() => {
     const first = (/^.*?[.!?](?=\s|$)/.exec(entry.summary.trim())?.[0] ?? entry.summary.trim()).slice(0, 180);
@@ -131,6 +132,24 @@
     }
   }
 
+  // Everything about the picture is offered in the page's view menu, beside whether it shows.
+  $effect(() => {
+    if (view !== 'narrator') return;
+    const has = !!entry.imagePath;
+    const at = shape;
+    pictureActions.set(id, [
+      { label: has ? 'Change the picture…' : 'Add a picture…', run: async () => setPicture(await pickImage()) },
+      ...(has
+        ? [
+            { label: 'Frame the picture…', run: () => ((framingProblem = ''), (framing = true)) },
+            { label: at === 'banner' ? 'Make it a portrait' : 'Make it a banner', run: () => void setShape(at === 'banner' ? 'portrait' : 'banner') },
+            { label: 'Remove the picture', run: () => void takePictureAway() },
+          ]
+        : []),
+    ]);
+    return () => pictureActions.clear(id);
+  });
+
   // One listener handles every automatic link in the body.
   function onclick(event: MouseEvent) {
     const link = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
@@ -144,14 +163,6 @@
   });
 </script>
 
-{#snippet pictureButtons()}
-  <button type="button" onclick={async () => setPicture(await pickImage())}>{entry.imagePath ? 'Change' : 'Add picture'}</button>
-  {#if entry.imagePath}
-    <button type="button" onclick={() => ((framingProblem = ''), (framing = true))}>Frame</button>
-    <button type="button" onclick={takePictureAway}>Remove</button>
-  {/if}
-{/snippet}
-
 {#snippet details()}
   {#if entry.aliases.length}<div class="meta">{entry.aliases.join(' · ')}</div>{/if}
   <div class="row pane-actions">
@@ -163,11 +174,7 @@
         {index}
         {entry}
         {onMoved}
-        {onWindow}
-        {shape}
-        onShape={setShape}
-        onFrame={() => ((framingProblem = ''), (framing = true))}
-        onAddPicture={async () => setPicture(await pickImage())} />
+        {onWindow} />
     {/if}
   </div>
   {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
@@ -205,8 +212,7 @@
     </div>
   </div>
   <div class="foot" aria-hidden="true">
-    <img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(shape === 'banner' ? entry.bannerFrame : null)} />
-    <div class="smoke"><div></div></div>
+    <div class="corner"><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(shape === 'banner' ? entry.bannerFrame : null)} /></div>
   </div>
 </article>
 {:else}
@@ -221,7 +227,6 @@
             <div class="label">{folderLabel(entry.category)}</div>
             <h1>{entry.name}</h1>
           </div>
-          <div class="change on-banner pane-actions">{@render pictureButtons()}</div>
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
       {:else}
@@ -242,7 +247,6 @@
       {:else if view === 'narrator'}
         <div class="picture" use:dropImage={setPicture}>
           <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" frame={entry.portraitFrame} />
-          <div class="change pane-actions">{@render pictureButtons()}</div>
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
       {:else}
@@ -256,29 +260,27 @@
       </div>
     </header>
   {/if}
-  {#if framing && entry.imagePath}
-    <FramePicture
-      url={fs.imageUrl(entry.imagePath)}
-      category={entry.category}
-      shape={entry.picture ?? null}
-      portrait={entry.portraitFrame ?? null}
-      banner={entry.bannerFrame ?? null}
-      busy={framingBusy}
-      problem={framingProblem}
-      onSave={saveFraming}
-      onCancel={() => (framing = false)} />
-  {/if}
   {@render writing()}
 </article>
+{/if}
+{#if framing && entry.imagePath}
+  <FramePicture
+    url={fs.imageUrl(entry.imagePath)}
+    category={entry.category}
+    shape={entry.picture ?? null}
+    portrait={entry.portraitFrame ?? null}
+    banner={entry.bannerFrame ?? null}
+    busy={framingBusy}
+    problem={framingProblem}
+    onSave={saveFraming}
+    onCancel={() => (framing = false)} />
 {/if}
 
 <style>
   article {
     max-width: var(--measure, 720px);
   }
-  /* The card. The page fills its pane, the name stands on the spine, and the foot holds
-     the picture. The foot is drawn over the text, with the page's own color above the
-     picture, so text scrolling down goes into the smoke before it could reach the art. */
+  /* The card. The page fills its pane, and the name stands on the spine. */
   article.card {
     max-width: none;
     display: flex;
@@ -325,6 +327,8 @@
     position: relative;
     z-index: 1;
     min-width: 0;
+    /* Room for the last lines to come clear of the corner. */
+    padding-bottom: 16vh;
   }
   .card-main > :global(*) {
     max-width: var(--measure, 720px);
@@ -365,44 +369,36 @@
   .card-details {
     margin-bottom: 22px;
   }
+  /* The picture sits in the page's lower right corner and fades up and to the left, so it
+     takes little of the page's height (Mike, November 10). It is drawn over the text on the
+     page's own color, so text that scrolls into the corner goes out before it reaches the art. */
   .foot {
     position: sticky;
-    /* The pane's own padding lies below the page, and the foot reaches past it to the pane's edge. */
+    /* The pane's own padding lies below the page, and the corner reaches past it to the pane's edge. */
     bottom: -60px;
     z-index: 2;
     flex: none;
-    height: 48vh;
+    height: 0;
     margin: auto -40px -60px;
-    overflow: hidden;
     pointer-events: none;
-    background: linear-gradient(to bottom, transparent 0, color-mix(in srgb, var(--bg) 80%, transparent) 16%, var(--bg) 30%);
   }
-  .foot img {
+  .corner {
     position: absolute;
-    inset: 18% 0 0 0;
-    width: 100%;
-    height: 82%;
-    display: block;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.5) 34%, black 72%);
-    mask-image: linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.5) 34%, black 72%);
+    right: 0;
+    bottom: 0;
+    width: min(66%, 780px);
+    height: min(48vh, 440px);
+    overflow: hidden;
+    background: var(--bg);
+    -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 100%, black 28%, rgb(0 0 0 / 0.6) 52%, transparent 76%);
+    mask-image: radial-gradient(ellipse 100% 100% at 100% 100%, black 28%, rgb(0 0 0 / 0.6) 52%, transparent 76%);
   }
-  /* Smoke in the page's own color, thick where the picture begins and gone by its foot. */
-  .smoke {
-    position: absolute;
-    inset: 18% 0 0 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%, black 42%, transparent 90%);
-    mask-image: linear-gradient(to bottom, transparent 0, black 26%, black 42%, transparent 90%);
-  }
-  .smoke div {
+  .corner img {
     position: absolute;
     inset: 0;
-    background: var(--bg);
-    opacity: 0.7;
-    --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.011' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 2.6 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
-    -webkit-mask-image: var(--noise);
-    mask-image: var(--noise);
-    -webkit-mask-size: cover;
-    mask-size: cover;
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   header {
     display: flex;
@@ -438,34 +434,6 @@
   }
   .picture {
     position: relative;
-  }
-  .change {
-    position: absolute;
-    inset: auto 0 0 0;
-    display: flex;
-    background: color-mix(in srgb, var(--bg) 80%, transparent);
-    border-top: 1px solid var(--edge);
-    opacity: 0;
-    transition: opacity 150ms;
-  }
-  .change button {
-    flex: 1;
-    font-size: calc(12px * var(--type));
-    color: var(--text);
-    background: none;
-    border: 0;
-    padding: 6px 4px;
-  }
-  .change button + button {
-    border-left: 1px solid var(--edge);
-  }
-  .change button:hover {
-    color: var(--structure-soft);
-  }
-  .picture:hover .change,
-  .banner:hover .change,
-  .change:focus-within {
-    opacity: 1;
   }
   /* The poster: the banner bleeds to the pane's edges, past the pane's padding. */
   article.has-banner {
@@ -522,16 +490,6 @@
   }
   .title.under {
     padding: 0 40px;
-  }
-  .change.on-banner {
-    inset: 14px auto auto 40px;
-    z-index: 2;
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-  }
-  .change.on-banner button {
-    flex: none;
-    padding: 6px 12px;
   }
   .drop-hint {
     display: none;

@@ -4,6 +4,8 @@
   import { ui } from '../lib/ui.svelte';
   import { beats } from '../lib/beats.svelte';
   import { views } from '../lib/view.svelte';
+  import { pictureActions } from '../lib/pane.svelte';
+  import PaneScope from './PaneScope.svelte';
 
   /**
    * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
@@ -137,6 +139,7 @@
     {#each panes as id, i (id)}
       {@const name = label(id)}
       {@const look = views.of(id)}
+      {@const offers = pictureActions.of(id)}
       <section
         class="pane"
         class:spined={spined[i] && !full}
@@ -193,8 +196,9 @@
                 <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
                 <button type="button" aria-pressed={look.text === 'normal'} onclick={() => views.set(id, { text: 'normal' })}>Usual</button>
               </div>
-              {#if hasPicture(id)}
+              {#if hasPicture(id) || offers.length}
                 <div class="label">Picture</div>
+                {#if hasPicture(id)}
                 <div class="pair">
                   <button type="button" aria-pressed={look.picture === 'show'} onclick={() => views.set(id, { picture: 'show' })}>Show</button>
                   <button type="button" aria-pressed={look.picture === 'hide'} onclick={() => views.set(id, { picture: 'hide' })}>Hide</button>
@@ -202,13 +206,21 @@
                     <button type="button" class="wide" aria-pressed={look.picture === 'behind'} onclick={() => views.set(id, { picture: 'behind' })}>Behind the page</button>
                   {/if}
                 </div>
+                {/if}
+                {#if offers.length}
+                  <div class="offers">
+                    {#each offers as offer (offer.label)}
+                      <button type="button" onclick={() => ((viewing = null), offer.run())}>{offer.label}</button>
+                    {/each}
+                  </div>
+                {/if}
               {/if}
               <div class="label">While writing</div>
               <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
               <p class="hint">This page remembers these on this computer.</p>
             </div>
           {/if}
-          {@render pane(id, i, panes[i + 1] ?? null, full === id)}
+          <PaneScope {id}>{@render pane(id, i, panes[i + 1] ?? null, full === id)}</PaneScope>
         </div>
       </section>
     {/each}
@@ -319,6 +331,23 @@
     color: var(--text-soft);
     background: none;
     border: 1px solid var(--edge);
+  }
+  .view-menu .offers {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .view-menu .offers button {
+    text-align: left;
+    padding: 5px 8px;
+    font-size: calc(13px * var(--type));
+    color: var(--text-soft);
+    background: none;
+    border: 0;
+  }
+  .view-menu .offers button:hover {
+    color: var(--text);
+    background: var(--well, var(--bg));
   }
   .view-menu .pair .wide {
     grid-column: 1 / -1;
