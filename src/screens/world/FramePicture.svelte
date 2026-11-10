@@ -1,6 +1,6 @@
 <script lang="ts">
   import Dialog from '../shelf/Dialog.svelte';
-  import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
+  import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, BEHIND_TOP, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
 
   /**
    * Framing an entry's picture (Mike, November 1). The picture is dragged inside a fixed
@@ -105,6 +105,7 @@
       onwheel={(e) => wheel(which, e)}
       onkeydown={(e) => key(which, e)}>
       <!-- Behind the page, the picture fades as it does on the page, over the page's color. -->
+      <div class="fade" style={which === 'behind' ? BEHIND_TOP : ''}>
       <div class="fade" style={which === 'behind' ? BEHIND_FADE : ''}>
       <img
         src={url}
@@ -112,6 +113,7 @@
         draggable="false"
         style={frameStyle(frames[which])}
         onload={(e) => (natural = { width: (e.currentTarget as HTMLImageElement).naturalWidth, height: (e.currentTarget as HTMLImageElement).naturalHeight })} />
+      </div>
       </div>
     </div>
     <div class="controls">
@@ -142,7 +144,7 @@
   <div class="frames" class:three={!bannerOnly}>
     {@render framer('banner', 'Banner', '')}
     {#if !bannerOnly}
-      {@render framer('behind', 'Behind', 'as it fades on the page')}
+      {@render framer('behind', 'Behind', 'as it fades')}
       {@render framer('portrait', 'Portrait', 'its face')}
     {/if}
   </div>
@@ -193,13 +195,13 @@
     flex: 2.286;
   }
   .frames.three .framer.behind {
-    flex: 1.6;
+    flex: 0.588;
   }
   .frames.three .framer.portrait {
     flex: 0.75;
   }
   :global(.dialog.wide:has(.frames.three)) {
-    width: min(1060px, 94vw);
+    width: min(980px, 94vw);
     max-width: none;
   }
   .framer.behind .box {

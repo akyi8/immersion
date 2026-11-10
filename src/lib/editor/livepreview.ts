@@ -145,7 +145,7 @@ class WriteHereWidget extends WidgetType {
  * Header keys the app writes for itself or shows in a place of its own, such as an entry's
  * date under its name, which the writer never needs to see as raw header lines.
  */
-const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era', 'stages', 'picture', 'portrait_frame', 'banner_frame']);
+const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era', 'stages', 'picture', 'portrait_frame', 'banner_frame', 'behind_frame']);
 
 /** True when every key in the YAML header is one the app keeps for itself. */
 function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {

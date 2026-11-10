@@ -12,7 +12,7 @@
   import EntryActions from './EntryActions.svelte';
   import EntryDate from './EntryDate.svelte';
   import FramePicture from './FramePicture.svelte';
-  import { BEHIND_FADE, defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
+  import { BEHIND_FADE, BEHIND_TOP, defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
@@ -84,9 +84,8 @@
 
   // Behind the page (Mike, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's
-  // first sentence sits top right as a card's storyline does, and the picture sits in the
-  // lower right corner, fading up and to the left. Text thins out before it reaches the
-  // picture, so no word is ever set on the art.
+  // first sentence sits top right as a card's storyline does, and the picture stands down
+  // the page's right side, fading toward the text.
   const card = $derived(!!entry.imagePath && shape === 'behind' && pictured);
   const brief = $derived.by(() => {
     const first = (/^.*?[.!?](?=\s|$)/.exec(entry.summary.trim())?.[0] ?? entry.summary.trim()).slice(0, 180);
@@ -224,7 +223,7 @@
     </div>
   </div>
   <div class="foot" aria-hidden="true">
-    <div class="corner"><div class="soft"><div class="rise" style={BEHIND_FADE}><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.behindFrame)} /></div></div></div>
+    <div class="corner"><div class="soft" style={BEHIND_TOP}><div class="rise" style={BEHIND_FADE}><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.behindFrame)} /></div></div></div>
   </div>
 </article>
 {:else}
@@ -345,8 +344,13 @@
     /* Room for the last lines to come clear of the corner. */
     padding-bottom: 16vh;
   }
+  /* The text keeps a book's line while the card stays wide, which leaves the picture the
+     page's right side (Mike, November 10). The first sentence runs the card's full width. */
   .card-main > :global(*) {
-    max-width: var(--measure, 720px);
+    max-width: calc(var(--prose-size) * 33);
+  }
+  .card-main > .brief {
+    max-width: none;
   }
   .brief {
     display: flex;
@@ -382,9 +386,8 @@
   .card-details {
     margin-bottom: 22px;
   }
-  /* The picture lies in the page's lower right corner and fades as `BEHIND_FADE` says. It
-     is drawn over the text on the page's own color, so text that scrolls down goes out
-     gradually. */
+  /* The picture stands down the page's right side. It is drawn over the text on the
+     page's own color, so a long line's end goes out under it. */
   .foot {
     position: sticky;
     /* The pane's own padding lies below the page, and the picture reaches past it to the pane's edge. */
@@ -395,22 +398,20 @@
     margin: auto -40px -60px;
     pointer-events: none;
   }
-  /* The picture is the same shape on every page, so what is framed is what shows. Its
-     sides and top are only softened, so it has no hard edge beside the column. */
+  /* The picture is a tall strip down the page's right side, the same shape on every page,
+     so what is framed is what shows. `BEHIND_FADE` takes it out toward the text and
+     `BEHIND_TOP` softens its top. */
   .corner {
     position: absolute;
     right: 0;
     bottom: 0;
-    width: min(92%, 680px);
-    aspect-ratio: 16 / 10;
-    -webkit-mask-image: linear-gradient(to right, transparent 0, black 16%, black 90%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0, black 16%, black 90%, transparent 100%);
+    width: min(36%, 350px);
+    aspect-ratio: 10 / 17;
+    max-height: 84vh;
   }
   .soft {
     position: absolute;
     inset: 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
-    mask-image: linear-gradient(to bottom, transparent 0, black 26%);
   }
   .rise {
     position: absolute;

@@ -11,7 +11,7 @@
  *
  * A third shape lays the picture behind the page (Mike, November 10): `picture: behind`,
  * framed by `behind_frame:`. The page is then set like a card from the Radiance Adventure
- * Engine, with its name up the spine and the picture low on the page, fading upward.
+ * Engine, with its name up the spine and the picture down the page's right side, fading toward the text.
  */
 
 export interface Frame {
@@ -31,19 +31,22 @@ export const MAX_ZOOM = 4;
 /** A banner's shape, as width over height. */
 export const BANNER_RATIO = 16 / 7;
 
-/** The shape of the picture behind a page, as width over height. It is the same on every page. */
-export const BEHIND_RATIO = 16 / 10;
+/**
+ * The shape of the picture behind a page, as width over height: a tall strip down the
+ * page's right side (Mike, November 10). It is the same on every page.
+ */
+export const BEHIND_RATIO = 10 / 17;
 
 /**
- * How the picture behind a page fades (Mike, November 10). A line runs from the picture's
- * lower left corner to the middle of its right side. Above the line the page's own color
- * covers at least seventy percent of the picture, more the farther up, and below the line
- * the picture clears toward its lower right corner. The change is gradual all the way.
- * The angle and the line's place are worked out for `BEHIND_RATIO`, so the page and the
- * framing dialog, which use this one value, show the same fade.
+ * How the picture behind a page fades (Mike, November 10). It stands clear along the
+ * page's right edge and goes out quickly toward the text, so the words keep a clean
+ * column and the picture keeps the margin. Its top and its outer edge are softened so it has no hard edge.
+ * The page and the framing dialog use these same two values, and so show the same fade.
  */
-const FADE = 'linear-gradient(162.6deg, transparent 0%, rgb(0 0 0 / 0.06) 20%, rgb(0 0 0 / 0.14) 40%, rgb(0 0 0 / 0.22) 55%, rgb(0 0 0 / 0.3) 66.7%, rgb(0 0 0 / 0.5) 78%, rgb(0 0 0 / 0.76) 89%, black 100%)';
-export const BEHIND_FADE = `-webkit-mask-image: ${FADE}; mask-image: ${FADE};`;
+const SIDE = 'linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%, black 88%, transparent 100%)';
+const TOP = 'linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.5) 14%, black 30%)';
+export const BEHIND_FADE = `-webkit-mask-image: ${SIDE}; mask-image: ${SIDE};`;
+export const BEHIND_TOP = `-webkit-mask-image: ${TOP}; mask-image: ${TOP};`;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const round = (n: number, places: number) => Math.round(n * 10 ** places) / 10 ** places;
