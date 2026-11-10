@@ -85,7 +85,7 @@
   // Behind the page (Mike, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's
   // first sentence sits top right as a card's storyline does, and the picture stands down
-  // the page's right side, fading toward the text.
+  // the page's left side, behind the name, fading toward the text.
   const card = $derived(!!entry.imagePath && shape === 'behind' && pictured);
   const brief = $derived.by(() => {
     const first = (/^.*?[.!?](?=\s|$)/.exec(entry.summary.trim())?.[0] ?? entry.summary.trim()).slice(0, 180);
@@ -296,14 +296,15 @@
   article.card {
     /* The card is as wide as its column and its spine, so on a wide screen the name, the
        first sentence, and the picture stay with the text and do not drift to the far edge. */
-    max-width: calc(var(--measure, 720px) + 100px);
+    max-width: calc(var(--measure, 720px) + 172px);
     display: flex;
     flex-direction: column;
     min-height: calc(100vh - 190px);
   }
   .card-top {
     display: grid;
-    grid-template-columns: 78px minmax(0, 1fr);
+    /* The spine's column is wide enough for the picture to clear before the text begins. */
+    grid-template-columns: 150px minmax(0, 1fr);
     gap: 22px;
   }
   .spine {
@@ -313,8 +314,9 @@
     align-self: start;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
+    padding-left: 26px;
   }
   .kind {
     font-family: var(--font-display);
@@ -331,8 +333,10 @@
     line-height: 0.92;
     letter-spacing: 0.01em;
     text-transform: uppercase;
-    /* A page's name on a card is bone, and the highlight stays with the names in the text. */
+    /* A page's name on a card is bone, and the highlight stays with the names in the text.
+       It stands on the picture, so a soft shadow keeps it clear of what is behind it. */
     color: var(--text);
+    text-shadow: 0 2px 14px rgb(0 0 0 / 0.75);
     max-height: calc(100vh - 250px);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -344,8 +348,7 @@
     /* Room for the last lines to come clear of the corner. */
     padding-bottom: 16vh;
   }
-  /* The text keeps a book's line while the card stays wide, which leaves the picture the
-     page's right side (Mike, November 10). The first sentence runs the card's full width. */
+  /* The text keeps a book's line. The first sentence runs the card's full width. */
   .card-main > :global(*) {
     max-width: calc(var(--prose-size) * 33);
   }
@@ -386,8 +389,7 @@
   .card-details {
     margin-bottom: 22px;
   }
-  /* The picture stands down the page's right side. It is drawn over the text on the
-     page's own color, so a long line's end goes out under it. */
+  /* The picture stands down the page's left side, behind the name. */
   .foot {
     position: sticky;
     /* The pane's own padding lies below the page, and the picture reaches past it to the pane's edge. */
@@ -398,12 +400,12 @@
     margin: auto -40px -60px;
     pointer-events: none;
   }
-  /* The picture is a tall strip down the page's right side, the same shape on every page,
+  /* The picture is a tall strip down the page's left side, the same shape on every page,
      so what is framed is what shows. `BEHIND_FADE` takes it out toward the text and
      `BEHIND_TOP` softens its top. */
   .corner {
     position: absolute;
-    right: 0;
+    left: 0;
     bottom: 0;
     width: min(36%, 350px);
     aspect-ratio: 10 / 17;

@@ -11,7 +11,7 @@
  *
  * A third shape lays the picture behind the page (Mike, November 10): `picture: behind`,
  * framed by `behind_frame:`. The page is then set like a card from the Radiance Adventure
- * Engine, with its name up the spine and the picture down the page's right side, fading toward the text.
+ * Engine, with its name up the spine, over the picture, which stands down the page's left side and fades toward the text.
  */
 
 export interface Frame {
@@ -33,17 +33,18 @@ export const BANNER_RATIO = 16 / 7;
 
 /**
  * The shape of the picture behind a page, as width over height: a tall strip down the
- * page's right side (Mike, November 10). It is the same on every page.
+ * page's left side, behind the name on the spine (Mike, November 10). It is the same on
+ * every page.
  */
 export const BEHIND_RATIO = 10 / 17;
 
 /**
  * How the picture behind a page fades (Mike, November 10). It stands clear along the
- * page's right edge and goes out quickly toward the text, so the words keep a clean
- * column and the picture keeps the margin. Its top and its outer edge are softened so it has no hard edge.
+ * page's left edge, where the name runs up the spine over it, and goes out quickly toward
+ * the text. The name and the picture share one side, which leaves the rest to the words. Its top and its outer edge are softened so it has no hard edge.
  * The page and the framing dialog use these same two values, and so show the same fade.
  */
-const SIDE = 'linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%, black 88%, transparent 100%)';
+const SIDE = 'linear-gradient(to left, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%, black 88%, transparent 100%)';
 const TOP = 'linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.5) 14%, black 30%)';
 export const BEHIND_FADE = `-webkit-mask-image: ${SIDE}; mask-image: ${SIDE};`;
 export const BEHIND_TOP = `-webkit-mask-image: ${TOP}; mask-image: ${TOP};`;
