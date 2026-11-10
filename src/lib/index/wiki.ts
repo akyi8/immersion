@@ -52,6 +52,8 @@ export class WikiIndex {
   constructor(
     readonly entries: Map<string, Entry>,
     readonly root: Folder,
+    /** How the world shows its pictures, when it says. */
+    readonly pictures: Shape | null = null,
   ) {
     const terms: Term[] = [];
     for (const e of entries.values()) {
@@ -152,7 +154,7 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
   }
 
   const root = await walk(world.wikiDir, world.wikiDir, null);
-  return new WikiIndex(entries, root);
+  return new WikiIndex(entries, root, world.pictures);
 }
 
 /** Turns a folder name like "people" into a heading like "People". */

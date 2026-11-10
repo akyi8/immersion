@@ -98,6 +98,8 @@ Each frame holds three numbers. The first two are the point of the picture that 
 
 An entry in People shows its picture as a portrait beside its name. An entry in any other category shows its picture as a banner across the top of the entry, with the name over the banner's lower edge. A `picture: banner` or `picture: portrait` field overrides the category's default. Faces on the World home page always use the portrait framing.
 
+A world can set how all its pictures show at once, with `pictures: behind`, `pictures: banner`, or `pictures: portrait` in its `world.md`. An entry's own `picture:` still wins over the world's choice, and with neither the category decides. The app sets the world's choice in Settings, under This world, where it can also take every entry's own choice away so that all of them follow the world.
+
 A third value, `picture: behind`, lays the picture behind the page. The page is then set like a card: the entry's name runs up its left edge with its category above it, its first sentence is set at the top right, and the picture stands as a tall strip down the page's left side, behind the name, fading toward the text. `behind_frame:` frames the picture for that shape, in the same form as the other two frames. All three are chosen in the app where the picture is framed.
 
 ### Dates and eras

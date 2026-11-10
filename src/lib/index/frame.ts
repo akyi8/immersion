@@ -81,7 +81,23 @@ export function readShape(value: unknown): Shape | null {
 export const isPerson = (category: string) => category.toLowerCase() === 'people';
 
 /** The shape a category's pictures take unless an entry says otherwise. */
-export const defaultShape = (category: string): Shape => (isPerson(category) ? 'portrait' : 'banner');
+/**
+ * A world can say how all its pictures show (Mike, November 10), in `world.md` as
+ * `pictures: behind`, `banner`, or `portrait`. An entry's own `picture:` still wins, and
+ * without either the category decides.
+ */
+export const defaultShape = (category: string, world: Shape | null = null): Shape => world ?? (isPerson(category) ? 'portrait' : 'banner');
+
+/**
+ * A name in two parts for a card's spine (Mike, November 10): its last word, which is set
+ * large, and what comes before it, which is set small beside it. Lou Lewandowski gives
+ * Lewandowski with Lou beside it, and The Chantry of Pain gives Pain with The Chantry of.
+ */
+export function spineName(name: string): { lead: string; main: string } {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return { lead: '', main: words[0] ?? '' };
+  return { lead: words.slice(0, -1).join(' '), main: words[words.length - 1] };
+}
 
 /**
  * The style that frames an `<img>` filling its box. The picture covers the box, its

@@ -126,6 +126,23 @@
     document.documentElement.classList.toggle('typing', quiet.on && quiet.typing);
   });
 
+  /** Sets how every entry in the open world shows its picture (Mike, November 10). */
+  async function setPictures(shape: 'portrait' | 'banner' | 'behind' | null) {
+    if (!fs) return;
+    await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { pictures: shape ?? undefined }));
+    await rebuild();
+  }
+
+  /** Takes each entry's own choice of shape away, so every entry follows the world's. Framing is kept. */
+  async function followWorldPictures() {
+    if (!fs || !index) return;
+    await saveAll();
+    for (const e of index.entries.values()) {
+      if (e.picture) await fs.writeText(e.id, withHeader(await fs.readText(e.id), { picture: undefined }));
+    }
+    await rebuild();
+  }
+
   /** Writes everything still waiting to be saved, giving up after a few seconds so nothing hangs on it. */
   const saveEverything = () => Promise.race([saveAll().catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
 
@@ -310,6 +327,14 @@
 {#if ui.settings && phase !== 'reader'}
   <Settings
     world={phase === 'shelf' ? null : settingsWorld}
+    pictures={phase === 'shelf' || !world || !index || !fs
+      ? null
+      : {
+          shape: world.pictures,
+          own: [...index.entries.values()].filter((e) => e.picture).length,
+          set: setPictures,
+          follow: followWorldPictures,
+        }}
     journal={world?.journal ? { daily: world.daily } : null}
     onDaily={async (on) => {
       if (!fs) return;

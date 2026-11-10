@@ -16,12 +16,15 @@
    */
   let {
     world = null,
+    pictures = null,
     journal = null,
     onDaily,
     onTheme,
   }: {
     /** The open world, with the author details its `world.md` names, if any. */
     world?: { name: string; path: string; author: string; copyright: string } | null;
+    /** How the open world shows its pictures, how many entries choose for themselves, and the ways to change both. */
+    pictures?: { shape: 'portrait' | 'banner' | 'behind' | null; own: number; set: (shape: 'portrait' | 'banner' | 'behind' | null) => Promise<void>; follow: () => Promise<void> } | null;
     /** Opens the open world's theme panel. */
     onTheme?: () => void;
     /** For Real World: whether it keeps a page for each day. */
@@ -42,6 +45,7 @@
   const info = $derived(account.info);
   let problem = $state('');
   let busy = $state(false);
+  let following = $state(false);
 
   async function run(work: () => Promise<void>) {
     problem = '';
@@ -189,6 +193,33 @@
         <h3 class="label">Theme</h3>
         <p class="hint">Its colors and fonts, on both the dark and the light side.</p>
         <button type="button" onclick={() => ((ui.settings = null), onTheme?.())}>Change the theme…</button>
+        {#if pictures}
+          <h3 class="label">Pictures</h3>
+          <p class="hint">How every entry in {world.name} shows its picture. One change here changes them all.</p>
+          <div class="row shapes" role="group" aria-label="How pictures show">
+            {#each [[null, 'By category'], ['portrait', 'Portrait'], ['banner', 'Banner'], ['behind', 'Behind']] as [value, label] (label)}
+              <button type="button" class:on={pictures.shape === value} aria-pressed={pictures.shape === value} disabled={busy} onclick={() => run(() => pictures!.set(value as 'portrait' | 'banner' | 'behind' | null))}>{label}</button>
+            {/each}
+          </div>
+          <p class="hint">
+            {#if pictures.shape === null}By category, people show a portrait and everything else shows a banner.
+            {:else if pictures.shape === 'behind'}Behind sets each page like a card, with its name up the spine over the picture.
+            {:else}Every entry shows its picture as a {pictures.shape}.{/if}
+          </p>
+          {#if pictures.own > 0}
+            <p class="hint">
+              {pictures.own} {pictures.own === 1 ? 'entry has' : 'entries have'} a choice of {pictures.own === 1 ? 'its' : 'their'} own, made from the page's view menu, and {pictures.own === 1 ? 'keeps' : 'keep'} it.
+            </p>
+            {#if following}
+              <div class="row">
+                <button type="button" disabled={busy} onclick={() => run(async () => { await pictures!.follow(); following = false; })}>Yes, change {pictures.own} {pictures.own === 1 ? 'entry' : 'entries'}</button>
+                <button type="button" class="quiet" onclick={() => (following = false)}>Cancel</button>
+              </div>
+            {:else}
+              <button type="button" onclick={() => (following = true)}>Make {pictures.own === 1 ? 'it' : 'them all'} follow the world</button>
+            {/if}
+          {/if}
+        {/if}
         {#if journal}
           <h3 class="label">Daily pages</h3>
           <label class="check">
@@ -560,5 +591,14 @@
     border: 1px solid var(--edge);
     border-radius: var(--round);
     padding: 8px 10px;
+  }
+  .shapes {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .shapes button.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
   }
 </style>

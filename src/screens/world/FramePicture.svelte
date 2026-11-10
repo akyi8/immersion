@@ -15,6 +15,7 @@
     portrait: portraitStart,
     banner: bannerStart,
     behind: behindStart = null,
+    world = null,
     busy,
     problem,
     bannerOnly = false,
@@ -29,6 +30,8 @@
     banner: Frame | null;
     /** How the picture is framed when it lies behind the page. */
     behind?: Frame | null;
+    /** How the world shows its pictures, when it says. */
+    world?: Shape | null;
     busy: boolean;
     problem: string;
     /** Frames the banner alone, for a page that never shows a portrait, such as a rule in a game's book. */
@@ -37,9 +40,9 @@
     onCancel: () => void;
   } = $props();
 
-  const fallback = $derived(defaultShape(category));
+  const fallback = $derived(defaultShape(category, world));
   // Seeded once from the entry; the dialog then holds its own edits.
-  let shape = $state<Shape>((() => chosen ?? defaultShape(category))());
+  let shape = $state<Shape>((() => chosen ?? defaultShape(category, world))());
   let frames = $state<Record<Shape, Frame>>((() => ({ portrait: portraitStart ?? CENTERED, banner: bannerStart ?? CENTERED, behind: behindStart ?? CENTERED }))());
   let natural = $state<{ width: number; height: number } | null>(null);
 
@@ -138,7 +141,10 @@
       <button type="button" class:on={shape === 'portrait'} aria-pressed={shape === 'portrait'} onclick={() => (shape = 'portrait')}>Portrait</button>
       <button type="button" class:on={shape === 'behind'} aria-pressed={shape === 'behind'} onclick={() => (shape = 'behind')}>Behind the page</button>
     </div>
-    <span class="hint">{fallback === 'portrait' ? 'People' : 'Entries outside People'} show a {fallback} unless you choose otherwise.</span>
+    <span class="hint">
+      {#if world}This world shows its pictures {world === 'behind' ? 'behind the page' : `as a ${world}`} unless you choose otherwise here.
+      {:else}{fallback === 'portrait' ? 'People' : 'Entries outside People'} show a {fallback} unless you choose otherwise.{/if}
+    </span>
   </div>{/if}
   <p class="hint">Drag the picture to move it, and zoom with the slider or the scroll wheel.</p>
   <div class="frames" class:three={!bannerOnly}>

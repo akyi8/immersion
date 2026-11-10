@@ -12,7 +12,7 @@
   import EntryActions from './EntryActions.svelte';
   import EntryDate from './EntryDate.svelte';
   import FramePicture from './FramePicture.svelte';
-  import { BEHIND_FADE, BEHIND_TOP, defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
+  import { BEHIND_FADE, BEHIND_TOP, defaultShape, frameStyle, spineName, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
@@ -77,7 +77,7 @@
 
   // A picture is framed rather than cropped, and an entry outside People shows it as a
   // banner across its top, with its name over it (Mike, November 1).
-  const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category));
+  const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category, index.pictures));
   // The page's own view can put the picture away, for reading with nothing but text.
   const picture = $derived(views.of(id).picture);
   const pictured = $derived(picture !== 'hide');
@@ -100,8 +100,10 @@
     if (at < first.length) parts.push({ text: first.slice(at), name: false });
     return parts;
   });
-  // A long name is set smaller, so it still fits up the spine.
-  const spineSize = $derived(Math.round(Math.max(30, Math.min(58, 1050 / Math.max(entry.name.length, 1)))));
+  // The name's last word stands large on the spine, with the rest small beside it, so a
+  // long name still fits. A very long last word is set smaller.
+  const spine = $derived(spineName(entry.name));
+  const spineSize = $derived(Math.round(Math.max(34, Math.min(64, 820 / Math.max(spine.main.length, 1)))));
   let framing = $state(false);
   let framingBusy = $state(false);
   let framingProblem = $state('');
@@ -126,7 +128,7 @@
     pictureProblem = '';
     try {
       await saveNow(id);
-      await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category) ? undefined : to }));
+      await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category, index.pictures) ? undefined : to }));
     } catch (e) {
       pictureProblem = e instanceof Error ? e.message : String(e);
     }
@@ -189,11 +191,11 @@
 </script>
 
 {#snippet details()}
-  <!-- What the entry is called, and when it is, in one quiet row. Each is added and changed
-       here, so the file's own header is never edited by hand (Mike, November 10). -->
-  <div class="row facts pane-actions">
-    {#if entry.aliases.length || (view === 'narrator' && onMoved)}
-      <span class="names" aria-label="Other names">
+  <!-- What the entry is called, then when it is, then the small buttons that add to either
+       (Mike, November 10). Each is added and changed here, so the file's own header is never edited by hand (Mike, November 10). -->
+  <div class="facts pane-actions">
+    {#if entry.aliases.length}
+      <div class="names" aria-label="Other names">
         {#each entry.aliases as alias (alias)}
           {#if view === 'narrator' && onMoved}
             <button type="button" class="alias" title="Change this entry's other names" onclick={() => actions?.start('names')}>{alias}</button>
@@ -201,12 +203,17 @@
             <span class="alias">{alias}</span>
           {/if}
         {/each}
-        {#if view === 'narrator' && onMoved}
-          <button type="button" class="add" onclick={() => actions?.start('names')}>+ Alias</button>
-        {/if}
-      </span>
+      </div>
     {/if}
-    <EntryDate {fs} {entry} editable={view === 'narrator'} />
+    {#if entry.when}
+      <div><EntryDate {fs} {entry} editable={view === 'narrator'} /></div>
+    {/if}
+    {#if view === 'narrator'}
+      <div class="adds">
+        {#if onMoved}<button type="button" class="add" onclick={() => actions?.start('names')}>+ Alias</button>{/if}
+        {#if !entry.when}<EntryDate {fs} {entry} editable />{/if}
+      </div>
+    {/if}
   </div>
   {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
 {/snippet}
@@ -234,7 +241,10 @@
   <div class="card-top">
     <div class="spine">
       <div class="kind">{folderLabel(entry.category)}</div>
-      <h1 class="spine-name" style:font-size="calc({spineSize}px * var(--type))">{entry.name}</h1>
+      <h1 class="spine-name" aria-label={entry.name}>
+        {#if spine.lead}<span class="lead">{spine.lead}</span>{/if}
+        <span class="main" style:font-size="calc({spineSize}px * var(--type))">{spine.main}</span>
+      </h1>
     </div>
     <div class="card-main">
       {#if brief.length}
@@ -307,6 +317,7 @@
     portrait={entry.portraitFrame ?? null}
     banner={entry.bannerFrame ?? null}
     behind={entry.behindFrame ?? null}
+    world={index.pictures}
     busy={framingBusy}
     problem={framingProblem}
     onSave={saveFraming}
@@ -321,16 +332,16 @@
   article.card {
     /* The card is as wide as its column and its spine, so on a wide screen the name, the
        first sentence, and the picture stay with the text and do not drift to the far edge. */
-    max-width: calc(var(--measure, 720px) + 172px);
+    max-width: calc(var(--measure, 720px) + 128px);
     display: flex;
     flex-direction: column;
     min-height: calc(100vh - 190px);
   }
   .card-top {
     display: grid;
-    /* The spine's column is wide enough for the picture to clear before the text begins. */
-    grid-template-columns: 150px minmax(0, 1fr);
-    gap: 22px;
+    /* The spine's column holds the name, and the text begins close beside it. */
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px;
   }
   .spine {
     position: sticky;
@@ -354,17 +365,32 @@
   .spine-name {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    white-space: nowrap;
-    line-height: 0.92;
-    letter-spacing: 0.01em;
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
     text-transform: uppercase;
     /* A page's name on a card is bone, and the highlight stays with the names in the text.
        It stands on the picture, so a soft shadow keeps it clear of what is behind it. */
     color: var(--text);
     text-shadow: 0 2px 14px rgb(0 0 0 / 0.75);
+  }
+  /* Two lines up the spine: the small one first, which the turn puts on the left. */
+  .spine-name span {
+    display: block;
+    white-space: nowrap;
     max-height: calc(100vh - 250px);
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .spine-name .lead {
+    font-size: calc(22px * var(--type));
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+    opacity: 0.9;
+  }
+  .spine-name .main {
+    line-height: 0.92;
+    letter-spacing: 0.01em;
   }
   .card-main {
     position: relative;
@@ -464,12 +490,6 @@
   .title > .label {
     margin-bottom: 6px;
   }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-  }
   h1 {
     color: var(--title);
     margin: 0;
@@ -562,8 +582,15 @@
     color: var(--danger);
   }
   .facts {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .adds {
+    display: flex;
     flex-wrap: wrap;
-    gap: 6px 10px;
+    align-items: center;
+    gap: 8px;
   }
   .names {
     display: flex;
@@ -584,7 +611,7 @@
   button.alias:hover {
     color: var(--text);
   }
-  .names .add {
+  .adds .add {
     font-size: calc(13px * var(--type));
     color: var(--structure);
     background: var(--well);
@@ -593,7 +620,7 @@
     padding: 6px 10px;
     min-height: 32px;
   }
-  .names .add:hover {
+  .adds .add:hover {
     color: var(--text);
   }
 </style>

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFrame, writeFrame, dragged, defaultShape, readShape, CENTERED } from './frame.ts';
+import { readFrame, writeFrame, dragged, defaultShape, readShape, CENTERED, spineName } from './frame.ts';
 
 test('a frame reads and writes as across, down, and zoom', () => {
   assert.deepEqual(readFrame('50 30 1.4'), { x: 50, y: 30, zoom: 1.4 });
@@ -30,4 +30,18 @@ test('people are portraits and everything else is a banner, unless an entry says
   assert.equal(defaultShape('places'), 'banner');
   assert.equal(readShape('banner'), 'banner');
   assert.equal(readShape('poster'), null);
+});
+
+test("the world's choice of shape stands in for the category's", () => {
+  assert.equal(defaultShape('people'), 'portrait');
+  assert.equal(defaultShape('places'), 'banner');
+  assert.equal(defaultShape('people', 'behind'), 'behind');
+  assert.equal(defaultShape('places', 'portrait'), 'portrait');
+});
+
+test('a name splits into its last word and what comes before it', () => {
+  assert.deepEqual(spineName('Lou Lewandowski'), { lead: 'Lou', main: 'Lewandowski' });
+  assert.deepEqual(spineName('The Chantry of Pain'), { lead: 'The Chantry of', main: 'Pain' });
+  assert.deepEqual(spineName('Harrowgate'), { lead: '', main: 'Harrowgate' });
+  assert.deepEqual(spineName('Marta "Wren" Okafor'), { lead: 'Marta "Wren"', main: 'Okafor' });
 });

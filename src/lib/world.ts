@@ -1,4 +1,5 @@
 import { Document, parse, parseDocument, stringify } from 'yaml';
+import { readShape, type Shape } from './index/frame.ts';
 import type { WorldFs } from './fs/types';
 import { themeFrom, type ThemeSpec } from './theme.ts';
 
@@ -20,6 +21,8 @@ export interface World {
   engine: string;
   /** The folder that holds this world's own game elements (Mike, November 7). */
   gameDir: string;
+  /** How every entry's picture shows unless the entry says otherwise, or null to let the category decide. */
+  pictures: Shape | null;
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -56,6 +59,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     daily: header.daily === true,
     engine: text(header.engine, ''),
     gameDir: text(header.game, 'game'),
+    pictures: readShape(header.pictures),
   };
 }
 

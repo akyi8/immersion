@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { defaultShape } from '../../lib/index/frame';
   import { views } from '../../lib/view.svelte';
   import { markOpened } from '../../lib/recent';
   import { untrack } from 'svelte';
@@ -105,7 +106,7 @@
       label={(id) => (id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id))}
       isCard={(id) => {
         const e = index.get(id);
-        return !!e?.imagePath && e.picture === 'behind' && views.of(id).picture !== 'hide';
+        return !!e?.imagePath && (e.picture ?? defaultShape(e.category, index.pictures)) === 'behind' && views.of(id).picture !== 'hide';
       }}
       onWindow={(id) => {
         openInWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id));
