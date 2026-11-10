@@ -66,8 +66,22 @@ export interface Book {
   /** The front matter and back matter (Mike, November 9): sections before and after the divisions, such as the license and the safety page. */
   frontMatter: string[];
   backMatter: string[];
-  /** The book's front page: the body of `book.md`. */
+  /**
+   * Text in the body of `book.md`. Before the title page (Mike, November 10) this was the
+   * book's front page. It printed ahead of the front matter, so an introduction belongs
+   * in the front matter instead, and the app offers to move what is here.
+   */
   body: string;
+  /**
+   * The title page (Mike, November 10), in the same fields as a manuscript's: the line
+   * under the title, the author profile the book is linked to, or an author and a
+   * copyright holder written out by hand, and the copyright year.
+   */
+  subtitle: string;
+  profile: string;
+  author: string;
+  copyright: string;
+  year: number | null;
   /** The front page's picture, `book.jpg` or the like beside `book.md`. */
   image: string | null;
   /** How the front page's picture is framed, as `banner_frame:` in `book.md` writes it. */
@@ -125,6 +139,7 @@ export function readBook(source: string | null): Book | null {
   if (!source) return null;
   const { header, body } = splitHeader(source);
   const list = (v: unknown) => (Array.isArray(v) ? v.map((c) => String(c).trim()).filter(Boolean) : []);
+  const text = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v).trim() : '');
   return {
     name: typeof header.name === 'string' ? header.name : 'Book',
     divisions: list(header.divisions),
@@ -132,6 +147,11 @@ export function readBook(source: string | null): Book | null {
     frontMatter: list(header.front_matter),
     backMatter: list(header.back_matter),
     body: body.replace(/^\n+/, '').replace(/\n+$/, ''),
+    subtitle: text(header.subtitle),
+    profile: text(header.profile),
+    author: text(header.author),
+    copyright: text(header.copyright),
+    year: Number.isFinite(Number(header.year)) && header.year !== null && header.year !== '' && header.year !== undefined ? Number(header.year) : null,
     image: null,
     frame: typeof header.banner_frame === 'string' || typeof header.banner_frame === 'number' ? String(header.banner_frame) : '',
   };

@@ -35,6 +35,7 @@
   import GameElement from './GameElement.svelte';
   import BookTree from './BookTree.svelte';
   import FrontPage from './FrontPage.svelte';
+  import GameTitlePage, { type TitleChanges } from './GameTitlePage.svelte';
   import SectionPage from './SectionPage.svelte';
   import RulePage from './RulePage.svelte';
   import type { PictureChoice } from './GameBanner.svelte';
@@ -377,17 +378,50 @@
   }
 
   // The book's own front page lives in `book.md`, beside its divisions.
-  async function saveBook(changes: { name?: string; body?: string; frame?: Frame }) {
+  async function saveBook(changes: { name?: string; body?: string; frame?: Frame; page?: Omit<TitleChanges, 'name' | 'body'> }) {
     if (!game || !bookSource || !bookOrigin) return;
     const file = pathIn(bookSource, 'book.md');
     let text = await bookSource.fs.readText(file);
     if (changes.name !== undefined) text = withHeader(text, { name: changes.name });
+    // The title page's lines are header fields, as a manuscript's are. An empty one is left out of the file.
+    if (changes.page) {
+      const p = changes.page;
+      text = withHeader(text, { subtitle: p.subtitle || undefined, profile: p.profile || undefined, author: p.author || undefined, copyright: p.copyright || undefined, year: p.year ?? undefined });
+    }
     if (changes.frame !== undefined) text = withHeader(text, { banner_frame: writeFrame(changes.frame) });
     if (changes.body !== undefined) text = withBody(text, changes.body);
     await bookSource.fs.writeText(file, text);
     const book = game.books[bookOrigin]!;
-    const next = { ...book, name: changes.name ?? book.name, body: changes.body ?? book.body, frame: changes.frame ? (writeFrame(changes.frame) ?? '') : book.frame };
+    const next = { ...book, ...(changes.page ?? {}), name: changes.name ?? book.name, body: changes.body ?? book.body, frame: changes.frame ? (writeFrame(changes.frame) ?? '') : book.frame };
     game = { ...game, books: { ...game.books, [bookOrigin]: next } };
+  }
+
+  /**
+   * Moves the old front page's text into the front matter as a page named Introduction
+   * (Mike, November 10), and then clears it from `book.md`. The text is written into its
+   * new page before it is taken from the old one, so a failure part way loses nothing.
+   */
+  async function textToFrontMatter(text: string) {
+    if (!game || !bookSource || !bookOrigin || !tree) return;
+    let sec: Placed | null = tree.front[0]?.placed ?? null;
+    if (!sec) {
+      const secKey = await addElement(bookOrigin, 'chapter', 'Front Matter');
+      await load();
+      sec = byKey.get(secKey) ?? null;
+      if (!sec) throw new Error('The front matter could not be made.');
+      const file = pathIn(bookSource, 'book.md');
+      await bookSource.fs.writeText(file, withHeader(await bookSource.fs.readText(file), { front_matter: [refOf(sec.element)] }));
+    }
+    const key = await addElement(sec.origin, 'module', 'Introduction');
+    await load();
+    const page = byKey.get(key);
+    const section = byKey.get(sec.key);
+    if (!page || !section) throw new Error('The introduction could not be made.');
+    await save(page, { ...page.element, flavor: text });
+    await save(section, withList(section, 'items', [...list(section, 'items'), key]));
+    await saveBook({ body: '' });
+    await load();
+    nav.open(`${RULE}${key}`);
   }
 
   const bookPicture = $derived(tree?.book.image && bookSource ? { url: bookSource.fs.imageUrl(pathIn(bookSource, tree.book.image)), frame: readFrame(tree.book.frame) } : null);
@@ -603,14 +637,15 @@
       {#snippet pane(id, i)}
         {#key `${id}|${bookOrigin}`}
           {#if id.startsWith(FRONT) && tree}
-            <FrontPage
-              place="{bookOrigin === 'engine' ? 'Base game' : `${worldName}'s game`} · Front page"
-              name={tree.book.name}
-              body={tree.book.body}
+            <GameTitlePage
+              place="{bookOrigin === 'engine' ? 'Base game' : `${worldName}'s game`} · Title page"
+              book={tree.book}
+              builtOn={bookOrigin === 'world' && game?.engine ? engineName : null}
               picture={shown(id, bookPicture)}
               choices={bookChoices}
               onFrame={(frame) => saveBook({ frame })}
-              onSave={(c) => saveBook(c)}
+              onSave={({ name, body, ...page }) => saveBook({ name, body, page })}
+              onMoveText={textToFrontMatter}
               contents={[
                 ...tree.front.map((x) => ({ label: x.placed.element.name, note: `${x.items.length} pages`, open: () => nav.open(`${SEC}${x.placed.key}`, i) })),
                 ...tree.divisions.map((d) => ({ label: d.placed.element.name, note: d.catalog.length ? `${d.catalog.length} kinds` : `${d.sections.length} sections`, open: () => nav.open(`${DIV}${d.placed.key}`, i) })),

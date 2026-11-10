@@ -303,7 +303,7 @@ An engine is a folder anywhere in the library that holds an `engine.md`. It is n
 ```
 games/example-engine/
   engine.md                 the engine's name
-  book.md                   the base game's book: its front page and divisions
+  book.md                   the base game's book: its title page and divisions
   kinds/
     gear.md                 the shape of a kind: its fields and their order
     need.md
@@ -333,7 +333,7 @@ harrowgate/
   world.md
   game/
     game.md                 the world's choices about core elements
-    book.md                 the world's book: its front page and divisions
+    book.md                 the world's book: its title page and divisions
     kinds/                  kinds the world brings, if any
     elements/
       gear/
@@ -394,9 +394,9 @@ A dock knife with a cork grip, so it floats.
 
 ### The book
 
-A game's rulebook is a book of divisions, rule sections, and rules. The book has a front page and is split into divisions, such as The Protagonist and The Narrator, and each division has a front page of its own. A division holds rule sections, and each section holds its rules in order. A rule is where the text lives: it prints under its own heading, and any subheadings inside its text are written as `###`.
+A game's rulebook is a book of divisions, rule sections, and rules. The book has a title page and is split into divisions, such as The Protagonist and The Narrator, and each division has a front page of its own. A division holds rule sections, and each section holds its rules in order. A rule is where the text lives: it prints under its own heading, and any subheadings inside its text are written as `###`.
 
-The engine can have a `book.md`, which is the base game's book, and a world's game folder can have one, which is that world's book. When both exist, the Game sidebar offers a switch between them. The body of `book.md` is the book's front page, and its header names the book and lists its divisions in order:
+The engine can have a `book.md`, which is the base game's book, and a world's game folder can have one, which is that world's book. When both exist, the Game sidebar offers a switch between them. `book.md` is the book's title page, and its header names the book and lists its divisions in order:
 
 ```markdown
 ---
@@ -406,9 +406,24 @@ divisions:
   - division/the-harbor
   - division/the-aspects
 ---
-
-A game of salt, debt, and fog on the Harrowgate docks.
 ```
+
+The app draws the title page from header fields, in the same names a manuscript's `book.md` uses, so the byline and the copyright line are never typed into the page:
+
+```yaml
+subtitle: A game of salt, debt, and fog
+profile: wren-okafor
+year: 2026
+```
+
+- `subtitle:` is the line under the title.
+- `profile:` links the book to an author profile in the library's `immersion.md`, by its id. While it is set, the profile's author and copyright holder are the book's.
+- `author:` and `copyright:` hold the names written out by hand, for a book with no profile.
+- `year:` is the copyright year.
+
+A world's title page also names the engine the game is built on, taken from the world's `engine:`.
+
+A book prints its title page, then its front matter, then its divisions. An introduction is therefore a page of the front matter, usually its last. Text in the body of `book.md` is left from before the title page, when the body was the book's front page and printed ahead of the front matter. The app still shows that text on the title page and offers to move it into the front matter as a page named Introduction.
 
 A book can also list front matter and back matter, each a list of rule sections that sit before and after the divisions, such as the license, the copyright page, and the safety page:
 
@@ -475,7 +490,7 @@ extends: module/when-to-roll
 
 The app creates the add-on the first time the writer types in a core rule's world piece. A rule of the world's own has no add-on, because all of its text is already the world's. A world's own rule goes only into the world's own sections, and a world's own section only into the world's divisions, so the engine's book never names something one world alone has.
 
-Any page of the book can carry a header picture: the front page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, the world's piece of a core rule or section can carry a picture of its own beside the add-on, which shows instead of the core picture.
+Any page of the book can carry a header picture: the title page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, the world's piece of a core rule or section can carry a picture of its own beside the add-on, which shows instead of the core picture.
 
 A kind's shape file can name its body with `body:`, such as `body: Text` for rules or `body: Front page` for divisions. The form shows that name above the body instead of Flavor.
 

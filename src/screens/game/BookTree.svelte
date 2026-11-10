@@ -227,7 +227,7 @@
 <div class="tree" role="tree" aria-label="{tree.book.name}'s book">
   <div class="row top front" class:on={isOpen(`@front:${tree.origin}`)} style="--depth: 0" role="treeitem" aria-selected={isOpen(`@front:${tree.origin}`)} tabindex="-1">
     <button type="button" class="name" onclick={() => onOpen(`@front:${tree.origin}`)}>{tree.book.name}</button>
-    <span class="n">front page</span>
+    <span class="n">title page</span>
   </div>
   <!-- The front and back matter sit at the top level, as folders of their own (Mike, November 9). -->
   {#each tree.front as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}

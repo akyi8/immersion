@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { readElement, readKind, writeElement, writeKind, newElement, type Kind } from './elements.ts';
-import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, pictureOf, withBody } from './game.ts';
+import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, pictureOf, withBody, readBook } from './game.ts';
 
 const gear: Kind = {
   id: 'gear',
@@ -199,3 +199,13 @@ test('an expansion adds elements and pieces, and the book shows them only in the
   assert.deepEqual(base.divisions[0].catalog[0].elements.map((p) => p.key), ['engine:gear/rope']);
 });
 
+
+test("a book's title page is read from its header", () => {
+  const book = readBook('---\nname: Harrowgate\nsubtitle: A game of salt and fog\nprofile: wren-okafor\nyear: 2026\n---\n\nOld front page text.\n');
+  assert.equal(book?.subtitle, 'A game of salt and fog');
+  assert.equal(book?.profile, 'wren-okafor');
+  assert.equal(book?.year, 2026);
+  assert.equal(book?.author, '');
+  assert.equal(book?.body, 'Old front page text.');
+  assert.equal(readBook('---\nname: Bare\n---\n')?.year, null);
+});
