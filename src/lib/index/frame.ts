@@ -8,6 +8,10 @@
  * Header fields: `portrait_frame: 50 30 1.4` and `banner_frame: 50 40 1`, read as
  * across, down, and zoom. `picture: banner` or `picture: portrait` overrides the
  * category's default, which is a portrait for people and a banner for everything else.
+ *
+ * A third shape lays the picture behind the page (Mike, November 10): `picture: behind`,
+ * framed by `behind_frame:`. The page is then set like a card from the Radiance Adventure
+ * Engine, with its name up the spine and the picture low on the page, fading upward.
  */
 
 export interface Frame {
@@ -19,13 +23,16 @@ export interface Frame {
   zoom: number;
 }
 
-export type Shape = 'portrait' | 'banner';
+export type Shape = 'portrait' | 'banner' | 'behind';
 
 export const CENTERED: Frame = { x: 50, y: 50, zoom: 1 };
 export const MAX_ZOOM = 4;
 
 /** A banner's shape, as width over height. */
 export const BANNER_RATIO = 16 / 7;
+
+/** The shape of the picture behind a page, as width over height. */
+export const BEHIND_RATIO = 16 / 10;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const round = (n: number, places: number) => Math.round(n * 10 ** places) / 10 ** places;
@@ -53,7 +60,7 @@ export function writeFrame(frame: Frame | null): string | undefined {
 
 /** Reads a `picture:` override. */
 export function readShape(value: unknown): Shape | null {
-  return value === 'banner' || value === 'portrait' ? value : null;
+  return value === 'banner' || value === 'portrait' || value === 'behind' ? value : null;
 }
 
 export const isPerson = (category: string) => category.toLowerCase() === 'people';

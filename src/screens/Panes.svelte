@@ -28,7 +28,7 @@
     hasBeats,
     canWindow = () => true,
     hasPicture = () => false,
-    canCard = () => false,
+    isCard = () => false,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
@@ -44,8 +44,8 @@
     canWindow?: (id: string) => boolean;
     /** Whether a pane's document can carry a picture, which its view can then hide. */
     hasPicture?: (id: string) => boolean;
-    /** Whether a pane's page can be laid out as a card, with its picture behind it. */
-    canCard?: (id: string) => boolean;
+    /** Whether a pane's page is laid out as a card, with its picture behind it. */
+    isCard?: (id: string) => boolean;
   } = $props();
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
@@ -156,7 +156,7 @@
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
-        <div class="body" class:carded={look.picture === 'behind' && canCard(id)} data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
+        <div class="body" class:carded={isCard(id)} data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
             <button type="button" class="view-button" class:on={viewing === id} aria-label="How {name} is shown" aria-expanded={viewing === id} title="How this page is shown" onclick={() => (viewing = viewing === id ? null : id)}>
               <svg width="15" height="13" viewBox="0 0 15 13" aria-hidden="true"><path d="M1 11 L4.5 2 L8 11 M2.4 7.6 H6.6 M9.5 11 L11.7 5.5 L14 11 M10.3 9 H13.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
@@ -196,15 +196,14 @@
                 <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
                 <button type="button" aria-pressed={look.text === 'normal'} onclick={() => views.set(id, { text: 'normal' })}>Usual</button>
               </div>
+                            <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
+              <div class="rule" role="separator"></div>
               {#if hasPicture(id) || offers.length}
                 <div class="label">Picture</div>
                 {#if hasPicture(id)}
                 <div class="pair">
                   <button type="button" aria-pressed={look.picture === 'show'} onclick={() => views.set(id, { picture: 'show' })}>Show</button>
                   <button type="button" aria-pressed={look.picture === 'hide'} onclick={() => views.set(id, { picture: 'hide' })}>Hide</button>
-                  {#if canCard(id)}
-                    <button type="button" class="wide" aria-pressed={look.picture === 'behind'} onclick={() => views.set(id, { picture: 'behind' })}>Behind the page</button>
-                  {/if}
                 </div>
                 {/if}
                 {#if offers.length}
@@ -215,9 +214,7 @@
                   </div>
                 {/if}
               {/if}
-              <div class="label">While writing</div>
-              <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
-              <p class="hint">This page remembers these on this computer.</p>
+              <p class="hint">The column, the text, and whether the picture shows are remembered for this page on this computer. The picture and its framing are kept with the page.</p>
             </div>
           {/if}
           <PaneScope {id}>{@render pane(id, i, panes[i + 1] ?? null, full === id)}</PaneScope>
@@ -332,6 +329,15 @@
     background: none;
     border: 1px solid var(--edge);
   }
+  .view-menu .rule {
+    height: 1px;
+    margin: 8px 0 2px;
+    background: var(--rule-strong, var(--edge));
+    opacity: 0.6;
+  }
+  .view-menu .check {
+    margin-top: 6px;
+  }
   .view-menu .offers {
     display: grid;
     gap: 2px;
@@ -348,9 +354,6 @@
   .view-menu .offers button:hover {
     color: var(--text);
     background: var(--well, var(--bg));
-  }
-  .view-menu .pair .wide {
-    grid-column: 1 / -1;
   }
   .view-menu .pair button[aria-pressed='true'] {
     color: var(--selected-fg);
@@ -481,10 +484,6 @@
   /* A card fills its pane in full screen too, with the same margins its foot counts on. */
   .pane.alone .body.carded {
     padding: 56px 40px 60px;
-  }
-  .pane.alone .body.carded > :global(*:not(.tools)) {
-    margin-left: 0;
-    margin-right: 0;
   }
   .pane.alone .body > :global(*:not(.tools)) {
     margin-left: auto;

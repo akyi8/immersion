@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { views } from '../../lib/view.svelte';
   import { markOpened } from '../../lib/recent';
   import { untrack } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
@@ -103,7 +104,10 @@
       ids={entries}
       label={(id) => (id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id))}
       hasPicture={(id) => !!index.get(id)?.imagePath}
-      canCard={(id) => !!index.get(id)?.imagePath}
+      isCard={(id) => {
+        const e = index.get(id);
+        return !!e?.imagePath && e.picture === 'behind' && views.of(id).picture !== 'hide';
+      }}
       onWindow={(id) => {
         openInWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id));
         nav.close(id);

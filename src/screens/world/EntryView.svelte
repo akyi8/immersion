@@ -82,12 +82,12 @@
   const pictured = $derived(picture !== 'hide');
   const banner = $derived(!!entry.imagePath && shape === 'banner' && picture === 'show');
 
-  // Behind the page (Mike, November 10): the page is set like a card from the Radiance
+  // Behind the page (Mike, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's
   // first sentence sits top right as a card's storyline does, and the picture sits in the
   // lower right corner, fading up and to the left. Text thins out before it reaches the
   // picture, so no word is ever set on the art.
-  const card = $derived(!!entry.imagePath && picture === 'behind');
+  const card = $derived(!!entry.imagePath && shape === 'behind' && pictured);
   const brief = $derived.by(() => {
     const first = (/^.*?[.!?](?=\s|$)/.exec(entry.summary.trim())?.[0] ?? entry.summary.trim()).slice(0, 180);
     const parts: { text: string; name: boolean }[] = [];
@@ -106,12 +106,12 @@
   let framingBusy = $state(false);
   let framingProblem = $state('');
 
-  async function saveFraming(result: { shape: Shape | null; portrait: Frame; banner: Frame }) {
+  async function saveFraming(result: { shape: Shape | null; portrait: Frame; banner: Frame; behind: Frame }) {
     framingBusy = true;
     framingProblem = '';
     try {
       await saveNow(id);
-      const changes = { picture: result.shape ?? undefined, portrait_frame: writeFrame(result.portrait), banner_frame: writeFrame(result.banner) };
+      const changes = { picture: result.shape ?? undefined, portrait_frame: writeFrame(result.portrait), banner_frame: writeFrame(result.banner), behind_frame: writeFrame(result.behind) };
       await fs.writeText(id, withHeader(await fs.readText(id), changes));
       framing = false;
     } catch (e) {
@@ -121,28 +121,15 @@
     }
   }
 
-  /** Flips the picture between portrait and banner from the entry's ⋯ (Mike, November 1). */
-  async function setShape(to: Shape) {
-    pictureProblem = '';
-    try {
-      await saveNow(id);
-      await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category) ? undefined : to }));
-    } catch (e) {
-      pictureProblem = e instanceof Error ? e.message : String(e);
-    }
-  }
-
   // Everything about the picture is offered in the page's view menu, beside whether it shows.
   $effect(() => {
     if (view !== 'narrator') return;
     const has = !!entry.imagePath;
-    const at = shape;
     pictureActions.set(id, [
       { label: has ? 'Change the picture…' : 'Add a picture…', run: async () => setPicture(await pickImage()) },
       ...(has
         ? [
-            { label: 'Frame the picture…', run: () => ((framingProblem = ''), (framing = true)) },
-            { label: at === 'banner' ? 'Make it a portrait' : 'Make it a banner', run: () => void setShape(at === 'banner' ? 'portrait' : 'banner') },
+            { label: 'Frame and place the picture…', run: () => ((framingProblem = ''), (framing = true)) },
             { label: 'Remove the picture', run: () => void takePictureAway() },
           ]
         : []),
@@ -212,7 +199,7 @@
     </div>
   </div>
   <div class="foot" aria-hidden="true">
-    <div class="corner"><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(shape === 'banner' ? entry.bannerFrame : null)} /></div>
+    <div class="corner"><div class="rise"><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.behindFrame)} /></div></div>
   </div>
 </article>
 {:else}
@@ -270,6 +257,7 @@
     shape={entry.picture ?? null}
     portrait={entry.portraitFrame ?? null}
     banner={entry.bannerFrame ?? null}
+    behind={entry.behindFrame ?? null}
     busy={framingBusy}
     problem={framingProblem}
     onSave={saveFraming}
@@ -282,7 +270,9 @@
   }
   /* The card. The page fills its pane, and the name stands on the spine. */
   article.card {
-    max-width: none;
+    /* The card is as wide as its column and its spine, so on a wide screen the name, the
+       first sentence, and the picture stay with the text and do not drift to the far edge. */
+    max-width: calc(var(--measure, 720px) + 100px);
     display: flex;
     flex-direction: column;
     min-height: calc(100vh - 190px);
@@ -333,9 +323,6 @@
   .card-main > :global(*) {
     max-width: var(--measure, 720px);
   }
-  .card-main > .brief {
-    max-width: none;
-  }
   .brief {
     display: flex;
     justify-content: flex-end;
@@ -369,12 +356,13 @@
   .card-details {
     margin-bottom: 22px;
   }
-  /* The picture sits in the page's lower right corner and fades up and to the left, so it
-     takes little of the page's height (Mike, November 10). It is drawn over the text on the
-     page's own color, so text that scrolls into the corner goes out before it reaches the art. */
+  /* The picture lies low on the page, toward the right, and fades slowly upward (Mike,
+     November 10). It is drawn over the text on the page's own color, so text that scrolls
+     down goes out gradually and is never set on the art. The fade runs mostly up and down.
+     Its sides are only softened, so the picture has no hard edge beside the column. */
   .foot {
     position: sticky;
-    /* The pane's own padding lies below the page, and the corner reaches past it to the pane's edge. */
+    /* The pane's own padding lies below the page, and the picture reaches past it to the pane's edge. */
     bottom: -60px;
     z-index: 2;
     flex: none;
@@ -386,14 +374,20 @@
     position: absolute;
     right: 0;
     bottom: 0;
-    width: min(66%, 780px);
-    height: min(48vh, 440px);
+    width: 82%;
+    height: min(58vh, 560px);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.55) 22%, black 42%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.55) 22%, black 42%, black 90%, transparent 100%);
+  }
+  .rise {
+    position: absolute;
+    inset: 0;
     overflow: hidden;
     background: var(--bg);
-    -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 100%, black 28%, rgb(0 0 0 / 0.6) 52%, transparent 76%);
-    mask-image: radial-gradient(ellipse 100% 100% at 100% 100%, black 28%, rgb(0 0 0 / 0.6) 52%, transparent 76%);
+    -webkit-mask-image: linear-gradient(to top, black 0, rgb(0 0 0 / 0.86) 16%, rgb(0 0 0 / 0.62) 34%, rgb(0 0 0 / 0.38) 54%, rgb(0 0 0 / 0.18) 74%, rgb(0 0 0 / 0.06) 90%, transparent 100%);
+    mask-image: linear-gradient(to top, black 0, rgb(0 0 0 / 0.86) 16%, rgb(0 0 0 / 0.62) 34%, rgb(0 0 0 / 0.38) 54%, rgb(0 0 0 / 0.18) 74%, rgb(0 0 0 / 0.06) 90%, transparent 100%);
   }
-  .corner img {
+  .rise img {
     position: absolute;
     inset: 0;
     width: 100%;

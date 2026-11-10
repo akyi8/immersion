@@ -1,6 +1,6 @@
 <script lang="ts">
   import Dialog from '../shelf/Dialog.svelte';
-  import { BANNER_RATIO, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
+  import { BANNER_RATIO, BEHIND_RATIO, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
 
   /**
    * Framing an entry's picture (Mike, November 1). The picture is dragged inside a fixed
@@ -14,6 +14,7 @@
     shape: chosen,
     portrait: portraitStart,
     banner: bannerStart,
+    behind: behindStart = null,
     busy,
     problem,
     bannerOnly = false,
@@ -26,18 +27,20 @@
     shape: Shape | null;
     portrait: Frame | null;
     banner: Frame | null;
+    /** How the picture is framed when it lies behind the page. */
+    behind?: Frame | null;
     busy: boolean;
     problem: string;
     /** Frames the banner alone, for a page that never shows a portrait, such as a rule in a game's book. */
     bannerOnly?: boolean;
-    onSave: (result: { shape: Shape | null; portrait: Frame; banner: Frame }) => void;
+    onSave: (result: { shape: Shape | null; portrait: Frame; banner: Frame; behind: Frame }) => void;
     onCancel: () => void;
   } = $props();
 
   const fallback = $derived(defaultShape(category));
   // Seeded once from the entry; the dialog then holds its own edits.
   let shape = $state<Shape>((() => chosen ?? defaultShape(category))());
-  let frames = $state<Record<Shape, Frame>>((() => ({ portrait: portraitStart ?? CENTERED, banner: bannerStart ?? CENTERED }))());
+  let frames = $state<Record<Shape, Frame>>((() => ({ portrait: portraitStart ?? CENTERED, banner: bannerStart ?? CENTERED, behind: behindStart ?? CENTERED }))());
   let natural = $state<{ width: number; height: number } | null>(null);
 
   let drag: { which: Shape; x: number; y: number; box: DOMRect } | null = null;
@@ -79,7 +82,7 @@
   }
 
   function save() {
-    onSave({ shape: shape === fallback ? null : shape, portrait: frames.portrait, banner: frames.banner });
+    onSave({ shape: shape === fallback ? null : shape, portrait: frames.portrait, banner: frames.banner, behind: frames.behind });
   }
 </script>
 
@@ -88,7 +91,7 @@
     <div class="label">{title}<span class="note">{note}</span></div>
     <div
       class="box"
-      style:aspect-ratio={which === 'banner' ? BANNER_RATIO : 3 / 4}
+      style:aspect-ratio={which === 'banner' ? BANNER_RATIO : which === 'behind' ? BEHIND_RATIO : 3 / 4}
       role="slider"
       tabindex="0"
       aria-label="{title} framing. Arrow keys move the picture, plus and minus zoom."
@@ -124,10 +127,11 @@
 
 <Dialog title="Frame the picture" action="Save" ready={true} {busy} {problem} onSubmit={save} {onCancel} wide>
   {#if !bannerOnly}<div class="shows">
-    <span class="label">Shows at the top as</span>
-    <div class="seg" role="group" aria-label="Shows at the top as">
+    <span class="label">Shows as</span>
+    <div class="seg" role="group" aria-label="Shows as">
       <button type="button" class:on={shape === 'banner'} aria-pressed={shape === 'banner'} onclick={() => (shape = 'banner')}>Banner</button>
       <button type="button" class:on={shape === 'portrait'} aria-pressed={shape === 'portrait'} onclick={() => (shape = 'portrait')}>Portrait</button>
+      <button type="button" class:on={shape === 'behind'} aria-pressed={shape === 'behind'} onclick={() => (shape = 'behind')}>Behind the page</button>
     </div>
     <span class="hint">{fallback === 'portrait' ? 'People' : 'Entries outside People'} show a {fallback} unless you choose otherwise.</span>
   </div>{/if}
@@ -136,6 +140,11 @@
     {@render framer('banner', 'Banner', '')}
     {#if !bannerOnly}{@render framer('portrait', 'Portrait', 'also its face')}{/if}
   </div>
+  {#if !bannerOnly}
+    <div class="frames one">
+      {@render framer('behind', 'Behind the page', 'low on the page, fading upward, with the name up the spine')}
+    </div>
+  {/if}
 </Dialog>
 
 <style>
@@ -166,6 +175,15 @@
     margin: 0;
     font-size: calc(13px * var(--type));
     color: var(--muted);
+  }
+  .frames.one {
+    grid-template-columns: minmax(0, 420px);
+    margin-top: 14px;
+  }
+  /* What lies behind the page fades upward there, so its frame shows the fade. */
+  .framer.behind .box img {
+    -webkit-mask-image: linear-gradient(to top, black 30%, rgb(0 0 0 / 0.35) 75%, rgb(0 0 0 / 0.12) 100%);
+    mask-image: linear-gradient(to top, black 30%, rgb(0 0 0 / 0.35) 75%, rgb(0 0 0 / 0.12) 100%);
   }
   .frames {
     display: grid;

@@ -28,6 +28,8 @@ export interface Entry {
   /** How the picture is framed as a portrait and as a banner (Mike, November 1). */
   portraitFrame?: Frame | null;
   bannerFrame?: Frame | null;
+  /** How the picture is framed when it lies behind the page (Mike, November 10). */
+  behindFrame?: Frame | null;
 }
 
 export interface Folder {
@@ -139,6 +141,7 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         picture: readShape(header.picture),
         portraitFrame: readFrame(header.portrait_frame),
         bannerFrame: readFrame(header.banner_frame),
+        behindFrame: readFrame(header.behind_frame),
       });
       folder.entries.push(childPath);
     }
