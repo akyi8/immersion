@@ -41,30 +41,6 @@ class RuleWidget extends WidgetType {
   }
 }
 
-/** The YAML header, folded to one line. Clicking it opens the header for editing. */
-class PropertiesWidget extends WidgetType {
-  constructor(private at: number) {
-    super();
-  }
-  toDOM(view: EditorView) {
-    const el = document.createElement('div');
-    el.className = 'cm-properties';
-    el.textContent = 'Properties';
-    el.addEventListener('mousedown', (event) => {
-      event.preventDefault();
-      view.dispatch({ selection: { anchor: this.at } });
-      view.focus();
-    });
-    return el;
-  }
-  eq(other: PropertiesWidget) {
-    return other.at === this.at;
-  }
-  ignoreEvent() {
-    return true;
-  }
-}
-
 class LabelWidget extends WidgetType {
   constructor(private text: string) {
     super();
@@ -145,16 +121,6 @@ class WriteHereWidget extends WidgetType {
  * Header keys the app writes for itself or shows in a place of its own, such as an entry's
  * date under its name, which the writer never needs to see as raw header lines.
  */
-const MACHINE_KEYS = new Set(['manuscript', 'shelved', 'threads', 'when', 'era', 'stages', 'picture', 'portrait_frame', 'banner_frame', 'behind_frame']);
-
-/** True when every key in the YAML header is one the app keeps for itself. */
-function machineOnly(state: EditorState, header: { from: number; to: number }): boolean {
-  const lines = state.doc.sliceString(header.from, header.to).split('\n').slice(1, -1);
-  const keys = lines.map((l) => /^([\w-]+)\s*:/.exec(l)?.[1]).filter((k): k is string => !!k);
-  // Indented lines belong to the key above them, such as the parts under `stages:`.
-  return keys.length > 0 && keys.every((k) => MACHINE_KEYS.has(k)) && lines.every((l) => l.trim() === '' || /^[\w-]+\s*:/.test(l) || /^\s+\S/.test(l));
-}
-
 type Zone = { from: number; to: number };
 
 /** The start of the line after `n`, past one blank separator line if there is one. */
@@ -176,7 +142,7 @@ function outlineZones(state: EditorState): Zone[] {
   const zones: Zone[] = [];
   const doc = state.doc;
   const header = headerRange(state);
-  if (header && machineOnly(state, header)) {
+  if (header) {
     // Starting before the document means nothing can be typed in front of the header either.
     zones.push({ from: -1, to: pastSeparator(state, doc.lineAt(header.to).number) });
   }
@@ -204,18 +170,35 @@ function titleZone(state: EditorState, title: string): Zone | null {
   let n = header ? doc.lineAt(header.to).number + 1 : 1;
   while (n <= doc.lines && doc.line(n).text.trim() === '') n++;
   if (n > doc.lines || doc.line(n).text.replace(/^#\s+/, '').trim() !== title || !/^#\s/.test(doc.line(n).text)) return null;
-  const visibleHeader = header && !machineOnly(state, header);
   return {
-    // A header that shows stays editable, so the zone starts below it.
-    from: visibleHeader ? header.to : -1,
+    from: -1,
     to: pastSeparator(state, n),
   };
+}
+
+/** The bold `**Aliases:**` line near the top of a file, if there is one. */
+function aliasLine(state: EditorState): { from: number; to: number; n: number } | null {
+  const doc = state.doc;
+  const header = headerRange(state);
+  const first = header ? doc.lineAt(header.to).number + 1 : 1;
+  for (let n = first; n <= Math.min(doc.lines, first + 12); n++) {
+    const line = doc.line(n);
+    if (/^[ \t]*\*\*\s*aliases\s*:?\s*\*\*/i.test(line.text)) {
+      // The blank line after it goes with it, so the hidden line leaves no gap behind.
+      const next = n < doc.lines ? doc.line(n + 1) : null;
+      return { from: line.from, to: next && next.text.trim() === '' ? next.to : line.to, n };
+    }
+  }
+  return null;
 }
 
 function zonesOf(state: EditorState, title: string): Zone[] {
   const zones = outlineZones(state);
   const top = titleZone(state, title);
   if (top) zones.push(top);
+  // The hidden names line is a zone too, so the cursor never rests in it.
+  const names = aliasLine(state);
+  if (names) zones.push({ from: names.n > 1 ? state.doc.line(names.n - 1).to : -1, to: pastSeparator(state, names.n) });
   return zones.sort((a, b) => a.from - b.from);
 }
 
@@ -353,14 +336,15 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   const lines: Range<Decoration>[] = [];
   const doc = state.doc;
 
-  // The YAML header shrinks to a single quiet line until the cursor enters it. A header
-  // that holds only what the app keeps for itself, such as `manuscript: true`, is hidden.
+  // The YAML header is never shown (Mike, November 10). What it holds is offered by the
+  // page itself, such as its other names, its date, and its picture, so nobody has to
+  // edit a file's header by hand inside the app.
   const header = headerRange(state);
-  if (header && machineOnly(state, header)) {
-    marks.push(Decoration.replace({ block: true }).range(header.from, header.to));
-  } else if (header && !touched(state, header.from, header.to)) {
-    marks.push(Decoration.replace({ widget: new PropertiesWidget(doc.line(2).from), block: true }).range(header.from, header.to));
-  }
+  if (header) marks.push(Decoration.replace({ block: true }).range(header.from, header.to));
+  // Other names written as a bold line show in the page's header, where they are also
+  // added and removed, so the line itself is hidden from the text.
+  const names = aliasLine(state);
+  if (names) marks.push(Decoration.replace({ block: true }).range(names.from, names.to));
 
   const tree = ensureSyntaxTree(state, doc.length, 200);
   if (!tree) return Decoration.set([...marks, ...lines], true);

@@ -389,8 +389,9 @@
     color: var(--text);
     background: transparent;
     border: 0;
-    padding: 7px 18px;
-    min-height: 34px;
+    /* Rows sit close, so more of a wiki shows at once (Mike, November 10). */
+    padding: 4px 18px;
+    min-height: 28px;
     display: flex;
     gap: 8px;
     align-items: center;

@@ -50,6 +50,7 @@
   const html = $derived(renderBody(entry.body, index, id, view));
   let body: HTMLDivElement | undefined = $state();
   let pictureProblem = $state('');
+  let actions: EntryActions | undefined = $state();
 
   // A picture dropped on the portrait, or chosen with Change picture, is copied in beside
   // the entry under the entry's own name (design: the world shelf).
@@ -175,12 +176,28 @@
 </script>
 
 {#snippet details()}
-  {#if entry.aliases.length}<div class="meta">{entry.aliases.join(' · ')}</div>{/if}
-  <div class="row pane-actions">
+  <!-- What the entry is called, and when it is, in one quiet row. Each is added and changed
+       here, so the file's own header is never edited by hand (Mike, November 10). -->
+  <div class="row facts pane-actions">
+    {#if entry.aliases.length || (view === 'narrator' && onMoved)}
+      <span class="names" aria-label="Other names">
+        {#each entry.aliases as alias (alias)}
+          {#if view === 'narrator' && onMoved}
+            <button type="button" class="alias" title="Change this entry's other names" onclick={() => actions?.start('names')}>{alias}</button>
+          {:else}
+            <span class="alias">{alias}</span>
+          {/if}
+        {/each}
+        {#if view === 'narrator' && onMoved}
+          <button type="button" class="add" onclick={() => actions?.start('names')}>+ Alias</button>
+        {/if}
+      </span>
+    {/if}
     <EntryDate {fs} {entry} editable={view === 'narrator'} />
     <span class="spacer"></span>
     {#if view === 'narrator' && onMoved}
       <EntryActions
+        bind:this={actions}
         {fs}
         {index}
         {entry}
@@ -348,12 +365,9 @@
     /* Room for the last lines to come clear of the corner. */
     padding-bottom: 16vh;
   }
-  /* The text keeps a book's line. The first sentence runs the card's full width. */
+  /* The text keeps a book's line, and the first sentence above it keeps the same column. */
   .card-main > :global(*) {
     max-width: calc(var(--prose-size) * 33);
-  }
-  .card-main > .brief {
-    max-width: none;
   }
   .brief {
     display: flex;
@@ -542,10 +556,39 @@
     font-size: calc(13px * var(--type));
     color: var(--danger);
   }
-  .meta {
-    margin-top: 8px;
+  .facts {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+  .names {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  .alias {
+    padding: 0;
     font-family: var(--font-label);
-    font-size: calc(12px * var(--type));
+    font-size: calc(11px * var(--type));
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--muted);
+    background: none;
+    border: 0;
+  }
+  button.alias:hover {
+    color: var(--text);
+  }
+  .names .add {
+    font-size: calc(13px * var(--type));
+    color: var(--structure);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+  .names .add:hover {
+    color: var(--text);
   }
 </style>

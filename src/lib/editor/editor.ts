@@ -265,15 +265,6 @@ const theme = EditorView.theme(
       borderTop: '1px dashed var(--line)',
     },
     '.cm-write-here:hover': { color: 'var(--text-soft)' },
-    '.cm-properties': {
-      fontFamily: 'var(--font-label)',
-      fontSize: '11px',
-      letterSpacing: '0.12em',
-      textTransform: 'uppercase',
-      color: 'var(--muted)',
-      padding: '2px 0 10px',
-      cursor: 'pointer',
-    },
   },
   { dark: true },
 );

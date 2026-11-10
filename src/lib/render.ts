@@ -15,7 +15,9 @@ const NO_LINKS = new Set(['A', 'BUTTON', 'CODE', 'PRE', 'H1']);
  * (architecture decision 7).
  */
 export function renderBody(markdown: string, index: WikiIndex, selfId: string | null, view: View): string {
-  const source = markdown.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1');
+  const source = markdown
+    .replace(/^[ \t]*\*\*\s*aliases\s*:?\s*\*\*.*(?:\r?\n)?/im, '')
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1');
   const html = DOMPurify.sanitize(marked.parse(source, { async: false, gfm: true }) as string);
   const doc = new DOMParser().parseFromString(`<div id="root">${html}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
