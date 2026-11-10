@@ -12,7 +12,7 @@
   import EntryActions from './EntryActions.svelte';
   import EntryDate from './EntryDate.svelte';
   import FramePicture from './FramePicture.svelte';
-  import { defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
+  import { BEHIND_FADE, defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
@@ -121,11 +121,36 @@
     }
   }
 
-  // Everything about the picture is offered in the page's view menu, beside whether it shows.
+  /** Sets how the picture shows, from the page's view menu. */
+  async function setShape(to: Shape) {
+    pictureProblem = '';
+    try {
+      await saveNow(id);
+      await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category) ? undefined : to }));
+    } catch (e) {
+      pictureProblem = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  // Everything about the picture is offered in the page's view menu: how it shows, or that it is hidden.
   $effect(() => {
     if (view !== 'narrator') return;
     const has = !!entry.imagePath;
+    const at = shape;
+    const showing = pictured;
+    const choose = (to: Shape) => () => {
+      views.set(id, { picture: 'show' });
+      if (at !== to) void setShape(to);
+    };
     pictureActions.set(id, [
+      ...(has
+        ? [
+            { label: 'Hide', pressed: !showing, run: () => views.set(id, { picture: 'hide' }) },
+            { label: 'Portrait', pressed: showing && at === 'portrait', run: choose('portrait') },
+            { label: 'Banner', pressed: showing && at === 'banner', run: choose('banner') },
+            { label: 'Behind', pressed: showing && at === 'behind', run: choose('behind') },
+          ]
+        : []),
       { label: has ? 'Change the picture…' : 'Add a picture…', run: async () => setPicture(await pickImage()) },
       ...(has
         ? [
@@ -199,7 +224,7 @@
     </div>
   </div>
   <div class="foot" aria-hidden="true">
-    <div class="corner"><div class="rise"><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.behindFrame)} /></div></div>
+    <div class="corner"><div class="soft"><div class="rise" style={BEHIND_FADE}><img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.behindFrame)} /></div></div></div>
   </div>
 </article>
 {:else}
@@ -351,15 +376,15 @@
     font-size: calc(12px * var(--type));
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--structure);
+    /* Bone beside the colored sentence, as a card's own label is. */
+    color: var(--text);
   }
   .card-details {
     margin-bottom: 22px;
   }
-  /* The picture lies low on the page, toward the right, and fades slowly upward (Mike,
-     November 10). It is drawn over the text on the page's own color, so text that scrolls
-     down goes out gradually and is never set on the art. The fade runs mostly up and down.
-     Its sides are only softened, so the picture has no hard edge beside the column. */
+  /* The picture lies in the page's lower right corner and fades as `BEHIND_FADE` says. It
+     is drawn over the text on the page's own color, so text that scrolls down goes out
+     gradually. */
   .foot {
     position: sticky;
     /* The pane's own padding lies below the page, and the picture reaches past it to the pane's edge. */
@@ -370,22 +395,28 @@
     margin: auto -40px -60px;
     pointer-events: none;
   }
+  /* The picture is the same shape on every page, so what is framed is what shows. Its
+     sides and top are only softened, so it has no hard edge beside the column. */
   .corner {
     position: absolute;
     right: 0;
     bottom: 0;
-    width: 82%;
-    height: min(58vh, 560px);
-    -webkit-mask-image: linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.55) 22%, black 42%, black 90%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.55) 22%, black 42%, black 90%, transparent 100%);
+    width: min(92%, 680px);
+    aspect-ratio: 16 / 10;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 16%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 16%, black 90%, transparent 100%);
+  }
+  .soft {
+    position: absolute;
+    inset: 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 26%);
   }
   .rise {
     position: absolute;
     inset: 0;
     overflow: hidden;
     background: var(--bg);
-    -webkit-mask-image: linear-gradient(to top, black 0, rgb(0 0 0 / 0.86) 16%, rgb(0 0 0 / 0.62) 34%, rgb(0 0 0 / 0.38) 54%, rgb(0 0 0 / 0.18) 74%, rgb(0 0 0 / 0.06) 90%, transparent 100%);
-    mask-image: linear-gradient(to top, black 0, rgb(0 0 0 / 0.86) 16%, rgb(0 0 0 / 0.62) 34%, rgb(0 0 0 / 0.38) 54%, rgb(0 0 0 / 0.18) 74%, rgb(0 0 0 / 0.06) 90%, transparent 100%);
   }
   .rise img {
     position: absolute;

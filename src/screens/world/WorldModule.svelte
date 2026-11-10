@@ -103,7 +103,6 @@
       {nav}
       ids={entries}
       label={(id) => (id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id))}
-      hasPicture={(id) => !!index.get(id)?.imagePath}
       isCard={(id) => {
         const e = index.get(id);
         return !!e?.imagePath && e.picture === 'behind' && views.of(id).picture !== 'hide';

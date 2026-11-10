@@ -215,7 +215,6 @@
   });
 
   // A page's view can put its picture away (lib/view.svelte.ts).
-  const pictured = (id: string) => [FRONT, DIV, SEC, RULE].some((pre) => id.startsWith(pre));
   function shown<T>(id: string, picture: T | null): T | null {
     return views.of(id).picture === 'hide' ? null : picture;
   }
@@ -633,7 +632,7 @@
     </nav>
   {/if}
   {#if row.length && game}
-    <Panes {nav} ids={row} {label} canWindow={() => false} hasPicture={pictured}>
+    <Panes {nav} ids={row} {label} canWindow={() => false}>
       {#snippet pane(id, i)}
         {#key `${id}|${bookOrigin}`}
           {#if id.startsWith(FRONT) && tree}

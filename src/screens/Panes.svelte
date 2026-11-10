@@ -27,7 +27,6 @@
     onWindow,
     hasBeats,
     canWindow = () => true,
-    hasPicture = () => false,
     isCard = () => false,
   }: {
     nav: Navigator;
@@ -42,15 +41,13 @@
     hasBeats?: (id: string) => boolean;
     /** Whether a pane may move to a reading window. The vault never may. */
     canWindow?: (id: string) => boolean;
-    /** Whether a pane's document can carry a picture, which its view can then hide. */
-    hasPicture?: (id: string) => boolean;
     /** Whether a pane's page is laid out as a card, with its picture behind it. */
     isCard?: (id: string) => boolean;
   } = $props();
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
 
-  // Each document remembers how it is shown (Mike, November 10): its column, the size of
+  // Each document remembers how it is shown (Mike, November 10): the size of
   // its text, its picture, and whether the paragraph being written is lit. The choices
   // sit behind one button in the document's toolbar, the same for every kind of document.
   let viewing = $state<string | null>(null);
@@ -156,7 +153,7 @@
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
-        <div class="body" class:carded={isCard(id)} data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
+        <div class="body" class:carded={isCard(id)} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
             <button type="button" class="view-button" class:on={viewing === id} aria-label="How {name} is shown" aria-expanded={viewing === id} title="How this page is shown" onclick={() => (viewing = viewing === id ? null : id)}>
               <svg width="15" height="13" viewBox="0 0 15 13" aria-hidden="true"><path d="M1 11 L4.5 2 L8 11 M2.4 7.6 H6.6 M9.5 11 L11.7 5.5 L14 11 M10.3 9 H13.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
@@ -186,11 +183,6 @@
           </div>
           {#if viewing === id}
             <div class="view-menu" role="group" aria-label="How {name} is shown">
-              <div class="label">Column</div>
-              <div class="pair">
-                <button type="button" aria-pressed={look.column === 'book'} onclick={() => views.set(id, { column: 'book' })}>Book</button>
-                <button type="button" aria-pressed={look.column === 'wide'} onclick={() => views.set(id, { column: 'wide' })}>Wide</button>
-              </div>
               <div class="label">Text</div>
               <div class="pair">
                 <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
@@ -198,23 +190,26 @@
               </div>
                             <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
               <div class="rule" role="separator"></div>
-              {#if hasPicture(id) || offers.length}
+              {#if offers.length}
+                {@const choices = offers.filter((o) => o.pressed !== undefined)}
+                {@const actions = offers.filter((o) => o.pressed === undefined)}
                 <div class="label">Picture</div>
-                {#if hasPicture(id)}
-                <div class="pair">
-                  <button type="button" aria-pressed={look.picture === 'show'} onclick={() => views.set(id, { picture: 'show' })}>Show</button>
-                  <button type="button" aria-pressed={look.picture === 'hide'} onclick={() => views.set(id, { picture: 'hide' })}>Hide</button>
-                </div>
+                {#if choices.length}
+                  <div class="pair">
+                    {#each choices as choice (choice.label)}
+                      <button type="button" aria-pressed={choice.pressed} onclick={choice.run}>{choice.label}</button>
+                    {/each}
+                  </div>
                 {/if}
-                {#if offers.length}
+                {#if actions.length}
                   <div class="offers">
-                    {#each offers as offer (offer.label)}
+                    {#each actions as offer (offer.label)}
                       <button type="button" onclick={() => ((viewing = null), offer.run())}>{offer.label}</button>
                     {/each}
                   </div>
                 {/if}
               {/if}
-              <p class="hint">The column, the text, and whether the picture shows are remembered for this page on this computer. The picture and its framing are kept with the page.</p>
+              <p class="hint">The text size, the lit paragraph, and a hidden picture are remembered for this page on this computer. The picture and its shape are kept with the page.</p>
             </div>
           {/if}
           <PaneScope {id}>{@render pane(id, i, panes[i + 1] ?? null, full === id)}</PaneScope>
@@ -264,12 +259,8 @@
     box-sizing: border-box;
     transition: opacity 120ms;
   }
-  /* A book's line holds about sixty-six characters, and follows the size of the text. */
   .body[data-text='small'] {
     --prose-size: calc(var(--prose-base) * 0.88);
-  }
-  .body[data-column='book'] {
-    --measure: calc(var(--prose-size) * 33);
   }
   /* The lit paragraph: the others fall back while the writing has the keyboard, and the
      page eases to keep the line in place, with room below the last line to do it. */

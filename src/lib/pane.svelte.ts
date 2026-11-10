@@ -9,6 +9,8 @@ import { untrack } from 'svelte';
 export interface PaneAction {
   label: string;
   run: () => void;
+  /** Set on a choice among a few, such as how the picture shows, and true on the one in use. */
+  pressed?: boolean;
 }
 
 /** The context a page reads to learn which pane it is in. */

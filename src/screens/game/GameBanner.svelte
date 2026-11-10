@@ -13,6 +13,7 @@
 <script lang="ts">
   import { getContext, type Snippet } from 'svelte';
   import { PANE, pictureActions } from '../../lib/pane.svelte';
+  import { views } from '../../lib/view.svelte';
   import { dropImage } from '../../lib/drop';
   import { pickImage } from '../../lib/pickImage';
   import { frameStyle, type Frame } from '../../lib/index/frame';
@@ -62,7 +63,15 @@
   const pane = getContext<{ id: string } | undefined>(PANE);
   $effect(() => {
     if (!pane) return;
-    pictureActions.set(pane.id, [
+    const id = pane.id;
+    const hidden = views.of(id).picture === 'hide';
+    pictureActions.set(id, [
+      ...(choices.some((c) => c.remove)
+        ? [
+            { label: 'Hide', pressed: hidden, run: () => views.set(id, { picture: 'hide' }) },
+            { label: 'Banner', pressed: !hidden, run: () => views.set(id, { picture: 'show' }) },
+          ]
+        : []),
       ...choices.flatMap((c) => [
         { label: c.remove ? `Change the ${c.label}…` : `Add a ${c.label}…`, run: () => void choose(c) },
         ...(c.remove ? [{ label: `Remove the ${c.label}`, run: () => void run(c.remove!) }] : []),

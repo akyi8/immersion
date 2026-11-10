@@ -31,8 +31,19 @@ export const MAX_ZOOM = 4;
 /** A banner's shape, as width over height. */
 export const BANNER_RATIO = 16 / 7;
 
-/** The shape of the picture behind a page, as width over height. */
+/** The shape of the picture behind a page, as width over height. It is the same on every page. */
 export const BEHIND_RATIO = 16 / 10;
+
+/**
+ * How the picture behind a page fades (Mike, November 10). A line runs from the picture's
+ * lower left corner to the middle of its right side. Above the line the page's own color
+ * covers at least seventy percent of the picture, more the farther up, and below the line
+ * the picture clears toward its lower right corner. The change is gradual all the way.
+ * The angle and the line's place are worked out for `BEHIND_RATIO`, so the page and the
+ * framing dialog, which use this one value, show the same fade.
+ */
+const FADE = 'linear-gradient(162.6deg, transparent 0%, rgb(0 0 0 / 0.06) 20%, rgb(0 0 0 / 0.14) 40%, rgb(0 0 0 / 0.22) 55%, rgb(0 0 0 / 0.3) 66.7%, rgb(0 0 0 / 0.5) 78%, rgb(0 0 0 / 0.76) 89%, black 100%)';
+export const BEHIND_FADE = `-webkit-mask-image: ${FADE}; mask-image: ${FADE};`;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const round = (n: number, places: number) => Math.round(n * 10 ** places) / 10 ** places;

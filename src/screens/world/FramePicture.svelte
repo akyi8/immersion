@@ -1,6 +1,6 @@
 <script lang="ts">
   import Dialog from '../shelf/Dialog.svelte';
-  import { BANNER_RATIO, BEHIND_RATIO, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
+  import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
 
   /**
    * Framing an entry's picture (Mike, November 1). The picture is dragged inside a fixed
@@ -104,12 +104,15 @@
       onpointercancel={up}
       onwheel={(e) => wheel(which, e)}
       onkeydown={(e) => key(which, e)}>
+      <!-- Behind the page, the picture fades as it does on the page, over the page's color. -->
+      <div class="fade" style={which === 'behind' ? BEHIND_FADE : ''}>
       <img
         src={url}
         alt=""
         draggable="false"
         style={frameStyle(frames[which])}
         onload={(e) => (natural = { width: (e.currentTarget as HTMLImageElement).naturalWidth, height: (e.currentTarget as HTMLImageElement).naturalHeight })} />
+      </div>
     </div>
     <div class="controls">
       <input
@@ -136,15 +139,13 @@
     <span class="hint">{fallback === 'portrait' ? 'People' : 'Entries outside People'} show a {fallback} unless you choose otherwise.</span>
   </div>{/if}
   <p class="hint">Drag the picture to move it, and zoom with the slider or the scroll wheel.</p>
-  <div class="frames">
+  <div class="frames" class:three={!bannerOnly}>
     {@render framer('banner', 'Banner', '')}
-    {#if !bannerOnly}{@render framer('portrait', 'Portrait', 'also its face')}{/if}
+    {#if !bannerOnly}
+      {@render framer('behind', 'Behind', 'as it fades on the page')}
+      {@render framer('portrait', 'Portrait', 'its face')}
+    {/if}
   </div>
-  {#if !bannerOnly}
-    <div class="frames one">
-      {@render framer('behind', 'Behind the page', 'low on the page, fading upward, with the name up the spine')}
-    </div>
-  {/if}
 </Dialog>
 
 <style>
@@ -176,21 +177,37 @@
     font-size: calc(13px * var(--type));
     color: var(--muted);
   }
-  .frames.one {
-    grid-template-columns: minmax(0, 420px);
-    margin-top: 14px;
-  }
-  /* What lies behind the page fades upward there, so its frame shows the fade. */
-  .framer.behind .box img {
-    -webkit-mask-image: linear-gradient(to top, black 30%, rgb(0 0 0 / 0.35) 75%, rgb(0 0 0 / 0.12) 100%);
-    mask-image: linear-gradient(to top, black 30%, rgb(0 0 0 / 0.35) 75%, rgb(0 0 0 / 0.12) 100%);
-  }
+  /* The frames stand in one row at one height, each as wide as its shape asks, so the
+     dialog shows all of them and its Save button without scrolling. */
   .frames {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 160px;
-    gap: 20px;
-    align-items: start;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
     margin-top: 6px;
+  }
+  .framer {
+    min-width: 0;
+    flex: 1;
+  }
+  .frames.three .framer.banner {
+    flex: 2.286;
+  }
+  .frames.three .framer.behind {
+    flex: 1.6;
+  }
+  .frames.three .framer.portrait {
+    flex: 0.75;
+  }
+  :global(.dialog.wide:has(.frames.three)) {
+    width: min(1060px, 94vw);
+    max-width: none;
+  }
+  .framer.behind .box {
+    background: var(--bg);
+  }
+  .fade {
+    position: absolute;
+    inset: 0;
   }
   .framer .label {
     display: flex;
@@ -251,9 +268,13 @@
     border: 0;
     padding: 4px 0;
   }
-  @media (max-width: 620px) {
+  @media (max-width: 720px) {
     .frames {
-      grid-template-columns: 1fr;
+      flex-direction: column;
+    }
+    .frames .framer {
+      width: 100%;
+      flex: none;
     }
   }
 </style>
