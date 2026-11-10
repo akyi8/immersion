@@ -96,6 +96,7 @@
     {#if core}<p class="hint">Every game built on {engineName} prints this.</p>{/if}
     <GameText
       text={rule.element.flavor}
+      self="game:{rule.key}"
       label="{core ? engineName : worldName} text"
       placeholder="The rule, as the book prints it."
       onChange={(t) => {

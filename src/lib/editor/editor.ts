@@ -45,9 +45,9 @@ function mentionPlugin(ref: ScannerRef, onMention: (id: string) => void): Extens
         const line = view.state.doc.lineAt(pos);
         for (const m of ref.current.find(line.text)) {
           if (m.id === ref.selfId) continue;
-          ranges.push(
-            Decoration.mark({ class: m.id === ref.next ? 'cm-mention cm-mention-open' : 'cm-mention', attributes: { 'data-entry': m.id } }).range(line.from + m.start, line.from + m.end),
-          );
+          // A game's own terms are marked apart from the world's names (lib/game/links.ts).
+          const mark = m.id.startsWith('game:') ? 'cm-term' : m.id === ref.next ? 'cm-mention cm-mention-open' : 'cm-mention';
+          ranges.push(Decoration.mark({ class: mark, attributes: { 'data-entry': m.id } }).range(line.from + m.start, line.from + m.end));
         }
         pos = line.to + 1;
       }
@@ -209,6 +209,8 @@ const theme = EditorView.theme(
     '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { backgroundColor: 'var(--structure-deep) !important' },
     '.cm-mention': { color: 'var(--name)', cursor: 'pointer' },
     '.cm-mention-open': { backgroundColor: 'var(--accent-wash)' },
+    // A game term, set as the Radiance rulebook sets one: small capitals in its own color.
+    '.cm-term': { color: 'var(--structure)', fontVariantCaps: 'all-small-caps', fontSize: '1.1em', letterSpacing: '0.04em', cursor: 'pointer' },
     '.cm-md-link': { color: 'var(--structure)' },
     '.cm-underline': { textDecoration: 'underline', textUnderlineOffset: '0.15em' },
     '.cm-h1': { fontFamily: 'var(--font-display)', fontSize: '2.2em', letterSpacing: '0.02em', lineHeight: '1.2' },

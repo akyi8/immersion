@@ -214,7 +214,7 @@
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'game'}
-    <GameModule {fs} {nav} {worldName} {engineRel} {gameDir} {openEngine} />
+    <GameModule {fs} {nav} {index} {worldName} {engineRel} {gameDir} {openEngine} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}

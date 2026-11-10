@@ -1,4 +1,5 @@
 <script lang="ts">
+  import GameText from './GameText.svelte';
   import { onMount } from 'svelte';
   import { registerPanel } from '../../lib/saves';
   import type { Element, Kind } from '../../lib/game/elements';
@@ -205,10 +206,18 @@
     {/if}
     {#each kind?.layout ?? ['flavor'] as part (part)}
       {#if part === 'flavor'}
-        <label class="field">
+        <!-- The main text is written in the same editor as a rule or a chapter, so it links names and reads the same. -->
+        <div class="field">
           <span class="label">{kind?.body ?? 'Flavor'}</span>
-          <textarea use:grow rows="3" bind:value={draft.flavor} oninput={changed}></textarea>
-        </label>
+          <GameText
+            text={placed.element.flavor}
+            self="game:{placed.key}"
+            label={kind?.body ?? 'Flavor'}
+            onChange={(t) => {
+              draft.flavor = t;
+              changed();
+            }} />
+        </div>
       {:else}
         {@const f = kind?.fields.find((x) => x.key === part)}
         {#if f}

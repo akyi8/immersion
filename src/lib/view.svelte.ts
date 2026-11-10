@@ -127,7 +127,9 @@ class Quiet {
       if (e.key === 'Escape' || e.key === 'Tab') this.typing = false;
     });
     document.addEventListener('focusout', (e) => {
-      if ((e.target as HTMLElement | null)?.closest?.('.cm-editor')) this.typing = false;
+      // A page that closes while it holds the keyboard loses it in the middle of being
+      // taken down, where nothing may be changed, so the room comes back a moment later.
+      if ((e.target as HTMLElement | null)?.closest?.('.cm-editor')) setTimeout(() => (this.typing = false), 0);
     });
   }
 }

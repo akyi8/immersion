@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, setContext } from 'svelte';
+  import type { WikiIndex } from '../../lib/index/wiki';
+  import { gameScanner, isGameLink, GAME_LINK } from '../../lib/game/links';
+  import { GAME_LINKS, type GameLinks } from './links';
+  import { views } from '../../lib/view.svelte';
   import type { WorldFs, ImageSource } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import { splitHeader, withHeader } from '../../lib/world';
@@ -46,6 +50,7 @@
   let {
     fs,
     nav,
+    index = null,
     worldName,
     engineRel,
     gameDir,
@@ -53,6 +58,8 @@
   }: {
     fs: WorldFs;
     nav: Navigator;
+    /** The world's wiki, whose names the world's game text links. */
+    index?: WikiIndex | null;
     worldName: string;
     /** The engine's folder, as a path from the library's top, or '' for none. */
     engineRel: string;
@@ -181,6 +188,36 @@
   }
 
   const openElement = (key: string, from?: number) => nav.open(`${EL}${key}`, from);
+
+  // Game text links the game's terms and, in a world's book, the world's names (Mike,
+  // November 10). A term opens its rule, section, or aspect here, and a name opens its
+  // wiki entry in the World module.
+  const linkScanner = $derived(
+    gameScanner(
+      (game?.elements ?? []).map((p) => ({ key: p.key, name: p.element.name, kind: p.element.kind, origin: p.origin })),
+      [...(index?.entries.values() ?? [])].map((e) => ({ id: e.id, name: e.name, aliases: e.aliases })),
+      bookOrigin === 'engine' ? 'engine' : 'world',
+    ),
+  );
+  function openLink(id: string) {
+    if (!isGameLink(id)) return nav.openIn('world', id);
+    const key = id.slice(GAME_LINK.length);
+    if (!byKey.has(key)) return;
+    const pre = places.sections.has(key) ? SEC : places.ruleIn.has(key) ? RULE : tree?.divisions.some((d) => d.placed.key === key) ? DIV : EL;
+    nav.open(`${pre}${key}`);
+  }
+  setContext<GameLinks>(GAME_LINKS, {
+    get scanner() {
+      return linkScanner;
+    },
+    open: openLink,
+  });
+
+  // A page's view can put its picture away (lib/view.svelte.ts).
+  const pictured = (id: string) => [FRONT, DIV, SEC, RULE].some((pre) => id.startsWith(pre));
+  function shown<T>(id: string, picture: T | null): T | null {
+    return views.of(id).picture ? picture : null;
+  }
 
   /** Replaces one element in the game after it is written, so every pane sees the change. */
   function swap(p: Placed, next: Element) {
@@ -562,7 +599,7 @@
     </nav>
   {/if}
   {#if row.length && game}
-    <Panes {nav} ids={row} {label} canWindow={() => false}>
+    <Panes {nav} ids={row} {label} canWindow={() => false} hasPicture={pictured}>
       {#snippet pane(id, i)}
         {#key `${id}|${bookOrigin}`}
           {#if id.startsWith(FRONT) && tree}
@@ -570,7 +607,7 @@
               place="{bookOrigin === 'engine' ? 'Base game' : `${worldName}'s game`} · Front page"
               name={tree.book.name}
               body={tree.book.body}
-              picture={bookPicture}
+              picture={shown(id, bookPicture)}
               choices={bookChoices}
               onFrame={(frame) => saveBook({ frame })}
               onSave={(c) => saveBook(c)}
@@ -586,7 +623,7 @@
               place="{tree?.book.name ?? ''} · Division"
               name={p.element.name}
               body={p.element.flavor}
-              picture={pictureFor(p)}
+              picture={shown(id, pictureFor(p))}
               choices={choicesFor(p)}
               onFrame={(frame) => saveFrame(p, frame)}
               onSave={(c) => save(p, { ...p.element, name: c.name, flavor: c.body })}
@@ -603,7 +640,7 @@
               place="{places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section"
               {worldName}
               names={originName}
-              picture={pictureFor(s.placed)}
+              picture={shown(id, pictureFor(s.placed))}
               choices={choicesFor(s.placed)}
               onFrame={(frame) => saveFrame(s.placed, frame)}
               onSave={(c) => save(s.placed, { ...s.placed.element, name: c.name, flavor: c.intro })}
@@ -618,7 +655,7 @@
               place={[sec && places.sectionIn.get(sec.placed.key)?.placed.element.name, sec?.placed.element.name ?? 'Rule'].filter(Boolean).join(' · ')}
               {engineName}
               {worldName}
-              picture={pictureFor(r)}
+              picture={shown(id, pictureFor(r))}
               choices={choicesFor(r)}
               onFrame={(frame) => saveFrame(r, frame)}
               onSave={(c) => save(r, { ...r.element, name: c.name, tags: c.tags, flavor: c.text })}

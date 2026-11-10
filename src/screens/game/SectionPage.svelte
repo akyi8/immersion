@@ -59,6 +59,7 @@
   {#if saver.problem}<p class="problem" role="alert">{saver.problem}</p>{/if}
   <GameText
     text={section.placed.element.flavor}
+    self="game:{section.placed.key}"
     label="Section introduction"
     placeholder="The section's introduction, before its first rule."
     onChange={(t) => {
