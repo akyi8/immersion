@@ -216,7 +216,7 @@
   // A page's view can put its picture away (lib/view.svelte.ts).
   const pictured = (id: string) => [FRONT, DIV, SEC, RULE].some((pre) => id.startsWith(pre));
   function shown<T>(id: string, picture: T | null): T | null {
-    return views.of(id).picture ? picture : null;
+    return views.of(id).picture === 'hide' ? null : picture;
   }
 
   /** Replaces one element in the game after it is written, so every pane sees the change. */

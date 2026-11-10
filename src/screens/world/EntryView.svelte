@@ -77,8 +77,30 @@
   // banner across its top, with its name over it (Mike, November 1).
   const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category));
   // The page's own view can put the picture away, for reading with nothing but text.
-  const pictured = $derived(views.of(id).picture);
-  const banner = $derived(!!entry.imagePath && shape === 'banner' && pictured);
+  const picture = $derived(views.of(id).picture);
+  const pictured = $derived(picture !== 'hide');
+  const banner = $derived(!!entry.imagePath && shape === 'banner' && picture === 'show');
+
+  // Behind the page (Mike, November 10): the page is set like a card from the Radiance
+  // Adventure Engine. The name runs up the spine with its category above it, the entry's
+  // first sentence sits top right as a card's storyline does, and the picture rises from
+  // the foot through smoke. The text thins out before it reaches the picture, so no word
+  // is ever set on the art.
+  const card = $derived(!!entry.imagePath && picture === 'behind');
+  const brief = $derived.by(() => {
+    const first = (/^.*?[.!?](?=\s|$)/.exec(entry.summary.trim())?.[0] ?? entry.summary.trim()).slice(0, 180);
+    const parts: { text: string; name: boolean }[] = [];
+    let at = 0;
+    for (const m of index.scanner.find(first)) {
+      if (m.start > at) parts.push({ text: first.slice(at, m.start), name: false });
+      parts.push({ text: first.slice(m.start, m.end), name: true });
+      at = m.end;
+    }
+    if (at < first.length) parts.push({ text: first.slice(at), name: false });
+    return parts;
+  });
+  // A long name is set smaller, so it still fits up the spine.
+  const spineSize = $derived(Math.round(Math.max(30, Math.min(58, 1050 / Math.max(entry.name.length, 1)))));
   let framing = $state(false);
   let framingBusy = $state(false);
   let framingProblem = $state('');
@@ -151,6 +173,43 @@
   {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
 {/snippet}
 
+{#snippet writing()}
+  <!-- In Narrator view every entry is editable in place. Protagonist view reads only,
+       because narrator-only text is hidden there and typing near it could damage it. -->
+  {#if view === 'narrator'}
+    {#key id}
+      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} narratorTool {onMakeEntry} />
+    {/key}
+  {:else}
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="prose" bind:this={body} {onclick}>{@html html}</div>
+  {/if}
+{/snippet}
+
+{#if card}
+<article class="card">
+  <div class="card-top">
+    <div class="spine">
+      <div class="kind">{folderLabel(entry.category)}</div>
+      <h1 class="spine-name" style:font-size="calc({spineSize}px * var(--type))">{entry.name}</h1>
+    </div>
+    <div class="card-main">
+      {#if brief.length}
+        <div class="brief">
+          <p>{#each brief as part}{#if part.name}<b>{part.text}</b>{:else}{part.text}{/if}{/each}</p>
+          <span class="tag" aria-hidden="true">In brief</span>
+        </div>
+      {/if}
+      <div class="card-details">{@render details()}</div>
+      {@render writing()}
+    </div>
+  </div>
+  <div class="foot" aria-hidden="true">
+    <img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(shape === 'banner' ? entry.bannerFrame : null)} />
+    <div class="smoke"><div></div></div>
+  </div>
+</article>
+{:else}
 <article class:has-banner={banner}>
   {#if banner}
     <!-- The banner runs the pane's full width, and the name sits over its foot, like a poster. -->
@@ -209,21 +268,141 @@
       onSave={saveFraming}
       onCancel={() => (framing = false)} />
   {/if}
-  <!-- In Narrator view every entry is editable in place. Protagonist view reads only,
-       because narrator-only text is hidden there and typing near it could damage it. -->
-  {#if view === 'narrator'}
-    {#key id}
-      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} narratorTool {onMakeEntry} />
-    {/key}
-  {:else}
-    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-    <div class="prose" bind:this={body} {onclick}>{@html html}</div>
-  {/if}
+  {@render writing()}
 </article>
+{/if}
 
 <style>
   article {
     max-width: var(--measure, 720px);
+  }
+  /* The card. The page fills its pane, the name stands on the spine, and the foot holds
+     the picture. The foot is drawn over the text, with the page's own color above the
+     picture, so text scrolling down goes into the smoke before it could reach the art. */
+  article.card {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 190px);
+  }
+  .card-top {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 22px;
+  }
+  .spine {
+    position: sticky;
+    top: 10px;
+    z-index: 3;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .kind {
+    font-family: var(--font-display);
+    font-size: calc(17px * var(--type));
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--structure);
+    white-space: nowrap;
+  }
+  .spine-name {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    line-height: 0.92;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    /* A page's name on a card is bone, and the highlight stays with the names in the text. */
+    color: var(--text);
+    max-height: calc(100vh - 250px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-main {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+  .card-main > :global(*) {
+    max-width: var(--measure, 720px);
+  }
+  .card-main > .brief {
+    max-width: none;
+  }
+  .brief {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .brief p {
+    margin: 0;
+    max-width: 22em;
+    font-family: var(--font-display);
+    font-size: calc(24px * var(--type));
+    line-height: 1.12;
+    letter-spacing: 0.02em;
+    text-align: right;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--structure);
+  }
+  .brief b {
+    font-weight: 400;
+    color: var(--text);
+  }
+  .brief .tag {
+    writing-mode: vertical-rl;
+    font-family: var(--font-display);
+    font-size: calc(12px * var(--type));
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--structure);
+  }
+  .card-details {
+    margin-bottom: 22px;
+  }
+  .foot {
+    position: sticky;
+    /* The pane's own padding lies below the page, and the foot reaches past it to the pane's edge. */
+    bottom: -60px;
+    z-index: 2;
+    flex: none;
+    height: 48vh;
+    margin: auto -40px -60px;
+    overflow: hidden;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent 0, color-mix(in srgb, var(--bg) 80%, transparent) 16%, var(--bg) 30%);
+  }
+  .foot img {
+    position: absolute;
+    inset: 18% 0 0 0;
+    width: 100%;
+    height: 82%;
+    display: block;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.5) 34%, black 72%);
+    mask-image: linear-gradient(to bottom, transparent 0, rgb(0 0 0 / 0.5) 34%, black 72%);
+  }
+  /* Smoke in the page's own color, thick where the picture begins and gone by its foot. */
+  .smoke {
+    position: absolute;
+    inset: 18% 0 0 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 26%, black 42%, transparent 90%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 26%, black 42%, transparent 90%);
+  }
+  .smoke div {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    opacity: 0.7;
+    --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='500'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.011' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 2.6 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+    -webkit-mask-image: var(--noise);
+    mask-image: var(--noise);
+    -webkit-mask-size: cover;
+    mask-size: cover;
   }
   header {
     display: flex;

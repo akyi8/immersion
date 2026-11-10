@@ -26,6 +26,7 @@
     hasBeats,
     canWindow = () => true,
     hasPicture = () => false,
+    canCard = () => false,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
@@ -41,6 +42,8 @@
     canWindow?: (id: string) => boolean;
     /** Whether a pane's document can carry a picture, which its view can then hide. */
     hasPicture?: (id: string) => boolean;
+    /** Whether a pane's page can be laid out as a card, with its picture behind it. */
+    canCard?: (id: string) => boolean;
   } = $props();
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
@@ -150,7 +153,7 @@
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
-        <div class="body" data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
+        <div class="body" class:carded={look.picture === 'behind' && canCard(id)} data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
             <button type="button" class="view-button" class:on={viewing === id} aria-label="How {name} is shown" aria-expanded={viewing === id} title="How this page is shown" onclick={() => (viewing = viewing === id ? null : id)}>
               <svg width="15" height="13" viewBox="0 0 15 13" aria-hidden="true"><path d="M1 11 L4.5 2 L8 11 M2.4 7.6 H6.6 M9.5 11 L11.7 5.5 L14 11 M10.3 9 H13.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
@@ -193,8 +196,11 @@
               {#if hasPicture(id)}
                 <div class="label">Picture</div>
                 <div class="pair">
-                  <button type="button" aria-pressed={look.picture} onclick={() => views.set(id, { picture: true })}>Show</button>
-                  <button type="button" aria-pressed={!look.picture} onclick={() => views.set(id, { picture: false })}>Hide</button>
+                  <button type="button" aria-pressed={look.picture === 'show'} onclick={() => views.set(id, { picture: 'show' })}>Show</button>
+                  <button type="button" aria-pressed={look.picture === 'hide'} onclick={() => views.set(id, { picture: 'hide' })}>Hide</button>
+                  {#if canCard(id)}
+                    <button type="button" class="wide" aria-pressed={look.picture === 'behind'} onclick={() => views.set(id, { picture: 'behind' })}>Behind the page</button>
+                  {/if}
                 </div>
               {/if}
               <div class="label">While writing</div>
@@ -313,6 +319,9 @@
     color: var(--text-soft);
     background: none;
     border: 1px solid var(--edge);
+  }
+  .view-menu .pair .wide {
+    grid-column: 1 / -1;
   }
   .view-menu .pair button[aria-pressed='true'] {
     color: var(--selected-fg);
@@ -439,6 +448,14 @@
   .pane.alone .tools:hover,
   .pane.alone .tools:focus-within {
     opacity: 1;
+  }
+  /* A card fills its pane in full screen too, with the same margins its foot counts on. */
+  .pane.alone .body.carded {
+    padding: 56px 40px 60px;
+  }
+  .pane.alone .body.carded > :global(*:not(.tools)) {
+    margin-left: 0;
+    margin-right: 0;
   }
   .pane.alone .body > :global(*:not(.tools)) {
     margin-left: auto;

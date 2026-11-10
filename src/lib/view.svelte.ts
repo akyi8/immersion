@@ -12,11 +12,16 @@ export interface DocView {
   /** A book's line of about sixty-six characters, or the pane's full reading width. */
   column: 'book' | 'wide';
   text: 'normal' | 'small';
-  picture: boolean;
+  /**
+   * Shown as the page's header, put away, or laid behind the page: the page is then set
+   * like a card from the Radiance Adventure Engine, with its name up the spine and its
+   * picture rising from the foot through smoke (Mike, November 10).
+   */
+  picture: 'show' | 'hide' | 'behind';
   lit: boolean;
 }
 
-export const DEFAULT_VIEW: DocView = { column: 'book', text: 'normal', picture: true, lit: false };
+export const DEFAULT_VIEW: DocView = { column: 'book', text: 'normal', picture: 'show', lit: false };
 
 const KEY = 'immersion.views';
 const QUIET_KEY = 'immersion.quiet';
@@ -43,7 +48,8 @@ export function viewFrom(saved: Partial<DocView> | undefined, usual: DocView = D
   return {
     column: saved?.column === 'wide' || saved?.column === 'book' ? saved.column : usual.column,
     text: saved?.text === 'small' || saved?.text === 'normal' ? saved.text : usual.text,
-    picture: typeof saved?.picture === 'boolean' ? saved.picture : usual.picture,
+    // A picture put away was first kept as `false`.
+    picture: saved?.picture === 'hide' || (saved?.picture as unknown) === false ? 'hide' : saved?.picture === 'behind' ? 'behind' : saved?.picture === 'show' ? 'show' : usual.picture,
     lit: typeof saved?.lit === 'boolean' ? saved.lit : usual.lit,
   };
 }
