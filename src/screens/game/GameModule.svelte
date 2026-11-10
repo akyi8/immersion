@@ -113,16 +113,6 @@
     });
   });
 
-  onMount(() => {
-    void load();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    return fs.onChange((paths) => {
-      if (!paths.some((p) => p.startsWith(gameDir + '/'))) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(load, 400);
-    });
-  });
-
   const byKey = $derived(new Map((game?.elements ?? []).map((p) => [p.key, p])));
   const expansionOf = (origin: Origin) => game?.expansions.find((x) => x.origin === origin) ?? null;
   /** The engine's, the world's, or an expansion's name. */

@@ -26,6 +26,7 @@
   import { BOARD_FONTS } from './lib/you';
   import { zoom } from './lib/zoom.svelte';
   import { vault } from './lib/vault/vault.svelte';
+  import { saveAll } from './lib/saves';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -119,7 +120,12 @@
     }
   }
 
+  /** Writes everything still waiting to be saved, giving up after a few seconds so nothing hangs on it. */
+  const saveEverything = () => Promise.race([saveAll().catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
+
   async function showShelf() {
+    // The last words typed are written while the world is still open to write into.
+    await saveEverything();
     stopWatching();
     sync.stop();
     await library?.close();
@@ -192,6 +198,12 @@
       // A reading window wears the writer's layout too.
       if (inDesktopApp) void import('./lib/library/disk').then(({ DiskLibrary }) => account.attach(new DiskLibrary())).catch(() => {});
       return;
+    }
+    // Typing is saved a moment after it stops, so the moment is closed whenever the writer
+    // turns to another program, and before the window closes.
+    window.addEventListener('blur', () => void saveEverything());
+    if (inDesktopApp) {
+      void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().onCloseRequested(async () => void (await saveEverything()))).catch(() => {});
     }
     if (inDesktopApp) {
       const { DiskLibrary } = await import('./lib/library/disk');

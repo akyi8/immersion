@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { registerPanel } from '../../lib/saves';
   import type { EditorView } from '@codemirror/view';
   import { chapterAt, chaptersIn, setBeatInView } from '../../lib/story/outlineEdit';
   import type { Thread } from '../../lib/story/threads';
@@ -85,6 +87,15 @@
     }
     pending.clear();
   }
+
+  // A beat still waiting goes into the editor before the editor saves, and when the panel closes.
+  onMount(() => {
+    const unregister = registerPanel(async () => save());
+    return () => {
+      unregister();
+      save();
+    };
+  });
 
   function typed(key: string) {
     pending.add(key);

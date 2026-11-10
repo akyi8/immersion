@@ -47,7 +47,7 @@ export function withAliases(text: string, names: string[]): string {
   const list = [...new Set(names.map((n) => n.trim()).filter(Boolean))];
   const line = ALIASES_LINE.exec(text);
   if (line) {
-    if (list.length) return text.replace(line[0], `**Aliases:** ${list.join(', ')}`);
+    if (list.length) return text.replace(line[0], () => `**Aliases:** ${list.join(', ')}`);
     // The line goes, with one blank line after it, so no gap is left behind.
     return text.replace(new RegExp(`${line[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n(\\s*\\n)?`), '');
   }
@@ -66,7 +66,7 @@ export function withTitle(text: string, oldName: string, newName: string): strin
   const { body } = splitHeader(text);
   const offset = text.length - body.length;
   const h1 = /^#\s+(.+)$/m.exec(body);
-  if (h1 && h1[1].trim() === oldName) return text.slice(0, offset) + body.replace(h1[0], `# ${newName}`);
+  if (h1 && h1[1].trim() === oldName) return text.slice(0, offset) + body.replace(h1[0], () => `# ${newName}`);
   return text.slice(0, offset) + `# ${newName}\n\n` + body;
 }
 

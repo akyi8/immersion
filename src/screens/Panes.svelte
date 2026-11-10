@@ -89,6 +89,9 @@
   let before: string[] = [];
   $effect(() => {
     const now = [...panes];
+    // The row is made again after every save. The same panes in the same order are no
+    // change, and the row stays where the writer left it.
+    if (now.length === before.length && now.every((id, i) => id === before[i])) return;
     const added = now.findIndex((id) => !before.includes(id));
     before = now;
     tick().then(() => {

@@ -108,7 +108,7 @@ export function withTitlePage(bookText: string, page: TitlePage): string {
   const { body } = splitHeader(out);
   const offset = out.length - body.length;
   const h1 = /^#\s+.*$/m.exec(body);
-  out = h1 ? out.slice(0, offset) + body.replace(h1[0], `# ${page.title.trim()}`) : `${out.replace(/\s*$/, '')}${out.trim() ? '\n\n' : ''}# ${page.title.trim()}\n`;
+  out = h1 ? out.slice(0, offset) + body.replace(h1[0], () => `# ${page.title.trim()}`) : `${out.replace(/\s*$/, '')}${out.trim() ? '\n\n' : ''}# ${page.title.trim()}\n`;
   return out;
 }
 

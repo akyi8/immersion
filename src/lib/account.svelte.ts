@@ -54,6 +54,21 @@ class Account {
     this.look = this.info.path ? readYou(this.source).look : localLook();
   }
 
+  /**
+   * The file as it is on disk now. Every write starts from this, because a sync may have
+   * merged another computer's changes into the file since it was last read here. A write
+   * built from the older text would remove them, the vault's key settings included.
+   */
+  private async fresh(): Promise<string | null> {
+    if (!this.library) return this.source;
+    try {
+      this.source = await this.library.readYou();
+    } catch {
+      // The copy already held is the best there is.
+    }
+    return this.source;
+  }
+
   /** Saves the layout into `immersion.md`, or on this computer when there is no library. */
   async saveLook(look: Look) {
     this.look = look;
@@ -65,7 +80,7 @@ class Account {
       }
       return;
     }
-    const text = withLook(this.source, look);
+    const text = withLook(await this.fresh(), look);
     await this.library.writeYou(text);
     this.source = text;
   }
@@ -73,7 +88,7 @@ class Account {
   /** Saves the vault's key settings into `immersion.md`, keeping everything else in it. */
   async saveVaultParams(params: KeyParams) {
     if (!this.library) return;
-    const text = withHeader(this.source ?? withProfiles(null, []), { vault: params });
+    const text = withHeader((await this.fresh()) ?? withProfiles(null, []), { vault: params });
     await this.library.writeYou(text);
     this.source = text;
     this.vaultParams = vaultParamsFrom(text);
@@ -82,7 +97,7 @@ class Account {
   /** Saves the profiles into `immersion.md`, keeping anything else the file holds. */
   async saveProfiles(profiles: Profile[]) {
     if (!this.library) return;
-    const text = withProfiles(this.source, profiles);
+    const text = withProfiles(await this.fresh(), profiles);
     await this.library.writeYou(text);
     this.source = text;
     this.profiles = readYou(text).profiles;

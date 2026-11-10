@@ -53,3 +53,9 @@ test('categories are renamed and archived with everything in them', async () => 
   assert.equal(await archiveCategory(fs, renamed, 'wiki'), 'wiki/archive/powers');
   assert.equal(await fs.exists('wiki/archive/powers/synod.md'), true);
 });
+
+test('a dollar sign in a name is kept as typed', () => {
+  assert.equal(withTitle("# Old\n\nBody text.\n", 'Old', "The $' Sign"), "# The $' Sign\n\nBody text.\n");
+  assert.equal(withTitle('# Old\n', 'Old', 'Cost $$5'), '# Cost $$5\n');
+  assert.equal(withAliases('# Rook\n\n**Aliases:** Tomas\n', ['$& Co']), '# Rook\n\n**Aliases:** $& Co\n');
+});

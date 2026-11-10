@@ -129,8 +129,10 @@
         finding = !finding;
         return;
       }
-      const back = (e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
-      const forward = (e.altKey && e.key === 'ArrowRight') || (e.metaKey && e.key === ']');
+      // On a Mac, Option with an arrow moves the cursor by a word, so there Back and
+      // Forward are Cmd with a bracket alone. Elsewhere Alt with an arrow is the custom.
+      const back = (!mac && e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
+      const forward = (!mac && e.altKey && e.key === 'ArrowRight') || (e.metaKey && e.key === ']');
       if (back) {
         e.preventDefault();
         nav.back();

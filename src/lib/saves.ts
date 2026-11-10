@@ -1,27 +1,46 @@
 /**
  * Open editors register a way to save at once, so moving or renaming a file can first
  * write whatever is still waiting to be saved. Otherwise the waiting save would land at
- * the file's old place after it moved.
+ * the file's old place after it moved. The same list is saved before the world syncs,
+ * before a world closes, and before the window closes, so nothing typed is left behind.
  */
-const savers = new Map<string, () => Promise<void>>();
+type Save = () => Promise<void>;
 
-export function registerSaver(path: string, save: () => Promise<void>): () => void {
-  savers.set(path, save);
+const savers = new Map<string, Set<Save>>();
+/** Panels that save through something else, such as beats written into an open editor. */
+const panels = new Set<Save>();
+
+export function registerSaver(path: string, save: Save): () => void {
+  const set = savers.get(path) ?? new Set<Save>();
+  set.add(save);
+  savers.set(path, set);
   return () => {
-    if (savers.get(path) === save) savers.delete(path);
+    set.delete(save);
+    if (!set.size && savers.get(path) === set) savers.delete(path);
   };
 }
 
-export async function saveNow(path: string): Promise<void> {
-  await savers.get(path)?.();
+/** Registers a panel with no single file of its own. Panels save before the editors do. */
+export function registerPanel(save: Save): () => void {
+  panels.add(save);
+  return () => void panels.delete(save);
 }
 
-/** Saves every open editor, before the world syncs. */
+const run = (list: Iterable<Save>) => Promise.all([...list].map((save) => save()));
+
+export async function saveNow(path: string): Promise<void> {
+  await run(panels);
+  await run(savers.get(path) ?? []);
+}
+
+/** Saves every open editor and panel. */
 export async function saveAll(): Promise<void> {
-  await Promise.all([...savers.values()].map((save) => save()));
+  await run(panels);
+  await run([...savers.values()].flatMap((set) => [...set]));
 }
 
 /** Saves every open editor whose file is inside `folder`, before the folder moves. */
 export async function saveAllUnder(folder: string): Promise<void> {
-  await Promise.all([...savers].filter(([path]) => path.startsWith(folder + '/')).map(([, save]) => save()));
+  await run(panels);
+  await run([...savers].filter(([path]) => path.startsWith(folder + '/')).flatMap(([, set]) => [...set]));
 }

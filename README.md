@@ -47,6 +47,9 @@ A game's rulebook is kept as a book. The Game sidebar shows it as a tree: the bo
 ### Across the app
 
 - **Quick finder.** Ctrl or Cmd K finds any entry, chapter, board, or action in the open world.
+- **Saving.** Everything typed saves on its own a moment after typing stops, and at once when the writer turns to another program, leaves a world, or closes the window.
+- **Edits from outside.** A file changed by another program while it is open in Immersion, such as by a Git pull or an assistant working in the same folder, shows the change at once. When the writer has unsaved typing in the same file, edits to different paragraphs are joined, and the writer is asked to choose only when both changed the same lines.
+- **Back and forward.** The header's arrows, Cmd with a bracket on a Mac, Alt with an arrow elsewhere, and a mouse's side buttons move through everything looked at.
 - **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
 - **Modules.** Settings show or hide each module in the header. World, Boards, and Story are on from the start, and Character, Play, and Game wait until they are turned on.
 - **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.

@@ -19,8 +19,11 @@
   let input: HTMLInputElement | undefined = $state();
   let focused = $state(false);
 
+  // The entry is read again after every save anywhere, so the field follows the entry's
+  // date only when that date itself changes, and a date half typed is left alone.
+  const saved = $derived(entry.when?.text ?? '');
   $effect(() => {
-    text = entry.when?.text ?? '';
+    text = saved;
   });
 
   const parsed = $derived(parseWhen(text));

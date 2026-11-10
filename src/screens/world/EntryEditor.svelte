@@ -5,6 +5,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { createEditor, headingNear, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
   import { registerSaver } from '../../lib/saves';
+  import { Autosave, type SaveStatus } from '../../lib/editor/autosave';
 
   let {
     fs,
@@ -46,93 +47,44 @@
   let view: EditorView | null = null;
   // svelte-ignore state_referenced_locally
   const scanner: ScannerRef = { current: index.scanner, selfId: id };
-  let lastSaved = '';
-  let pending: string | null = null;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let status = $state<'loading' | 'saved' | 'saving' | 'error'>('loading');
+
+  let status = $state<SaveStatus>('loading');
   let problem = $state('');
   let conflict = $state<string | null>(null);
   let ready = $state(false);
 
-  async function save() {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (pending === null || pending === lastSaved) {
-      pending = null;
-      return;
-    }
-    const text = pending;
-    pending = null;
-    status = 'saving';
-    try {
-      await fs.writeText(id, text);
-      lastSaved = text;
-      status = 'saved';
-    } catch (e) {
-      status = 'error';
-      problem = String(e);
-      pending = text;
-    }
-  }
-
-  function changed(doc: string) {
-    pending = doc;
-    status = 'saving';
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(save, SAVE_DELAY_MS);
-  }
-
-  /**
-   * The editor holds every line ending as a plain newline, so a file written on Windows
-   * is compared the same way. Otherwise its Windows line endings would read as edits
-   * waiting here, and every change from another program would ask which version to keep.
-   */
   const plain = (text: string) => text.replace(/\r\n?/g, '\n');
 
-  // When the file changes in another program, take the new text if nothing is waiting
-  // to be saved here. Otherwise ask, because the player's unsaved words come first.
+  // The saving, and what happens when the file changes in another program meanwhile,
+  // live in lib/editor/autosave.ts. Edits to different paragraphs are joined, and the
+  // writer is asked only when both changed the same lines.
+  // svelte-ignore state_referenced_locally
+  const saver = new Autosave({
+    read: async () => plain(await fs.readText(id)),
+    write: (text) => fs.writeText(id, text),
+    doc: () => view?.state.doc.toString() ?? '',
+    show: (text) => view && replaceDoc(view, text),
+    changed: () => {
+      status = saver.status;
+      problem = saver.problem;
+      conflict = saver.conflict;
+    },
+    delay: SAVE_DELAY_MS,
+  });
+
   async function changedElsewhere(paths: string[]) {
     if (!view || !paths.includes(id)) return;
-    let text: string;
-    try {
-      text = plain(await fs.readText(id));
-    } catch {
-      return;
-    }
-    if (text === lastSaved) return;
-    if (pending === null && view.state.doc.toString() === lastSaved) {
-      lastSaved = text;
-      replaceDoc(view, text);
-      pending = null;
-      status = 'saved';
-      // A chapter added from the binder arrives this way, after the jump to it was asked for.
-      if (jump && Date.now() - jump.at < 5000) jumpTo(view, headingNear(view, jump.offset, jump.title));
-    } else {
-      conflict = text;
-    }
-  }
-
-  function takeTheirs() {
-    if (!view || conflict === null) return;
-    if (timer) clearTimeout(timer);
-    lastSaved = conflict;
-    replaceDoc(view, conflict);
-    pending = null;
-    conflict = null;
-    status = 'saved';
-  }
-
-  function keepMine() {
-    conflict = null;
-    if (view) changed(view.state.doc.toString());
-    lastSaved = '';
+    const loaded = await saver.changedElsewhere();
+    // A chapter added from the binder arrives this way, after the jump to it was asked for.
+    if (loaded && view && jump && Date.now() - jump.at < 5000) jumpTo(view, headingNear(view, jump.offset, jump.title));
   }
 
   let stopWatching = () => {};
   let unregister = () => {};
   onMount(async () => {
+    let text: string;
     try {
-      lastSaved = plain(await fs.readText(id));
+      text = plain(await fs.readText(id));
     } catch (e) {
       status = 'error';
       problem = String(e);
@@ -141,16 +93,16 @@
     // svelte-ignore state_referenced_locally
     view = createEditor({
       parent: host,
-      doc: lastSaved,
+      doc: text,
       title,
       scanner,
-      onChange: changed,
+      onChange: () => saver.typed(),
       onMention: (id) => onOpen(id),
       onCursor: (pos) => onCursor?.(pos),
       onOutline: (at) => onOutline?.(at),
       toolbar: { narrator: narratorTool, onMakeEntry: (name) => onMakeEntry?.(name) },
     });
-    status = 'saved';
+    saver.start(text);
     ready = true;
     onReady?.(view);
     if (autofocus && !jump) {
@@ -158,7 +110,7 @@
       view.dispatch({ selection: { anchor: view.state.doc.length } });
     }
     stopWatching = fs.onChange(changedElsewhere);
-    unregister = registerSaver(id, save);
+    unregister = registerSaver(id, () => saver.save());
   });
 
   // A rebuilt index brings new names, and a new pane to the right moves the marked name,
@@ -177,8 +129,9 @@
   onDestroy(() => {
     stopWatching();
     unregister();
-    void save();
-    view?.destroy();
+    // Closing a page with a clash still open keeps what the writer typed (design: the player wins).
+    // The editor outlives the page by one save, because the save reads its text.
+    void saver.save(true).finally(() => view?.destroy());
   });
 </script>
 
@@ -186,8 +139,8 @@
   <div class="conflict" role="alert">
     <p>This entry changed in another program while you were editing it here.</p>
     <div>
-      <button type="button" onclick={takeTheirs}>Load the other version</button>
-      <button type="button" onclick={keepMine}>Keep mine</button>
+      <button type="button" onclick={() => saver.takeTheirs()}>Load the other version</button>
+      <button type="button" onclick={() => saver.keepMine()}>Keep mine</button>
     </div>
   </div>
 {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerPanel } from '../../lib/saves';
   import { onMount, tick, untrack, type Snippet } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Card, OutlineSource } from '../../lib/story/outlineSource';
@@ -584,12 +585,14 @@
     });
     // Changes from elsewhere show up here once nothing typed here is waiting to save.
     const stop = fs.onChange(reloadWhenIdle);
+    const unregister = registerPanel(flush);
     const left = () => setTimeout(idle, 0);
     document.addEventListener('focusout', left);
     // Heard on the way down, since a card stops the event on its way back up.
     document.addEventListener('dragover', followDrag, true);
     return () => {
       stop();
+      unregister();
       document.removeEventListener('focusout', left);
       document.removeEventListener('dragover', followDrag, true);
       cancelAnimationFrame(scrolling);

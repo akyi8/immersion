@@ -207,8 +207,29 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       const name = path.slice(path.lastIndexOf('/') + 1).replace(/^\d+[-_ ]*/, '');
       return { path, temp: `${path}.reordering`, target: `${folder}/${String(i + 1).padStart(2, '0')}-${name}` };
     });
-    for (const f of named) if (f.path !== f.target) await fs.move(f.path, f.temp);
-    for (const f of named) if (f.path !== f.target) await fs.move(f.temp, f.target);
+    const moving = named.filter((f) => f.path !== f.target);
+    // A name some other file already holds stops the move before anything is touched.
+    const leaving = new Set(moving.map((f) => f.path));
+    for (const f of moving) {
+      if (!leaving.has(f.target) && (await fs.exists(f.target))) throw new Error(`Another file is already named ${f.target.slice(f.target.lastIndexOf('/') + 1)}. Nothing was moved.`);
+    }
+    try {
+      for (const f of moving) await fs.move(f.path, f.temp);
+      for (const f of moving) await fs.move(f.temp, f.target);
+    } catch (e) {
+      // A move that fails part way must not leave a chapter under its temporary name,
+      // where the app would no longer see it. Each one goes to its new name if that is
+      // free, and back to its old name otherwise.
+      for (const f of moving) {
+        try {
+          if (!(await fs.exists(f.temp))) continue;
+          await fs.move(f.temp, (await fs.exists(f.target)) ? f.path : f.target);
+        } catch {
+          // Left for the next one. The error below tells the writer.
+        }
+      }
+      throw e;
+    }
     // The board reads the chapters again at once, so this source follows them to their new names.
     files.splice(0, files.length, ...named.map((f) => f.target));
     return new Map(named.map((f) => [f.path, f.target]));

@@ -36,7 +36,7 @@ export async function renamePiece(fs: WorldFs, path: string, newTitle: string): 
   const { header, body } = splitHeader(text);
   const offset = text.length - body.length;
   const h1 = /^#\s+(.+)$/m.exec(body);
-  let changed = h1 && h1[1].trim() === old ? text.slice(0, offset) + body.replace(h1[0], `# ${title}`) : text;
+  let changed = h1 && h1[1].trim() === old ? text.slice(0, offset) + body.replace(h1[0], () => `# ${title}`) : text;
   if (typeof header.title === 'string') changed = withHeader(changed, { title });
   const target = `${path.slice(0, path.lastIndexOf('/'))}/${slug}.md`;
   if (target !== path) {

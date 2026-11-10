@@ -23,8 +23,40 @@ env:
   VERSION: 0.2.${{ github.run_number }}
 
 jobs:
+  # The tests and the type check run first. A build that fails them is never made, so
+  # the updater never offers it.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+
+  # The Rust side's tests, which cover Git sync and the paths the app may write to. They
+  # report without holding a build back, until they have been seen to pass here.
+  rust-tests:
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: tests
+      # The Rust build expects the screens' folder to exist, and the tests do not need what is in it.
+      - run: mkdir -p dist
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
   # Creates a draft release first, so both platform builds add their files to one release.
   release:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       id: ${{ steps.create.outputs.result }}

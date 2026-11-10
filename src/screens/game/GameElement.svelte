@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { registerPanel } from '../../lib/saves';
   import type { Element, Kind } from '../../lib/game/elements';
   import { effective, type Placed } from '../../lib/game/game';
 
@@ -78,6 +80,7 @@
   }
 
   async function save() {
+    if (timer) clearTimeout(timer);
     timer = null;
     status = 'saving';
     try {
@@ -88,6 +91,18 @@
       status = 'problem';
     }
   }
+
+  // What is still waiting saves before a world or the window closes, and when this page does.
+  const flush = async () => {
+    if (timer) await save();
+  };
+  onMount(() => {
+    const unregister = registerPanel(flush);
+    return () => {
+      unregister();
+      void flush();
+    };
+  });
 
   const fieldText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
 
