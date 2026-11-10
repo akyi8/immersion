@@ -4,7 +4,8 @@
   import { ui } from '../lib/ui.svelte';
   import { beats } from '../lib/beats.svelte';
   import { views } from '../lib/view.svelte';
-  import { pictureActions } from '../lib/pane.svelte';
+  import { pageActions, pictureActions } from '../lib/pane.svelte';
+  import { contextMenu } from '../lib/contextMenu.svelte';
   import PaneScope from './PaneScope.svelte';
 
   /**
@@ -155,6 +156,19 @@
         </div>
         <div class="body" class:carded={isCard(id)} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
+            {#if pageActions.of(id).length && !full}
+              <button
+                type="button"
+                aria-label="More for {name}"
+                aria-haspopup="menu"
+                title="More"
+                onclick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  contextMenu.show(e, pageActions.of(id), { x: r.left, y: r.bottom + 4 });
+                }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
+              </button>
+            {/if}
             <button type="button" class="view-button" class:on={viewing === id} aria-label="How {name} is shown" aria-expanded={viewing === id} title="How this page is shown" onclick={() => (viewing = viewing === id ? null : id)}>
               <svg width="15" height="13" viewBox="0 0 15 13" aria-hidden="true"><path d="M1 11 L4.5 2 L8 11 M2.4 7.6 H6.6 M9.5 11 L11.7 5.5 L14 11 M10.3 9 H13.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
             </button>
@@ -293,8 +307,9 @@
     padding: 14px 16px 12px;
     background: var(--surface);
     border: 1px solid var(--edge);
-    border-radius: var(--round-box, 0);
-    box-shadow: var(--lift, 0 12px 30px -12px var(--shadow));
+    border-radius: var(--round);
+    /* The same surface as the app's menus, so every menu reads as one kind of thing. */
+    box-shadow: 0 10px 28px var(--scrim);
     display: grid;
     gap: 6px;
   }

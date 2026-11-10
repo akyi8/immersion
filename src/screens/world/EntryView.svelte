@@ -16,7 +16,7 @@
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
-  import { pictureActions } from '../../lib/pane.svelte';
+  import { pageActions, pictureActions } from '../../lib/pane.svelte';
 
   let {
     index,
@@ -162,6 +162,19 @@
     return () => pictureActions.clear(id);
   });
 
+  // What can be done to the entry sits behind the ⋯ in the pane's corner.
+  $effect(() => {
+    if (view !== 'narrator' || !onMoved) return;
+    pageActions.set(id, [
+      { label: 'Rename', run: () => void actions?.start('rename') },
+      { label: 'Other names', run: () => void actions?.start('names') },
+      { label: 'Move to another category', run: () => void actions?.start('move') },
+      'separator',
+      { label: 'Archive', run: () => void actions?.start('archive') },
+    ]);
+    return () => pageActions.clear(id);
+  });
+
   // One listener handles every automatic link in the body.
   function onclick(event: MouseEvent) {
     const link = (event.target as HTMLElement).closest<HTMLElement>('[data-entry]');
@@ -194,16 +207,6 @@
       </span>
     {/if}
     <EntryDate {fs} {entry} editable={view === 'narrator'} />
-    <span class="spacer"></span>
-    {#if view === 'narrator' && onMoved}
-      <EntryActions
-        bind:this={actions}
-        {fs}
-        {index}
-        {entry}
-        {onMoved}
-        {onWindow} />
-    {/if}
   </div>
   {#if pictureProblem}<div class="problem" role="alert">{pictureProblem}</div>{/if}
 {/snippet}
@@ -220,6 +223,11 @@
     <div class="prose" bind:this={body} {onclick}>{@html html}</div>
   {/if}
 {/snippet}
+
+<!-- The entry's forms. Its menu is the ⋯ in the pane's corner. -->
+{#if view === 'narrator' && onMoved}
+  <EntryActions bind:this={actions} {fs} {index} {entry} {onMoved} button={false} />
+{/if}
 
 {#if card}
 <article class="card">
@@ -461,9 +469,6 @@
     align-items: center;
     gap: 8px;
     margin-top: 12px;
-  }
-  .spacer {
-    flex: 1;
   }
   h1 {
     color: var(--title);

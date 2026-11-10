@@ -7,6 +7,7 @@
   import EntryEditor from '../world/EntryEditor.svelte';
   import OutlineView from './OutlineView.svelte';
   import PieceActions from './PieceActions.svelte';
+  import { pageActions } from '../../lib/pane.svelte';
   import OutlineAside from './OutlineAside.svelte';
   import TitlePage from './TitlePage.svelte';
   import { beats } from '../../lib/beats.svelte';
@@ -155,6 +156,19 @@
   function words(n: number): string {
     return `${n.toLocaleString()} ${n === 1 ? 'word' : 'words'}`;
   }
+
+  // What can be done to a manuscript or a note sits behind the ⋯ in the pane's corner.
+  // A chapter is renamed and moved from the binder, so it offers nothing here.
+  let pieceActions: PieceActions | undefined = $state();
+  $effect(() => {
+    if (!about || !onMoved || !story || !owner || about.kind === 'chapter' || about.kind === 'matter') return;
+    pageActions.set(id, [
+      { label: 'Rename', run: () => pieceActions?.start('rename') },
+      'separator',
+      { label: 'Archive', run: () => pieceActions?.start('archive') },
+    ]);
+    return () => pageActions.clear(id);
+  });
 </script>
 
 {#snippet lead()}
@@ -179,17 +193,10 @@
   {/if}
 {/snippet}
 
-<!-- The pane's ⋯, at the end of its one row of actions (Mike, October 31). -->
+<!-- The piece's forms. Its menu is the ⋯ in the pane's corner (Mike, November 10). -->
 {#snippet tail()}
   {#if about && onMoved && story && owner}
-    <PieceActions
-      {fs}
-      path={owner.path}
-      title={about.title}
-      root={story.root}
-      {onMoved}
-      {onWindow}
-      windowOnly={about.kind === 'chapter' || about.kind === 'matter'} />
+    <PieceActions bind:this={pieceActions} {fs} path={owner.path} title={about.title} root={story.root} {onMoved} button={false} />
   {/if}
 {/snippet}
 

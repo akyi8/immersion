@@ -93,20 +93,20 @@
   .backdrop {
     position: fixed;
     inset: 0;
-    background: var(--shadow);
+    background: var(--scrim);
     z-index: 20;
   }
   .dialog {
     position: fixed;
-    top: 18vh;
+    top: 12vh;
     left: 50%;
     transform: translateX(-50%);
-    width: min(480px, calc(100vw - 32px));
+    width: min(520px, calc(100vw - 32px));
     box-sizing: border-box;
     background: var(--surface);
     border: 1px solid var(--edge);
     border-radius: var(--round);
-    padding: 24px;
+    padding: 26px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -116,12 +116,12 @@
     margin: 0 0 8px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: calc(34px * var(--type));
+    font-size: calc(38px * var(--type));
     letter-spacing: 0.02em;
   }
   .label {
     font-size: calc(11px * var(--type));
-    margin-top: 6px;
+    margin-top: 8px;
   }
   input,
   select {

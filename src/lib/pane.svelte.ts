@@ -5,6 +5,7 @@
  * offers here, and the view menu in `Panes.svelte` shows it.
  */
 import { untrack } from 'svelte';
+import type { MenuEntry } from './contextMenu.svelte';
 
 export interface PaneAction {
   label: string;
@@ -16,19 +17,19 @@ export interface PaneAction {
 /** The context a page reads to learn which pane it is in. */
 export const PANE = 'immersion.pane';
 
-class PictureActions {
+class ActionList<T> {
   // The lists are kept outside the reactive state, and a counter says when they changed.
   // A page sets its list from an effect, and an effect that both read and wrote one
   // piece of state would run itself forever.
-  private lists = new Map<string, PaneAction[]>();
+  private lists = new Map<string, T[]>();
   private changed = $state(0);
 
-  of(id: string): PaneAction[] {
+  of(id: string): T[] {
     void this.changed;
     return this.lists.get(id) ?? [];
   }
 
-  set(id: string, actions: PaneAction[]) {
+  set(id: string, actions: T[]) {
     this.lists.set(id, actions);
     this.changed = untrack(() => this.changed) + 1;
   }
@@ -39,4 +40,12 @@ class PictureActions {
   }
 }
 
-export const pictureActions = new PictureActions();
+export const pictureActions = new ActionList<PaneAction>();
+
+/**
+ * What can be done to a page as a whole, such as renaming or archiving it (Mike,
+ * November 10). The page says what it offers, and the pane shows it behind the ⋯ in its
+ * corner, beside the view menu, full screen, and close. Every page's actions are then in
+ * one place, in the app's one menu.
+ */
+export const pageActions = new ActionList<MenuEntry>();

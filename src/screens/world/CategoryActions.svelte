@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { contextMenu } from '../../lib/contextMenu.svelte';
   import { outside } from '../../lib/outside';
   import type { Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
@@ -62,17 +63,17 @@
 </script>
 
 {#if button}
-<div class="actions" use:outside={() => (open = false)}>
-  <button type="button" class="more" aria-label="More for {label}" aria-expanded={open} onclick={() => (open = !open)}>
+  <button
+    type="button"
+    class="more"
+    aria-label="More for {label}"
+    aria-haspopup="menu"
+    onclick={(e) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      contextMenu.show(e, [{ label: 'Rename category', run: () => start('rename') }, 'separator', { label: 'Archive category', run: () => start('archive') }], { x: r.left, y: r.bottom + 4 });
+    }}>
     <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
   </button>
-  {#if open}
-    <div class="menu" role="menu">
-      <button type="button" role="menuitem" onclick={() => start('rename')}>Rename category</button>
-      <button type="button" role="menuitem" onclick={() => start('archive')}>Archive category</button>
-    </div>
-  {/if}
-</div>
 {/if}
 
 {#if doing === 'rename'}
@@ -91,9 +92,6 @@
 {/if}
 
 <style>
-  .actions {
-    position: relative;
-  }
   .more {
     width: 28px;
     height: 28px;
@@ -103,36 +101,8 @@
     background: none;
     border: 1px solid transparent;
   }
-  .more:hover,
-  .more[aria-expanded='true'] {
+  .more:hover {
     color: var(--text);
     border-color: var(--edge);
-  }
-  .menu {
-    position: absolute;
-    top: 30px;
-    right: 0;
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    min-width: 190px;
-    background: var(--surface);
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    box-shadow: 0 8px 24px var(--shadow);
-    padding: 4px;
-  }
-  .menu button {
-    text-align: left;
-    font-size: calc(14px * var(--type));
-    color: var(--text);
-    background: none;
-    border: 0;
-    padding: 9px 12px;
-    min-height: 38px;
-  }
-  .menu button:hover {
-    background: var(--structure-deep);
-    color: var(--structure-soft);
   }
 </style>
