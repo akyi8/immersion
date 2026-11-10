@@ -57,6 +57,25 @@
   }
 </script>
 
+{#snippet facelessNote()}
+  {#if faceless.length}
+    <p class="faceless">
+      <button type="button" class="faceless-toggle" aria-expanded={showFaceless} onclick={() => (showFaceless = !showFaceless)}>
+        {faceless.length} {faceless.length === 1 ? 'person has' : 'people have'} no face yet
+      </button>
+    </p>
+    {#if showFaceless}
+      <p class="hint">Drop a picture on a name to give them a face.</p>
+      <div class="chips">
+        {#each faceless as e (e.id)}
+          <button type="button" class="drop" use:dropImage={(image) => giveFace(e.id, image)} onclick={() => nav.open(e.id)}>{e.name}</button>
+        {/each}
+      </div>
+      {#if pictureProblem}<p class="problem" role="alert">{pictureProblem}</p>{/if}
+    {/if}
+  {/if}
+{/snippet}
+
 <section>
   <div class="top">
     <div>
@@ -83,22 +102,8 @@
       {/each}
     </div>
   {/if}
-  {#if faceless.length}
-    <p class="faceless">
-      <button type="button" class="faceless-toggle" aria-expanded={showFaceless} onclick={() => (showFaceless = !showFaceless)}>
-        {faceless.length} {faceless.length === 1 ? 'person has' : 'people have'} no face yet
-      </button>
-    </p>
-    {#if showFaceless}
-      <p class="hint">Drop a picture on a name to give them a face.</p>
-      <div class="chips">
-        {#each faceless as e (e.id)}
-          <button type="button" class="drop" use:dropImage={(image) => giveFace(e.id, image)} onclick={() => nav.open(e.id)}>{e.name}</button>
-        {/each}
-      </div>
-      {#if pictureProblem}<p class="problem" role="alert">{pictureProblem}</p>{/if}
-    {/if}
-  {/if}
+  <!-- People with no picture are counted under the faces. In a world with no faces yet, the count waits below the entries, so the page opens on the world and not on a chore. -->
+  {#if faces.length}{@render facelessNote()}{/if}
   {#each index.root.folders as folder}
     {@const ids = allIn(folder)}
     <h2 class="label">{folderLabel(folder.name)} {#if ids.length}<span>{ids.length}</span>{/if}</h2>
@@ -117,6 +122,7 @@
       {/each}
     </div>
   {/if}
+  {#if !faces.length}{@render facelessNote()}{/if}
 </section>
 
 <style>

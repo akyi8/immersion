@@ -176,7 +176,13 @@
     actions?.start(what);
   }
 
-  function manuscriptMenu(event: MouseEvent, m: Manuscript) {
+  /** Where a row's ⋯ button opens its menu: just under the button. */
+  function under(event: MouseEvent): { x: number; y: number } {
+    const r = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: r.left, y: r.bottom + 4 };
+  }
+
+  function manuscriptMenu(event: MouseEvent, m: Manuscript, at?: { x: number; y: number }) {
     const items: MenuEntry[] = [
       { label: 'Open', run: () => openManuscript(m) },
       { label: 'Open in a new window', run: () => onWindow(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path)) },
@@ -188,7 +194,7 @@
     items.push('separator');
     for (const [p] of TABS) if (p !== m.place) items.push({ label: `Move to ${PLACE_NAMES[p]}`, run: () => onMoveTo(m, p) });
     items.push('separator', { label: 'Rename', run: () => act('rename', m) }, { label: 'Archive', run: () => act('archive', m) });
-    contextMenu.show(event, items);
+    contextMenu.show(event, items, at);
   }
 
   /** The chapters a section can trade places with. */
@@ -196,24 +202,35 @@
     return m.kind === 'folder' ? m.sections : m.sections.filter((s) => s.depth === 2);
   }
 
-  function sectionMenu(event: MouseEvent, m: Manuscript, s: Section) {
+  function sectionMenu(event: MouseEvent, m: Manuscript, s: Section, where?: { x: number; y: number }) {
     const list = chapters(m);
     const at = list.indexOf(s);
-    const chapter = at >= 0;
-    contextMenu.show(event, [
+    const items: MenuEntry[] = [
       { label: 'Open', run: () => onOpen(s.path, s.offset, s.title) },
       { label: 'Open in a new window', run: () => onWindow(s.path) },
-      'separator',
-      { label: 'Move earlier', run: () => onMoveChapter(m, s, -1), disabled: !chapter || at === 0 },
-      { label: 'Move later', run: () => onMoveChapter(m, s, 1), disabled: !chapter || at === list.length - 1 },
-      { label: `Rename ${m.partWord.toLowerCase()}`, run: () => onRenameChapter(m, s), disabled: !chapter },
-    ]);
+    ];
+    // Only what this row can do is offered, so nothing sits greyed out without a reason.
+    if (at >= 0) {
+      items.push('separator');
+      if (at > 0) items.push({ label: 'Move earlier', run: () => onMoveChapter(m, s, -1) });
+      if (at < list.length - 1) items.push({ label: 'Move later', run: () => onMoveChapter(m, s, 1) });
+      items.push({ label: `Rename ${m.partWord.toLowerCase()}`, run: () => onRenameChapter(m, s) });
+    }
+    contextMenu.show(event, items, where);
   }
 
   function count(n: number): string {
     return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n);
   }
 </script>
+
+<!-- Every row shows its menu as a ⋯ on hover or focus, the same menu a right-click opens
+     (review, November 10), so nothing a row can do is hidden from someone who never right-clicks. -->
+{#snippet more(name: string, open: (e: MouseEvent) => void)}
+  <button type="button" class="more" aria-label="More for {name}" aria-haspopup="menu" title="More" onclick={open}>
+    <svg width="14" height="4" viewBox="0 0 14 4" aria-hidden="true"><circle cx="2" cy="2" r="1.4" fill="currentColor" /><circle cx="7" cy="2" r="1.4" fill="currentColor" /><circle cx="12" cy="2" r="1.4" fill="currentColor" /></svg>
+  </button>
+{/snippet}
 
 {#snippet manuscript(m: Manuscript)}
   {@const at = here(m)}
@@ -237,6 +254,7 @@
         {#if m.series && m.number}<span class="number">{m.number}</span>{/if}{m.title}
       </span><span class="n">{count(m.words)}</span>
     </button>
+    {@render more(m.title, (e) => manuscriptMenu(e, m, under(e)))}
   </div>
   {#if unfold}
     <div class="sections">
@@ -249,14 +267,17 @@
         {#if s.part && s.part !== m.sections[i - 1]?.part}
           <div class="part">{s.part}</div>
         {/if}
-        <button
-          type="button"
-          class="section depth-{s.depth}"
-          class:here={at === i || at === s.path}
-          onclick={() => onOpen(s.path, s.offset, s.title)}
-          oncontextmenu={(e) => sectionMenu(e, m, s)}>
-          <span>{s.title}</span><span class="n">{count(s.words)}</span>
-        </button>
+        <div class="section-row" class:here={at === i || at === s.path}>
+          <button
+            type="button"
+            class="section depth-{s.depth}"
+            class:here={at === i || at === s.path}
+            onclick={() => onOpen(s.path, s.offset, s.title)}
+            oncontextmenu={(e) => sectionMenu(e, m, s)}>
+            <span>{s.title}</span><span class="n">{count(s.words)}</span>
+          </button>
+          {@render more(s.title, (e) => sectionMenu(e, m, s, under(e)))}
+        </div>
       {/each}
       {#each m.back as s}
         <button type="button" class="section matter" class:here={at === s.path} onclick={() => onOpen(s.path, null, s.title)}>
@@ -417,6 +438,42 @@
     display: flex;
     align-items: stretch;
     border-radius: var(--round);
+    position: relative;
+  }
+  .section-row {
+    position: relative;
+  }
+  /* The ⋯ takes the word count's place while the row is pointed at or holds the keyboard. */
+  .more {
+    position: absolute;
+    top: 0;
+    right: 6px;
+    height: 100%;
+    width: 30px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    opacity: 0;
+  }
+  .more:hover {
+    color: var(--text);
+  }
+  .manuscript-row:hover > .more,
+  .section-row:hover > .more,
+  .more:focus-visible {
+    opacity: 1;
+  }
+  .manuscript-row:hover > .manuscript .n,
+  .section-row:hover > .section .n,
+  .manuscript-row:focus-within > .manuscript .n,
+  .section-row:focus-within > .section .n {
+    visibility: hidden;
+  }
+  .manuscript-row:focus-within > .more,
+  .section-row:focus-within > .more {
+    opacity: 1;
   }
   .manuscript-row:hover,
   .section:hover {

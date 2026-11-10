@@ -42,7 +42,8 @@
   <div class="count {tone}">
     <button type="button" class="figures" {title} aria-label={title} onclick={() => onDetails?.()} disabled={!onDetails}>
       <span class="dot" aria-hidden="true"></span>
-      <span class="out">{counts.out}</span>
+      <!-- A dot alone means nothing waits. A number shows only when there is something to count. -->
+      {#if counts.out > 0}<span class="out">{counts.out}</span>{/if}
       {#if counts.incoming > 0}<span class="in">↓{counts.incoming}</span>{/if}
       {#if note}<span class="note">{note}</span>{/if}
     </button>

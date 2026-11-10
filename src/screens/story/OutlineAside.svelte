@@ -173,7 +173,9 @@
   textarea {
     min-height: 260px;
     max-height: 60vh;
-    resize: vertical;
+    /* The box grows with what is written in it, where the browser can, and shows no grip. */
+    resize: none;
+    field-sizing: content;
     font: inherit;
     font-size: calc(14px * var(--type));
     line-height: 1.55;
