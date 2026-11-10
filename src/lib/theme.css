@@ -52,7 +52,8 @@
   --font-ui: 'Atkinson Hyperlegible', sans-serif;
   --font-label: 'IBM Plex Mono', monospace;
 
-  --prose-size: 18px;
+  --prose-base: 18px;
+  --prose-size: var(--prose-base);
   --prose-leading: 1.7;
   --paragraph-gap: 1.1em;
 
@@ -140,7 +141,8 @@
   --round: 10px;
   --round-box: 16px;
   --type: 0.93;
-  --prose-size: 17px;
+  --prose-base: 17px;
+  --prose-size: var(--prose-base);
   --desk: color-mix(in oklab, var(--bg) 72%, black);
   --paper: var(--bg);
   --lift: 0 24px 60px -28px var(--shadow), 0 2px 10px -6px var(--shadow);
@@ -354,5 +356,28 @@ button {
   :root[data-layout='soft'] * {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* While the writer types, everything but the page steps back, and it returns with the
+   pointer (Mike, November 10). The parts are named here so each screen need not know. */
+.shell > header,
+.sidebar,
+.pane .tools,
+.pane-actions {
+  transition: opacity 900ms ease;
+}
+html.typing .shell > header,
+html.typing .sidebar,
+html.typing .pane .tools,
+html.typing .pane-actions {
+  opacity: 0.16;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell > header,
+  .sidebar,
+  .pane .tools,
+  .pane-actions {
+    transition: none;
   }
 }

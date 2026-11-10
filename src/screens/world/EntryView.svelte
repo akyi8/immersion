@@ -15,6 +15,7 @@
   import { defaultShape, frameStyle, writeFrame, type Frame, type Shape } from '../../lib/index/frame';
   import { withHeader } from '../../lib/world';
   import { saveNow } from '../../lib/saves';
+  import { views } from '../../lib/view.svelte';
 
   let {
     index,
@@ -75,7 +76,9 @@
   // A picture is framed rather than cropped, and an entry outside People shows it as a
   // banner across its top, with its name over it (Mike, November 1).
   const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category));
-  const banner = $derived(!!entry.imagePath && shape === 'banner');
+  // The page's own view can put the picture away, for reading with nothing but text.
+  const pictured = $derived(views.of(id).picture);
+  const banner = $derived(!!entry.imagePath && shape === 'banner' && pictured);
   let framing = $state(false);
   let framingBusy = $state(false);
   let framingProblem = $state('');
@@ -129,7 +132,7 @@
 
 {#snippet details()}
   {#if entry.aliases.length}<div class="meta">{entry.aliases.join(' · ')}</div>{/if}
-  <div class="row">
+  <div class="row pane-actions">
     <EntryDate {fs} {entry} editable={view === 'narrator'} />
     <span class="spacer"></span>
     {#if view === 'narrator' && onMoved}
@@ -159,7 +162,7 @@
             <div class="label">{folderLabel(entry.category)}</div>
             <h1>{entry.name}</h1>
           </div>
-          <div class="change on-banner">{@render pictureButtons()}</div>
+          <div class="change on-banner pane-actions">{@render pictureButtons()}</div>
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
       {:else}
@@ -175,10 +178,12 @@
     </header>
   {:else}
     <header>
-      {#if view === 'narrator'}
+      {#if !pictured}
+        <!-- The picture is put away in this page's view. -->
+      {:else if view === 'narrator'}
         <div class="picture" use:dropImage={setPicture}>
           <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" frame={entry.portraitFrame} />
-          <div class="change">{@render pictureButtons()}</div>
+          <div class="change pane-actions">{@render pictureButtons()}</div>
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
       {:else}
@@ -218,7 +223,7 @@
 
 <style>
   article {
-    max-width: 720px;
+    max-width: var(--measure, 720px);
   }
   header {
     display: flex;
@@ -289,7 +294,7 @@
   }
   article.has-banner > :global(:not(header)),
   .title.under {
-    max-width: 720px;
+    max-width: var(--measure, 720px);
   }
   header.poster {
     display: block;

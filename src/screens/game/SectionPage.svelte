@@ -105,7 +105,7 @@
 <style>
   /* The banner runs the pane's full width, and everything under it keeps a reading width. */
   article > :global(:not(.poster)) {
-    max-width: 760px;
+    max-width: var(--measure, 760px);
   }
   .title {
     display: block;

@@ -4,6 +4,7 @@
   import { account } from '../lib/account.svelte';
   import { BOARD_FONTS, MODULES, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
   import { zoom } from '../lib/zoom.svelte';
+  import { quiet } from '../lib/view.svelte';
   import ModeToggle from './ModeToggle.svelte';
   import { sync } from '../lib/sync.svelte';
 
@@ -246,6 +247,9 @@
       {/if}
       <h3 class="label">Light or dark</h3>
       <ModeToggle />
+      <h3 class="label">While typing</h3>
+      <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the page</label>
+      <p class="hint">The header, the sidebar, and a page's buttons step back while you type, and return when the pointer moves.</p>
       <h3 class="label">Size</h3>
       <div class="row zoom">
         <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>

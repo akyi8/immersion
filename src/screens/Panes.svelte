@@ -3,6 +3,7 @@
   import type { Navigator } from '../lib/nav.svelte';
   import { ui } from '../lib/ui.svelte';
   import { beats } from '../lib/beats.svelte';
+  import { views } from '../lib/view.svelte';
 
   /**
    * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
@@ -24,6 +25,7 @@
     onWindow,
     hasBeats,
     canWindow = () => true,
+    hasPicture = () => false,
   }: {
     nav: Navigator;
     /** What is open, left to right. */
@@ -37,9 +39,19 @@
     hasBeats?: (id: string) => boolean;
     /** Whether a pane may move to a reading window. The vault never may. */
     canWindow?: (id: string) => boolean;
+    /** Whether a pane's document can carry a picture, which its view can then hide. */
+    hasPicture?: (id: string) => boolean;
   } = $props();
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
+
+  // Each document remembers how it is shown (Mike, November 10): its column, the size of
+  // its text, its picture, and whether the paragraph being written is lit. The choices
+  // sit behind one button in the document's toolbar, the same for every kind of document.
+  let viewing = $state<string | null>(null);
+  function outsideView(e: MouseEvent) {
+    if (viewing && !(e.target as HTMLElement).closest('.view-menu, .view-button')) viewing = null;
+  }
 
   function leaveFull() {
     const was = full;
@@ -112,13 +124,16 @@
 <svelte:window
   onresize={fit}
   onkeydown={(e) => {
-    if (e.key === 'Escape' && full) leaveFull();
-  }} />
+    if (e.key === 'Escape' && viewing) viewing = null;
+    else if (e.key === 'Escape' && full) leaveFull();
+  }}
+  onmousedown={outsideView} />
 
 <div class="strip sheet" class:full={!!full} bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
   <div class="row">
     {#each panes as id, i (id)}
       {@const name = label(id)}
+      {@const look = views.of(id)}
       <section
         class="pane"
         class:spined={spined[i] && !full}
@@ -135,8 +150,11 @@
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
-        <div class="body">
+        <div class="body" data-column={look.column} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
+            <button type="button" class="view-button" class:on={viewing === id} aria-label="How {name} is shown" aria-expanded={viewing === id} title="How this page is shown" onclick={() => (viewing = viewing === id ? null : id)}>
+              <svg width="15" height="13" viewBox="0 0 15 13" aria-hidden="true"><path d="M1 11 L4.5 2 L8 11 M2.4 7.6 H6.6 M9.5 11 L11.7 5.5 L14 11 M10.3 9 H13.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
+            </button>
             {#if full === id && hasBeats?.(id)}
               <button type="button" class="beats" class:on={beats.on} aria-pressed={beats.on} title="This chapter's beats, beside the writing" onclick={() => beats.set(!beats.on)}>Beats</button>
             {/if}
@@ -160,6 +178,30 @@
               </button>
             {/if}
           </div>
+          {#if viewing === id}
+            <div class="view-menu" role="group" aria-label="How {name} is shown">
+              <div class="label">Column</div>
+              <div class="pair">
+                <button type="button" aria-pressed={look.column === 'book'} onclick={() => views.set(id, { column: 'book' })}>Book</button>
+                <button type="button" aria-pressed={look.column === 'wide'} onclick={() => views.set(id, { column: 'wide' })}>Wide</button>
+              </div>
+              <div class="label">Text</div>
+              <div class="pair">
+                <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
+                <button type="button" aria-pressed={look.text === 'normal'} onclick={() => views.set(id, { text: 'normal' })}>Usual</button>
+              </div>
+              {#if hasPicture(id)}
+                <div class="label">Picture</div>
+                <div class="pair">
+                  <button type="button" aria-pressed={look.picture} onclick={() => views.set(id, { picture: true })}>Show</button>
+                  <button type="button" aria-pressed={!look.picture} onclick={() => views.set(id, { picture: false })}>Hide</button>
+                </div>
+              {/if}
+              <div class="label">While writing</div>
+              <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
+              <p class="hint">This page remembers these on this computer.</p>
+            </div>
+          {/if}
           {@render pane(id, i, panes[i + 1] ?? null, full === id)}
         </div>
       </section>
@@ -206,6 +248,88 @@
     padding: 56px 40px 60px;
     box-sizing: border-box;
     transition: opacity 120ms;
+  }
+  /* A book's line holds about sixty-six characters, and follows the size of the text. */
+  .body[data-text='small'] {
+    --prose-size: calc(var(--prose-base) * 0.88);
+  }
+  .body[data-column='book'] {
+    --measure: calc(var(--prose-size) * 33);
+  }
+  /* The lit paragraph: the others fall back while the writing has the keyboard, and the
+     page eases to keep the line in place, with room below the last line to do it. */
+  .body[data-lit='on'] {
+    scroll-behavior: smooth;
+    padding-bottom: 55vh;
+  }
+  .body[data-lit='on'] :global(.cm-focused .cm-line) {
+    opacity: 0.4;
+    transition: opacity 350ms ease;
+  }
+  .body[data-lit='on'] :global(.cm-focused .cm-activeLine) {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .body[data-lit='on'] {
+      scroll-behavior: auto;
+    }
+  }
+  .tools .view-button.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+  }
+  .view-menu {
+    position: absolute;
+    top: 52px;
+    right: 14px;
+    z-index: 3;
+    width: 220px;
+    padding: 14px 16px 12px;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: var(--round-box, 0);
+    box-shadow: var(--lift, 0 12px 30px -12px var(--shadow));
+    display: grid;
+    gap: 6px;
+  }
+  .pane.alone .view-menu {
+    position: fixed;
+    right: 18px;
+  }
+  .view-menu .label {
+    margin-top: 6px;
+  }
+  .view-menu .label:first-child {
+    margin-top: 0;
+  }
+  .view-menu .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .view-menu .pair button {
+    padding: 6px 0;
+    font-size: calc(13px * var(--type));
+    color: var(--text-soft);
+    background: none;
+    border: 1px solid var(--edge);
+  }
+  .view-menu .pair button[aria-pressed='true'] {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+  }
+  .view-menu .check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: calc(13px * var(--type));
+    color: var(--text-soft);
+  }
+  .view-menu .hint {
+    margin: 8px 0 0;
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
   }
   .spined .body {
     opacity: 0;

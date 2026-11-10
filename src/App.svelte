@@ -27,6 +27,7 @@
   import { zoom } from './lib/zoom.svelte';
   import { vault } from './lib/vault/vault.svelte';
   import { saveAll } from './lib/saves';
+  import { quiet } from './lib/view.svelte';
 
   type Phase = 'starting' | 'shelf' | 'loading' | 'inside' | 'reader' | 'error';
 
@@ -120,6 +121,11 @@
     }
   }
 
+  // While the writer types, everything but the page steps back (lib/view.svelte.ts).
+  $effect(() => {
+    document.documentElement.classList.toggle('typing', quiet.on && quiet.typing);
+  });
+
   /** Writes everything still waiting to be saved, giving up after a few seconds so nothing hangs on it. */
   const saveEverything = () => Promise.race([saveAll().catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
 
@@ -183,6 +189,7 @@
       }
     });
     zoom.start();
+    quiet.start();
     const page = readerPage();
     if (page) {
       readerId = page.id;

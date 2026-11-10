@@ -274,7 +274,7 @@
 
 <style>
   .vault {
-    max-width: 760px;
+    max-width: var(--measure, 760px);
   }
   header {
     margin-bottom: 18px;

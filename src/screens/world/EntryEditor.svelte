@@ -5,6 +5,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { createEditor, headingNear, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
   import { registerSaver } from '../../lib/saves';
+  import { quiet } from '../../lib/view.svelte';
   import { Autosave, type SaveStatus } from '../../lib/editor/autosave';
 
   let {
@@ -96,7 +97,10 @@
       doc: text,
       title,
       scanner,
-      onChange: () => saver.typed(),
+      onChange: () => {
+        saver.typed();
+        if (view?.hasFocus) quiet.typed();
+      },
       onMention: (id) => onOpen(id),
       onCursor: (pos) => onCursor?.(pos),
       onOutline: (at) => onOutline?.(at),
@@ -144,7 +148,7 @@
     </div>
   </div>
 {/if}
-<div class="status label" aria-live="polite">
+<div class="status label pane-actions" aria-live="polite">
   {#if status === 'saving'}Saving…{:else if status === 'error'}Not saved: {problem}{:else}&nbsp;{/if}
 </div>
 <div class="editor" bind:this={host}></div>

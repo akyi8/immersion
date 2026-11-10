@@ -102,6 +102,7 @@
       {nav}
       ids={entries}
       label={(id) => (id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id))}
+      hasPicture={(id) => !!index.get(id)?.imagePath}
       onWindow={(id) => {
         openInWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id));
         nav.close(id);

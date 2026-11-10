@@ -5,8 +5,7 @@ import {
   ViewPlugin,
   keymap,
   type DecorationSet,
-  type ViewUpdate,
-} from '@codemirror/view';
+  type ViewUpdate, highlightActiveLine } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands';
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
@@ -202,6 +201,8 @@ const theme = EditorView.theme(
     '&': { color: 'var(--text)', backgroundColor: 'transparent', fontSize: 'var(--prose-size)' },
     '.cm-content': { fontFamily: 'var(--font-body)', lineHeight: 'var(--prose-leading)', caretColor: 'var(--structure-soft)', padding: '0' },
     '.cm-line': { padding: '0' },
+    // The cursor's line is marked so a document can light it. On its own the mark shows nothing.
+    '.cm-activeLine': { backgroundColor: 'transparent' },
     '.cm-gap': { lineHeight: '0.9' },
     '&.cm-focused': { outline: 'none' },
     '.cm-cursor': { borderLeftColor: 'var(--structure-soft)', borderLeftWidth: '2px' },
@@ -307,12 +308,33 @@ export function createEditor(options: {
         mentionPlugin(options.scanner, options.onMention),
         theme,
         options.toolbar ? selectionToolbar(options.toolbar) : [],
+        highlightActiveLine(),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());
+          // Typing and the arrow keys keep the line near the middle. A click leaves the page still.
+          const byKeys = u.docChanged || u.transactions.some((t) => t.isUserEvent('select') && !t.isUserEvent('select.pointer'));
+          if (byKeys && u.view.hasFocus) holdLine(u.view);
           if (u.selectionSet || u.docChanged) options.onCursor?.(u.state.selection.main.head);
         }),
       ],
     }),
+  });
+}
+
+/**
+ * In a document whose view lights the paragraph being written, the cursor's line is
+ * held a little above the middle of the page, so the eyes stay in one place (Mike,
+ * November 10). The document's pane says so with `data-lit`, and eases the movement.
+ */
+function holdLine(view: EditorView) {
+  const page = view.dom.closest<HTMLElement>('[data-lit="on"]');
+  if (!page) return;
+  requestAnimationFrame(() => {
+    const at = view.coordsAtPos(view.state.selection.main.head);
+    if (!at) return;
+    const box = page.getBoundingClientRect();
+    const off = at.top - (box.top + box.height * 0.42);
+    if (Math.abs(off) > 6) page.scrollTop += off;
   });
 }
 

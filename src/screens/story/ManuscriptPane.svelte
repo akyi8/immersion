@@ -200,7 +200,7 @@
         <div class="label">{about.label}</div>
         {#if about.kind !== 'book' || mode === 'outline'}<h1>{about.title}</h1>{/if}
         {#if mode !== 'outline' || !source}
-          <div class="row">{@render lead()}<span class="spacer"></span>{@render tail()}</div>
+          <div class="row pane-actions">{@render lead()}<span class="spacer"></span>{@render tail()}</div>
         {/if}
       </header>
     {/if}
@@ -283,13 +283,13 @@
 
 <style>
   article {
-    max-width: 720px;
+    max-width: var(--measure, 720px);
   }
   article:has(:global(.grid)) {
     max-width: none;
   }
   article:has(.with-aside) {
-    max-width: 1000px;
+    max-width: calc(var(--measure, 720px) + 280px);
   }
   /* The outline sits beside the writing when there is room, and steps away in a narrow pane. */
   .room {
