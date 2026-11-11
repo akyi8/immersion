@@ -1,4 +1,4 @@
-import { EditorState, Prec, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
+import { EditorSelection, EditorState, Prec, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -164,7 +164,47 @@ function findGaps(state: EditorState): DecorationSet {
   return builder.finish();
 }
 
-const paragraphStep = [gapField, EditorView.atomicRanges.of((view) => view.state.field(gapField))];
+/**
+ * Up and Down keep the cursor's place across the line when they cross the gap between
+ * two paragraphs (Mike, November 11). Without this the gap, being one step, would send
+ * Up to the end of the paragraph above and Down to the start of the one below.
+ */
+function stepLine(view: EditorView, forward: boolean, extend: boolean): boolean {
+  const sel = view.state.selection.main;
+  if (view.state.selection.ranges.length > 1 || (!extend && !sel.empty)) return false;
+  const gaps = view.state.field(gapField);
+  const here = view.coordsAtPos(sel.head, sel.assoc || 1);
+  const next = view.moveVertically(sel, forward);
+  let crossed = false;
+  gaps.between(Math.min(sel.head, next.head), Math.max(sel.head, next.head), (from, to) => {
+    if ((forward ? to : from) === next.head) crossed = true;
+  });
+  if (!crossed || !here) return false;
+  const box = view.contentDOM.getBoundingClientRect();
+  const goal = sel.goalColumn ?? here.left - box.left;
+  const row = view.coordsAtPos(next.head, forward ? 1 : -1);
+  if (!row) return false;
+  const pos = view.posAtCoords({ x: box.left + goal, y: (row.top + row.bottom) / 2 }, false);
+  const line = view.state.doc.lineAt(next.head);
+  const head = Math.min(line.to, Math.max(line.from, pos));
+  view.dispatch({
+    selection: extend ? EditorSelection.range(sel.anchor, head, goal) : EditorSelection.cursor(head, forward ? 1 : -1, undefined, goal),
+    scrollIntoView: true,
+    userEvent: 'select',
+  });
+  return true;
+}
+
+const paragraphStep = [
+  gapField,
+  EditorView.atomicRanges.of((view) => view.state.field(gapField)),
+  Prec.high(
+    keymap.of([
+      { key: 'ArrowUp', run: (v) => stepLine(v, false, false), shift: (v) => stepLine(v, false, true) },
+      { key: 'ArrowDown', run: (v) => stepLine(v, true, false), shift: (v) => stepLine(v, true, true) },
+    ]),
+  ),
+];
 
 /**
  * Enter starts a new paragraph by writing the blank line markdown needs, so the writer

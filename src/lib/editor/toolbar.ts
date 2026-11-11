@@ -21,30 +21,67 @@ export interface ToolbarOptions {
  */
 export function toggleMark(view: EditorView, mark: string, close: string = mark): boolean {
   const { state } = view;
+  const n = mark.length;
+  const m = close.length;
   view.dispatch(
     state.changeByRange((range) => {
-      const n = mark.length;
-      const m = close.length;
-      const before = state.sliceDoc(range.from - n, range.from);
-      const after = state.sliceDoc(range.to, range.to + m);
-      // A single * next to ** is part of bold, not italic.
-      const wrapped = before === mark && after === close && !(mark === '*' && (state.sliceDoc(range.from - 2, range.from) === '**' || state.sliceDoc(range.to, range.to + 2) === '**'));
-      if (wrapped) {
-        return {
-          changes: [
-            { from: range.from - n, to: range.from },
-            { from: range.to, to: range.to + m },
-          ],
-          range: EditorSelection.range(range.from - n, range.to - n),
-        };
-      }
-      return {
-        changes: [
-          { from: range.from, insert: mark },
-          { from: range.to, insert: close },
-        ],
-        range: EditorSelection.range(range.from + n, range.to + n),
+      // A selection that runs over several paragraphs is marked one paragraph at a time,
+      // because a mark cannot cross a blank line (Mike, November 11). Each piece leaves out
+      // the space around it and any heading, list, or quote marker in front of it.
+      type Side = 'outside' | 'inside' | null;
+      const pieces: { from: number; to: number; start: Side; end: Side }[] = [];
+      // Asterisks run together where text is both bold and italic, so a run is counted:
+      // an odd run holds italic, and a run of two or more holds bold.
+      const stars = (pos: number, dir: 1 | -1, limit: number) => {
+        let count = 0;
+        while (count < limit && state.sliceDoc(dir > 0 ? pos + count : pos - count - 1, dir > 0 ? pos + count + 1 : pos - count) === '*') count++;
+        return count;
       };
+      const has = (text: string, pos: number, dir: 1 | -1, limit: number) => {
+        if (text.includes('*')) {
+          const run = stars(pos, dir, limit);
+          return text === '*' ? run % 2 === 1 : run >= 2;
+        }
+        return limit >= text.length && (dir > 0 ? state.sliceDoc(pos, pos + text.length) : state.sliceDoc(pos - text.length, pos)) === text;
+      };
+      for (let pos = range.from; pos <= range.to; ) {
+        const line = state.doc.lineAt(pos);
+        let from = Math.max(range.from, line.from);
+        let to = Math.min(range.to, line.to);
+        if (from === line.from) from += /^(\s*(#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+))*/.exec(line.text)![0].length;
+        const text = state.sliceDoc(from, Math.max(from, to));
+        from += text.length - text.trimStart().length;
+        to -= text.length - text.trimEnd().length;
+        if (to > from || (range.empty && pos === range.from)) {
+          to = Math.max(from, to);
+          // The mark may sit just outside the selection or just inside it, at either end.
+          const start: Side = has(mark, from, -1, from - line.from) ? 'outside' : has(mark, from, 1, to - from) ? 'inside' : null;
+          const end: Side = has(close, to, 1, line.to - to) ? 'outside' : has(close, to, -1, to - from) ? 'inside' : null;
+          pieces.push({ from, to, start, end });
+        }
+        pos = line.to + 1;
+      }
+      if (!pieces.length) return { range };
+      // The mark comes off only when every piece has it. Otherwise the pieces without it get it.
+      const marked = (p: (typeof pieces)[number]) => !!p.start && !!p.end && (p.to - p.from >= n + m || p.start === 'outside' || p.end === 'outside');
+      const remove = pieces.every(marked);
+      const specs = pieces.flatMap((p): { from: number; to?: number; insert?: string }[] =>
+        remove
+          ? [p.start === 'outside' ? { from: p.from - n, to: p.from } : { from: p.from, to: p.from + n }, p.end === 'outside' ? { from: p.to, to: p.to + m } : { from: p.to - m, to: p.to }]
+          : marked(p)
+            ? []
+            : [
+                { from: p.from, insert: mark },
+                { from: p.to, insert: close },
+              ],
+      );
+      const changes = state.changes(specs);
+      // One piece keeps the words selected, inside their marks. Several pieces keep the
+      // whole run selected, marks included, so pressing again takes the marks off.
+      const one = pieces.length === 1;
+      const first = Math.min(range.from, pieces[0].from);
+      const last = Math.max(range.to, pieces[pieces.length - 1].to);
+      return { changes, range: EditorSelection.range(changes.mapPos(first, one ? 1 : -1), changes.mapPos(last, one ? -1 : 1)) };
     }),
     { userEvent: 'input.format' },
   );
