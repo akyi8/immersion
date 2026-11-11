@@ -192,10 +192,35 @@ function aliasLine(state: EditorState): { from: number; to: number; n: number } 
   return null;
 }
 
+/**
+ * A rule drawn straight under the title, before any text, such as the `---` many wiki
+ * entries open with. It only repeats the edge the page already has, so it is hidden
+ * (Mike, November 10). The file keeps it.
+ */
+function openingRule(state: EditorState): { from: number; to: number; n: number } | null {
+  const doc = state.doc;
+  const header = headerRange(state);
+  let n = header ? doc.lineAt(header.to).number + 1 : 1;
+  const blanks = () => {
+    while (n <= doc.lines && doc.line(n).text.trim() === '') n++;
+  };
+  blanks();
+  if (n <= doc.lines && /^#\s/.test(doc.line(n).text)) n++;
+  blanks();
+  if (n <= doc.lines && /^[ \t]*\*\*\s*aliases\s*:?\s*\*\*/i.test(doc.line(n).text)) n++;
+  blanks();
+  if (n > doc.lines || !/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(doc.line(n).text)) return null;
+  const line = doc.line(n);
+  const next = n < doc.lines ? doc.line(n + 1) : null;
+  return { from: line.from, to: next && next.text.trim() === '' ? next.to : line.to, n };
+}
+
 function zonesOf(state: EditorState, title: string): Zone[] {
   const zones = outlineZones(state);
   const top = titleZone(state, title);
   if (top) zones.push(top);
+  const rule = openingRule(state);
+  if (rule) zones.push({ from: rule.n > 1 ? state.doc.line(rule.n - 1).to : -1, to: pastSeparator(state, rule.n) });
   // The hidden names line is a zone too, so the cursor never rests in it.
   const names = aliasLine(state);
   if (names) zones.push({ from: names.n > 1 ? state.doc.line(names.n - 1).to : -1, to: pastSeparator(state, names.n) });
@@ -345,6 +370,8 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   // added and removed, so the line itself is hidden from the text.
   const names = aliasLine(state);
   if (names) marks.push(Decoration.replace({ block: true }).range(names.from, names.to));
+  const opening = openingRule(state);
+  if (opening) marks.push(Decoration.replace({ block: true }).range(opening.from, opening.to));
 
   const tree = ensureSyntaxTree(state, doc.length, 200);
   if (!tree) return Decoration.set([...marks, ...lines], true);
@@ -382,6 +409,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
         return false;
       }
 
+      if (name === 'HorizontalRule' && opening && node.from >= opening.from && node.to <= opening.to) return false;
       if (name === 'HorizontalRule' && !touched(state, node.from, node.to)) {
         marks.push(Decoration.replace({ widget: new RuleWidget() }).range(node.from, node.to));
         return false;

@@ -100,8 +100,8 @@
     if (at < first.length) parts.push({ text: first.slice(at), name: false });
     return parts;
   });
-  // The name's last word stands large on the spine, with the rest small beside it, so a
-  // long name still fits. A very long last word is set smaller.
+  // The name's first word stands large on the spine, with the rest small beside it, so a
+  // long name still fits. A very long first word is set smaller.
   const spine = $derived(spineName(entry.name));
   const spineSize = $derived(Math.round(Math.max(34, Math.min(64, 820 / Math.max(spine.main.length, 1)))));
   let framing = $state(false);
@@ -242,8 +242,8 @@
     <div class="spine">
       <div class="kind">{folderLabel(entry.category)}</div>
       <h1 class="spine-name" aria-label={entry.name}>
-        {#if spine.lead}<span class="lead">{spine.lead}</span>{/if}
         <span class="main" style:font-size="calc({spineSize}px * var(--type))">{spine.main}</span>
+        {#if spine.rest}<span class="lead">{spine.rest}</span>{/if}
       </h1>
     </div>
     <div class="card-main">
@@ -350,9 +350,11 @@
     align-self: start;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    /* The category's last letter stands over the foot of the name's letters, as on a card. */
+    align-items: flex-end;
+    width: fit-content;
     gap: 10px;
-    padding-left: 26px;
+    margin-left: 26px;
   }
   .kind {
     font-family: var(--font-display);
@@ -374,7 +376,7 @@
     color: var(--text);
     text-shadow: 0 2px 14px rgb(0 0 0 / 0.75);
   }
-  /* Two lines up the spine: the small one first, which the turn puts on the left. */
+  /* Two lines up the spine: the large one first, which the turn puts on the left. */
   .spine-name span {
     display: block;
     white-space: nowrap;
@@ -433,6 +435,14 @@
     text-transform: uppercase;
     /* Bone beside the colored sentence, as a card's own label is. */
     color: var(--text);
+  }
+  /* On a card, the names, the date, and their buttons sit to the right, under the first sentence. */
+  .card-details :global(.facts),
+  .card-details :global(.names),
+  .card-details :global(.adds) {
+    justify-items: end;
+    justify-content: flex-end;
+    text-align: right;
   }
   .card-details {
     margin-bottom: 22px;

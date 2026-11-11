@@ -89,14 +89,15 @@ export const isPerson = (category: string) => category.toLowerCase() === 'people
 export const defaultShape = (category: string, world: Shape | null = null): Shape => world ?? (isPerson(category) ? 'portrait' : 'banner');
 
 /**
- * A name in two parts for a card's spine (Mike, November 10): its last word, which is set
- * large, and what comes before it, which is set small beside it. Lou Lewandowski gives
- * Lewandowski with Lou beside it, and The Chantry of Pain gives Pain with The Chantry of.
+ * A name in two parts for a card's spine (Mike, November 10): its first word, which is set
+ * large, and the rest, which is set small beside it. Lou Lewandowski gives Lou with
+ * Lewandowski beside it. A leading The, A, or An stays with the word after it, so The
+ * Chantry of Pain gives The Chantry with of Pain beside it.
  */
-export function spineName(name: string): { lead: string; main: string } {
+export function spineName(name: string): { main: string; rest: string } {
   const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length < 2) return { lead: '', main: words[0] ?? '' };
-  return { lead: words.slice(0, -1).join(' '), main: words[words.length - 1] };
+  const take = words.length > 1 && /^(the|a|an)$/i.test(words[0]) ? 2 : 1;
+  return { main: words.slice(0, take).join(' '), rest: words.slice(take).join(' ') };
 }
 
 /**

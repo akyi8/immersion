@@ -39,9 +39,10 @@ test("the world's choice of shape stands in for the category's", () => {
   assert.equal(defaultShape('places', 'portrait'), 'portrait');
 });
 
-test('a name splits into its last word and what comes before it', () => {
-  assert.deepEqual(spineName('Lou Lewandowski'), { lead: 'Lou', main: 'Lewandowski' });
-  assert.deepEqual(spineName('The Chantry of Pain'), { lead: 'The Chantry of', main: 'Pain' });
-  assert.deepEqual(spineName('Harrowgate'), { lead: '', main: 'Harrowgate' });
-  assert.deepEqual(spineName('Marta "Wren" Okafor'), { lead: 'Marta "Wren"', main: 'Okafor' });
+test('a name splits into its first word and the rest', () => {
+  assert.deepEqual(spineName('Lou Lewandowski'), { main: 'Lou', rest: 'Lewandowski' });
+  assert.deepEqual(spineName('The Chantry of Pain'), { main: 'The Chantry', rest: 'of Pain' });
+  assert.deepEqual(spineName('Harrowgate'), { main: 'Harrowgate', rest: '' });
+  assert.deepEqual(spineName('Marta "Wren" Okafor'), { main: 'Marta', rest: '"Wren" Okafor' });
+  assert.deepEqual(spineName('The Docks'), { main: 'The Docks', rest: '' });
 });

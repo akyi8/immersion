@@ -21,6 +21,10 @@ export function renderBody(markdown: string, index: WikiIndex, selfId: string | 
   const html = DOMPurify.sanitize(marked.parse(source, { async: false, gfm: true }) as string);
   const doc = new DOMParser().parseFromString(`<div id="root">${html}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
+  // A rule drawn straight under the title only repeats the edge the page already has
+  // (Mike, November 10), so it is left out. The file keeps it.
+  const first = root.firstElementChild?.tagName === 'H1' ? root.firstElementChild.nextElementSibling : root.firstElementChild;
+  if (first?.tagName === 'HR') first.remove();
 
   for (const quote of [...root.querySelectorAll('blockquote')]) {
     const first = quote.querySelector('p');
