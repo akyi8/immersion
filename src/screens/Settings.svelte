@@ -279,8 +279,8 @@
       <h3 class="label">Light or dark</h3>
       <ModeToggle />
       <h3 class="label">While typing</h3>
-      <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the page</label>
-      <p class="hint">The header, the sidebar, and a page's buttons step back while you type, and return when the pointer moves.</p>
+      <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the sentence I am writing</label>
+      <p class="hint">While you type, everything steps back in layers around the sentence you are writing: its paragraph a little, the rest of the page a little more, then the other open pages, then the header and the sidebar. It all returns when the pointer moves.</p>
       <h3 class="label">Size</h3>
       <div class="row zoom">
         <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>

@@ -16,8 +16,14 @@ test("a world's game text links game terms and the world's names", () => {
   assert.deepEqual(ids(s, 'Wren rolls for Trouble and takes on a Salt Debt.'), ['wiki/people/wren.md', 'game:engine/rules/trouble', 'game:world/aspects/salt-debt']);
 });
 
-test('a capitalized term does not catch the ordinary word', () => {
-  assert.deepEqual(ids(gameScanner(elements, world, 'world'), 'There was trouble at the docks.'), []);
+test('a game term links every time, in any case, singular or plural', () => {
+  const s = gameScanner(elements, world, 'world');
+  assert.deepEqual(ids(s, 'There was trouble at the docks, and more troubles after.'), ['game:engine/rules/trouble', 'game:engine/rules/trouble']);
+  assert.deepEqual(ids(s, 'She carried two salt debts.'), ['game:world/aspects/salt-debt']);
+});
+
+test("a world's name wins over a game term of the same name", () => {
+  assert.deepEqual(ids(gameScanner(elements, world, 'world'), 'Wren waited.'), ['wiki/people/wren.md']);
 });
 
 test("the engine's text links only the engine's own terms", () => {

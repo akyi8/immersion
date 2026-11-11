@@ -10,6 +10,7 @@ import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirro
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
 import { livePreview } from './livepreview';
+import { sentenceAt } from './sentence';
 import { selectionToolbar, type ToolbarOptions } from './toolbar';
 import { tags } from '@lezer/highlight';
 import { smallestChange } from './diff';
@@ -302,11 +303,9 @@ export function createEditor(options: {
         theme,
         options.toolbar ? selectionToolbar(options.toolbar) : [],
         highlightActiveLine(),
+        sentenceFocus,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());
-          // Typing and the arrow keys keep the line near the middle. A click leaves the page still.
-          const byKeys = u.docChanged || u.transactions.some((t) => t.isUserEvent('select') && !t.isUserEvent('select.pointer'));
-          if (byKeys && u.view.hasFocus) holdLine(u.view);
           if (u.selectionSet || u.docChanged) options.onCursor?.(u.state.selection.main.head);
         }),
       ],
@@ -315,21 +314,32 @@ export function createEditor(options: {
 }
 
 /**
- * In a document whose view lights the paragraph being written, the cursor's line is
- * held a little above the middle of the page, so the eyes stay in one place (Mike,
- * November 10). The document's pane says so with `data-lit`, and eases the movement.
+ * Marks the parts of the cursor's paragraph that lie outside the sentence being written,
+ * so the page can let them step back a little while the writer types (Mike, November 11).
+ * Headings are left alone.
  */
-function holdLine(view: EditorView) {
-  const page = view.dom.closest<HTMLElement>('[data-lit="on"]');
-  if (!page) return;
-  requestAnimationFrame(() => {
-    const at = view.coordsAtPos(view.state.selection.main.head);
-    if (!at) return;
-    const box = page.getBoundingClientRect();
-    const off = at.top - (box.top + box.height * 0.42);
-    if (Math.abs(off) > 6) page.scrollTop += off;
-  });
-}
+const farFromCursor = Decoration.mark({ class: 'cm-far' });
+const sentenceFocus = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = this.build(view);
+    }
+    update(u: ViewUpdate) {
+      if (u.docChanged || u.selectionSet) this.decorations = this.build(u.view);
+    }
+    build(view: EditorView): DecorationSet {
+      const line = view.state.doc.lineAt(view.state.selection.main.head);
+      const builder = new RangeSetBuilder<Decoration>();
+      if (!line.text.trim() || /^#{1,6}\s/.test(line.text)) return builder.finish();
+      const s = sentenceAt(line.text, view.state.selection.main.head - line.from);
+      if (s.from > 0) builder.add(line.from, line.from + s.from, farFromCursor);
+      if (s.to < line.length) builder.add(line.from + s.to, line.to, farFromCursor);
+      return builder.finish();
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
 
 /**
  * Where a chapter's heading is now. A remembered position can be a little out of date

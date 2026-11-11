@@ -3,7 +3,8 @@ import { MentionScanner, type Term } from '../index/scanner.ts';
 /**
  * The names a game's text links (Mike, November 10). A world with a game has two kinds
  * of names: the world's own, such as its people and places, and the game's terms, which
- * are its rules, sections, and aspects. Game text links both. The wiki and the stories
+ * are its rules, sections, and aspects. Game text links both, and links a game term every
+ * time it appears. The wiki and the stories
  * link only the world's names, because a game's terms are often ordinary words, and a
  * chapter would light up at every "story" and "action".
  *
@@ -27,6 +28,15 @@ export interface WorldName {
   aliases: string[];
 }
 
+/** A term in lowercase, with its plural if it is singular and its singular if it is plural. */
+export function termForms(name: string): string[] {
+  const term = name.trim().toLowerCase();
+  if (!term) return [];
+  if (/[^s]s$/.test(term) && term.length > 3) return [term, term.slice(0, -1)];
+  if (/(s|x|z|ch|sh)$/.test(term)) return [term, `${term}es`];
+  return [term, `${term}s`];
+}
+
 export function gameTerms(elements: Named[], world: WorldName[], book: 'world' | 'engine'): Term[] {
   const terms: Term[] = [];
   // The world's names come first, so a person who shares a name with a rule links to the person.
@@ -40,7 +50,10 @@ export function gameTerms(elements: Named[], world: WorldName[], book: 'world' |
     // An add-on is a world's piece of another rule and carries that rule's name.
     if (p.kind === 'add-on') continue;
     if (book === 'engine' && p.origin !== 'engine') continue;
-    terms.push({ text: p.name, id: `${GAME_LINK}${p.key}` });
+    // A game's terms link every time they are used (Mike, November 11), whether or not
+    // they are capitalized, and in the singular or the plural. A term written in lowercase
+    // matches in any case, which is how the scanner reads an all-lowercase term.
+    for (const text of termForms(p.name)) terms.push({ text, id: `${GAME_LINK}${p.key}` });
   }
   return terms;
 }

@@ -7,6 +7,7 @@
   import { reconcile } from '../../lib/editor/reconcile';
   import { quiet } from '../../lib/view.svelte';
   import { GAME_LINKS, type GameLinks } from './links';
+  import { PANE } from '../../lib/pane.svelte';
 
   const NO_LINKS = { find: () => [] } as unknown as MentionScanner;
 
@@ -33,13 +34,15 @@
 
   // The names this text links, and what a click on one opens, come from the Game module.
   const links = getContext<GameLinks | undefined>(GAME_LINKS);
+  const pane = getContext<{ id: string } | undefined>(PANE);
+  const scannerNow = () => (links && (!pane || links.linked(pane.id)) ? links.scanner : NO_LINKS);
 
   let host: HTMLDivElement;
   let view: EditorView | null = null;
   // svelte-ignore state_referenced_locally
   let empty = $state(text.trim() === '');
   // svelte-ignore state_referenced_locally
-  const scanner: ScannerRef = { current: links?.scanner ?? NO_LINKS, selfId: self };
+  const scanner: ScannerRef = { current: scannerNow(), selfId: self };
   // What the editor last took from the file, and what it recently handed over to be saved.
   // svelte-ignore state_referenced_locally
   let seed = text;
@@ -67,7 +70,7 @@
 
   // New names in the world or the game redraw the links.
   $effect(() => {
-    scanner.current = links?.scanner ?? NO_LINKS;
+    scanner.current = scannerNow();
     if (view) refreshMentions(view);
   });
 

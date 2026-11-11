@@ -4,6 +4,7 @@
   import { ui } from '../lib/ui.svelte';
   import { beats } from '../lib/beats.svelte';
   import { views } from '../lib/view.svelte';
+  import { saveAll } from '../lib/saves';
   import { pageActions, pictureActions } from '../lib/pane.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
   import PaneScope from './PaneScope.svelte';
@@ -49,7 +50,7 @@
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
 
   // Each document remembers how it is shown (Mike, November 10): the size of
-  // its text, its picture, and whether the paragraph being written is lit. The choices
+  // its text and its picture. The choices
   // sit behind one button in the document's toolbar, the same for every kind of document.
   let viewing = $state<string | null>(null);
   function outsideView(e: MouseEvent) {
@@ -122,13 +123,33 @@
     const i = panes.indexOf(r.id);
     if (i >= 0) show(i);
   });
+
+  /**
+   * Escape closes the page the writer is in, after everything is saved (Mike, November 11).
+   * With no page holding the keyboard, it closes the last one. It stands aside while
+   * anything else that answers Escape is open: a dialog, a menu, Settings, the finder, or
+   * a field being typed in.
+   */
+  const ESCAPE_TAKEN = 'form.dialog, .settings, .finder, aside.panel, [role="menu"], [role="dialog"], [aria-modal="true"]';
+  async function closeCurrent(e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('input, select, textarea') || document.querySelector(ESCAPE_TAKEN)) return;
+    if (!strip?.isConnected || !panes.length) return;
+    const sections = [...strip.querySelectorAll<HTMLElement>(':scope > .row > .pane')];
+    const held = sections.findIndex((el) => el.contains(document.activeElement));
+    const id = panes[held >= 0 ? held : panes.length - 1];
+    await saveAll();
+    nav.close(id);
+  }
 </script>
 
 <svelte:window
   onresize={fit}
   onkeydown={(e) => {
-    if (e.key === 'Escape' && viewing) viewing = null;
-    else if (e.key === 'Escape' && full) leaveFull();
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (viewing) viewing = null;
+    else if (full) leaveFull();
+    else void closeCurrent(e);
   }}
   onmousedown={outsideView} />
 
@@ -154,7 +175,7 @@
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
           </button>
         </div>
-        <div class="body" class:carded={isCard(id)} data-text={look.text} data-lit={look.lit ? 'on' : 'off'}>
+        <div class="body" class:carded={isCard(id)} data-text={look.text}>
           <div class="tools" role="toolbar" aria-label="{name} tools">
             {#if pageActions.of(id).length && !full}
               <button
@@ -202,7 +223,6 @@
                 <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
                 <button type="button" aria-pressed={look.text === 'normal'} onclick={() => views.set(id, { text: 'normal' })}>Usual</button>
               </div>
-                            <label class="check"><input type="checkbox" checked={look.lit} onchange={(e) => views.set(id, { lit: e.currentTarget.checked })} /> Light the paragraph I am in</label>
               <div class="rule" role="separator"></div>
               {#if offers.length}
                 {@const choices = offers.filter((o) => o.pressed !== undefined)}
@@ -223,7 +243,7 @@
                   </div>
                 {/if}
               {/if}
-              <p class="hint">The text size, the lit paragraph, and a hidden picture are remembered for this page on this computer. The picture and its shape are kept with the page.</p>
+              <p class="hint">The text size and a hidden picture are remembered for this page on this computer. The picture and its shape are kept with the page.</p>
             </div>
           {/if}
           <PaneScope {id}>{@render pane(id, i, panes[i + 1] ?? null, full === id)}</PaneScope>
@@ -276,24 +296,6 @@
   .body[data-text='small'] {
     --prose-size: calc(var(--prose-base) * 0.88);
   }
-  /* The lit paragraph: the others fall back while the writing has the keyboard, and the
-     page eases to keep the line in place, with room below the last line to do it. */
-  .body[data-lit='on'] {
-    scroll-behavior: smooth;
-    padding-bottom: 55vh;
-  }
-  .body[data-lit='on'] :global(.cm-focused .cm-line) {
-    opacity: 0.4;
-    transition: opacity 350ms ease;
-  }
-  .body[data-lit='on'] :global(.cm-focused .cm-activeLine) {
-    opacity: 1;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .body[data-lit='on'] {
-      scroll-behavior: auto;
-    }
-  }
   .tools .view-button.on {
     color: var(--selected-fg);
     background: var(--selected-bg);
@@ -341,9 +343,6 @@
     background: var(--rule-strong, var(--edge));
     opacity: 0.6;
   }
-  .view-menu .check {
-    margin-top: 6px;
-  }
   .view-menu .offers {
     display: grid;
     gap: 2px;
@@ -365,13 +364,6 @@
     color: var(--selected-fg);
     background: var(--selected-bg);
     border-color: var(--selected-border);
-  }
-  .view-menu .check {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: calc(13px * var(--type));
-    color: var(--text-soft);
   }
   .view-menu .hint {
     margin: 8px 0 0;

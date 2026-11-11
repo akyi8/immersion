@@ -359,6 +359,35 @@ button {
   }
 }
 
+/* While the writer types, the page falls back in layers around the sentence being
+   written (Mike, November 11). The rest of its paragraph loses a tenth, the other
+   paragraphs lose a fifth, and the other open pages lose more than half. All of it
+   returns with the pointer. */
+.cm-line,
+.cm-far {
+  transition: opacity 600ms ease;
+}
+html.typing .pane:focus-within .cm-line {
+  opacity: 0.8;
+}
+html.typing .pane:focus-within .cm-focused .cm-activeLine {
+  opacity: 1;
+}
+html.typing .cm-focused .cm-far {
+  opacity: 0.9;
+}
+html.typing .pane:not(:focus-within) > .body {
+  opacity: 0.45;
+  transition: opacity 900ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-line,
+  .cm-far,
+  html.typing .pane:not(:focus-within) > .body {
+    transition: none;
+  }
+}
+
 /* While the writer types, everything but the page steps back, and it returns with the
    pointer (Mike, November 10). The parts are named here so each screen need not know. */
 .shell > header,

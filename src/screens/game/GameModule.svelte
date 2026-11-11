@@ -35,6 +35,8 @@
   import GameElement from './GameElement.svelte';
   import BookTree from './BookTree.svelte';
   import FrontPage from './FrontPage.svelte';
+  import EntryView from '../world/EntryView.svelte';
+  import { defaultShape } from '../../lib/index/frame';
   import GameTitlePage, { type TitleChanges } from './GameTitlePage.svelte';
   import SectionPage from './SectionPage.svelte';
   import RulePage from './RulePage.svelte';
@@ -52,6 +54,7 @@
     fs,
     nav,
     index = null,
+    rebuild = async () => {},
     worldName,
     engineRel,
     gameDir,
@@ -61,6 +64,8 @@
     nav: Navigator;
     /** The world's wiki, whose names the world's game text links. */
     index?: WikiIndex | null;
+    /** Reads the wiki again, after an entry opened here is renamed or moved. */
+    rebuild?: () => Promise<void>;
     worldName: string;
     /** The engine's folder, as a path from the library's top, or '' for none. */
     engineRel: string;
@@ -168,6 +173,7 @@
   const row = $derived(
     nav.panes.filter((id) => {
       if (!game) return false;
+      if (index?.get(id)) return true;
       if (id.startsWith(FRONT)) return id === `${FRONT}${bookOrigin}` && !!tree;
       if (id.startsWith(CAT)) return !!catalogOf(keyIn(id));
       if (id.startsWith(KIND)) return game.kinds.has(id.split(':')[2]);
@@ -178,6 +184,8 @@
   );
 
   function label(id: string): string {
+    const entry = index?.get(id);
+    if (entry) return entry.name;
     if (id.startsWith(FRONT)) return tree?.book.name ?? 'Book';
     if (id.startsWith(CAT)) return catalogOf(keyIn(id))?.kind.plural ?? 'Aspects';
     if (id.startsWith(KIND)) {
@@ -200,8 +208,19 @@
       bookOrigin === 'engine' ? 'engine' : 'world',
     ),
   );
+  // The front and back matter are notices and credits, so their pages link nothing.
+  const plain = $derived.by(() => {
+    const out = new Set<string>();
+    for (const s of [...(tree?.front ?? []), ...(tree?.back ?? [])]) {
+      out.add(`${SEC}${s.placed.key}`);
+      for (const i of s.items) if (i.type === 'rule') out.add(`${RULE}${i.placed.key}`);
+    }
+    return out;
+  });
+
   function openLink(id: string) {
-    if (!isGameLink(id)) return nav.openIn('world', id);
+    // A world's name opens its entry beside the page, as it does beside a chapter (Mike, November 11).
+    if (!isGameLink(id)) return nav.open(id);
     const key = id.slice(GAME_LINK.length);
     if (!byKey.has(key)) return;
     const pre = places.sections.has(key) ? SEC : places.ruleIn.has(key) ? RULE : tree?.divisions.some((d) => d.placed.key === key) ? DIV : EL;
@@ -212,6 +231,7 @@
       return linkScanner;
     },
     open: openLink,
+    linked: (pane) => !plain.has(pane),
   });
 
   // A page's view can put its picture away (lib/view.svelte.ts).
@@ -632,10 +652,32 @@
     </nav>
   {/if}
   {#if row.length && game}
-    <Panes {nav} ids={row} {label} canWindow={() => false}>
-      {#snippet pane(id, i)}
+    <Panes
+      {nav}
+      ids={row}
+      {label}
+      canWindow={() => false}
+      isCard={(id) => {
+        const e = index?.get(id);
+        return !!e?.imagePath && (e.picture ?? defaultShape(e.category, index?.pictures ?? null)) === 'behind' && views.of(id).picture !== 'hide';
+      }}>
+      {#snippet pane(id, i, next)}
         {#key `${id}|${bookOrigin}`}
-          {#if id.startsWith(FRONT) && tree}
+          {#if index?.get(id)}
+            <!-- A wiki entry opened from a name in the game's text, beside the page it came from. -->
+            <EntryView
+              {index}
+              {fs}
+              {id}
+              view="narrator"
+              {next}
+              fresh={false}
+              onOpen={(target) => nav.open(target, i)}
+              onMoved={async (from, to) => {
+                await rebuild();
+                nav.replace(from, to);
+              }} />
+          {:else if id.startsWith(FRONT) && tree}
             <GameTitlePage
               place="{bookOrigin === 'engine' ? 'Base game' : `${worldName}'s game`} · Title page"
               book={tree.book}

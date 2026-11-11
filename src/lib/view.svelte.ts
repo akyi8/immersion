@@ -2,8 +2,7 @@ import { ui } from './ui.svelte';
 
 /**
  * How one document is shown (Mike, November 10): the size of
- * its text, whether its picture shows, and whether the paragraph being written is lit
- * while the others fall back. Each document remembers how it was left, because a session
+ * its text and whether its picture shows. Each document remembers how it was left, because a session
  * plan read for reference, a chapter being written, and a wiki entry being built want
  * different rooms. The choices are kept by this computer, like every other memory of
  * how a panel was left, so opening a document never writes to the library.
@@ -12,10 +11,9 @@ export interface DocView {
   text: 'normal' | 'small';
   /** Whether the page's picture shows. How it is shaped and framed is kept in the page's file. */
   picture: 'show' | 'hide';
-  lit: boolean;
 }
 
-export const DEFAULT_VIEW: DocView = { text: 'normal', picture: 'show', lit: false };
+export const DEFAULT_VIEW: DocView = { text: 'normal', picture: 'show' };
 
 const KEY = 'immersion.views';
 const QUIET_KEY = 'immersion.quiet';
@@ -43,7 +41,6 @@ export function viewFrom(saved: Partial<DocView> | undefined, usual: DocView = D
     text: saved?.text === 'small' || saved?.text === 'normal' ? saved.text : usual.text,
     // A picture put away was first kept as `false`. Any other value shows it.
     picture: saved?.picture === 'hide' || (saved?.picture as unknown) === false ? 'hide' : usual.picture,
-    lit: typeof saved?.lit === 'boolean' ? saved.lit : usual.lit,
   };
 }
 
