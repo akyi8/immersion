@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { watchForTrouble } from './lib/trouble';
   import { onMount } from 'svelte';
   import { inDesktopApp } from './lib/runtime';
   import type { WorldFs } from './lib/fs/types';
@@ -207,6 +208,7 @@
     });
     zoom.start();
     quiet.start();
+    watchForTrouble();
     const page = readerPage();
     if (page) {
       readerId = page.id;

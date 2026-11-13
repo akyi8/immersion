@@ -11,6 +11,7 @@ import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/lang
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
 import { livePreview } from './livepreview';
 import { sentenceAt } from './sentence';
+import { noteTrouble } from '../trouble';
 import { selectionToolbar, type ToolbarOptions } from './toolbar';
 import { tags } from '@lezer/highlight';
 import { smallestChange } from './diff';
@@ -344,6 +345,8 @@ export function createEditor(options: {
         options.toolbar ? selectionToolbar(options.toolbar) : [],
         highlightActiveLine(),
         sentenceFocus,
+        EditorView.exceptionSink.of((e) => noteTrouble('editor', e)),
+        deadKeys,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());
           if (u.selectionSet || u.docChanged) options.onCursor?.(u.state.selection.main.head);
@@ -352,6 +355,39 @@ export function createEditor(options: {
     }),
   });
 }
+
+/**
+ * Notes a letter key that changed nothing (Mike, November 13: typing stopped in a page
+ * and nothing said why). The note says what the editor held at that moment, which is
+ * what is needed to find the cause afterward.
+ */
+const deadKeys = EditorView.domEventHandlers({
+  keydown(event, view) {
+    if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return false;
+    const doc = view.state.doc;
+    setTimeout(() => {
+      if (view.state.doc !== doc || !view.dom.isConnected) return;
+      const sel = view.state.selection.main;
+      const line = doc.lineAt(sel.head);
+      const active = document.activeElement as HTMLElement | null;
+      noteTrouble('a key changed nothing', {
+        key: event.key === ' ' ? 'space' : 'a letter',
+        prevented: event.defaultPrevented,
+        focused: view.hasFocus,
+        composing: view.composing,
+        editable: view.contentDOM.contentEditable,
+        readOnly: view.state.readOnly,
+        active: active ? `${active.tagName}.${active.className}`.slice(0, 80) : 'nothing',
+        selection: [sel.anchor, sel.head],
+        line: line.number,
+        lines: doc.lines,
+        lineStarts: line.text.slice(0, 40),
+        firstLine: doc.line(1).text.slice(0, 40),
+      });
+    }, 500);
+    return false;
+  },
+});
 
 /**
  * Marks the parts of the cursor's paragraph that lie outside the sentence being written,

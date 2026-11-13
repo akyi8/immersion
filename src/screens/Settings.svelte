@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { clearTroubles, troubleText, troubles } from '../lib/trouble';
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
   import { account } from '../lib/account.svelte';
@@ -85,6 +86,18 @@
       await lib.setLibrary(path);
       await account.refresh();
     });
+  }
+
+  // The record of errors kept on this computer, read when Settings opens.
+  let log = $state(troubles());
+  let copied = $state(false);
+  async function copyLog() {
+    try {
+      await navigator.clipboard.writeText(troubleText());
+      copied = true;
+    } catch {
+      // Where copying is refused, the text below can be selected and copied by hand.
+    }
   }
 </script>
 
@@ -281,6 +294,15 @@
       <h3 class="label">While typing</h3>
       <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the sentence I am writing</label>
       <p class="hint">While you type, everything steps back in layers around the sentence you are writing: its paragraph a little, the rest of the page a little more, then the other open pages, then the header and the sidebar. It all returns when the pointer moves.</p>
+      <h3 class="label">When something goes wrong</h3>
+      <p class="hint">Immersion keeps a short record of errors on this computer, such as a key that changed nothing. It stays here unless you copy it. {log.length ? `It holds ${log.length} ${log.length === 1 ? 'note' : 'notes'}.` : 'It is empty.'}</p>
+      {#if log.length}
+        <div class="row">
+          <button type="button" onclick={copyLog}>{copied ? 'Copied' : 'Copy the record'}</button>
+          <button type="button" onclick={() => (clearTroubles(), (log = []))}>Clear it</button>
+        </div>
+        <textarea class="trouble" readonly rows="6" aria-label="The record of errors">{troubleText()}</textarea>
+      {/if}
       <h3 class="label">Size</h3>
       <div class="row zoom">
         <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>
@@ -314,6 +336,15 @@
 {/if}
 
 <style>
+  .trouble {
+    width: 100%;
+    margin-top: 8px;
+    box-sizing: border-box;
+    font: 12px/1.4 ui-monospace, monospace;
+    color: var(--text-soft);
+    background: var(--well, var(--bg));
+    border: 1px solid var(--rule-strong, var(--edge));
+  }
   .backdrop {
     position: fixed;
     inset: 0;

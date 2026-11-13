@@ -2,6 +2,7 @@ import { EditorSelection, EditorState, Prec, RangeSet, StateEffect, StateField, 
 import { Decoration, EditorView, WidgetType, keymap, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { hasNoProse, startWriting } from './writeHere';
+import { noteTrouble } from '../trouble';
 
 /**
  * Live preview. The file stays plain markdown, and this extension only changes how it
@@ -165,6 +166,10 @@ function outlineZones(state: EditorState): Zone[] {
  * title flashed as the cursor passed through).
  */
 function titleZone(state: EditorState, title: string): Zone | null {
+  // A page with no title has no title line to hide. Without this, a heading just begun
+  // at the top of a game's text, a bare `# `, counted as that title, and the next
+  // letter typed after it was refused (found November 13).
+  if (!title) return null;
   const doc = state.doc;
   const header = headerRange(state);
   let n = header ? doc.lineAt(header.to).number + 1 : 1;
@@ -276,7 +281,10 @@ const protectZones = (title: string) =>
         else if (toA === fromA && fromA === z.to && z.to === doc.length && doc.lineAt(z.to).from < z.to) atEnd = inserted.toString();
       }
     });
-    if (blocked) return [];
+    if (blocked) {
+      noteTrouble('typing refused', { why: 'the change touched a protected part of the page', zones, lines: doc.lines, at: tr.startState.selection.main.head });
+      return [];
+    }
     if (atEnd !== null) {
       const text = (atEnd as string).replace(/^\n+/, '');
       return { changes: { from: doc.length, insert: '\n\n' + text }, selection: { anchor: doc.length + 2 + text.length }, userEvent: 'input.type' };
