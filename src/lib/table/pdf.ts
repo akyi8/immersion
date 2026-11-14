@@ -70,6 +70,12 @@ export async function chaptersOf(book: Book, limit = 400): Promise<Chapter[]> {
   return out;
 }
 
+/** A page's width divided by its height. */
+export async function shapeOf(book: Book, number: number): Promise<number> {
+  const v = (await book.getPage(number)).getViewport({ scale: 1 });
+  return v.width / v.height;
+}
+
 /** Draws one page onto a canvas, as wide as `width` CSS pixels. Returns a way to stop a drawing still running. */
 export async function drawPage(book: Book, number: number, canvas: HTMLCanvasElement, width: number): Promise<{ cancel: () => void; done: Promise<void> }> {
   const page = await book.getPage(number);
@@ -78,6 +84,7 @@ export async function drawPage(book: Book, number: number, canvas: HTMLCanvasEle
   const viewport = page.getViewport({ scale: (width / natural.width) * ratio });
   canvas.width = Math.floor(viewport.width);
   canvas.height = Math.floor(viewport.height);
+  canvas.style.width = `${Math.floor(width)}px`;
   canvas.style.aspectRatio = `${natural.width} / ${natural.height}`;
   const task = page.render({ canvas, viewport });
   return {

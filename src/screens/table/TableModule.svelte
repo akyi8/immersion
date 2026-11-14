@@ -268,7 +268,7 @@
         const e = index.get(id);
         return !!e?.imagePath && (e.picture ?? defaultShape(e.category, index.pictures ?? null)) === 'behind' && views.of(id).picture !== 'hide';
       }}>
-      {#snippet pane(id, i, next)}
+      {#snippet pane(id, i, next, full)}
         {@const at = found(id)}
         {@const card = campaigns.find((c) => c.card === id)}
         {#if index.get(id)}
@@ -288,9 +288,16 @@
         {:else if id.startsWith(RUMORS) && campaignAt(id.slice(RUMORS.length))}
           <RumorsPage {fs} {index} campaign={campaignAt(id.slice(RUMORS.length))!} {view} onOpen={(target) => nav.open(target, i)} />
         {:else if bookAt(id)}
-          <RulebookPane {fs} path={id} name={bookAt(id)!.name} />
+          <RulebookPane {fs} path={id} name={bookAt(id)!.name} {full} />
         {:else if card}
-          <CampaignPage {fs} campaign={card} onChanged={refresh} />
+          <CampaignPage
+            {fs}
+            campaign={card}
+            onChanged={refresh}
+            onOpen={async (book) => {
+              await refresh();
+              nav.open(book, i);
+            }} />
         {:else if at}
           {#key at.session.stem}
             <SessionPane

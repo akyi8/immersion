@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
+  import { inDesktopApp } from '../../lib/runtime';
 
   /**
    * A campaign's own page (Mike, November 14): its name, whether the writer runs it or
@@ -11,10 +12,13 @@
     fs,
     campaign,
     onChanged,
+    onOpen,
   }: {
     fs: WorldFs;
     campaign: Campaign;
     onChanged: () => Promise<void>;
+    /** Opens a rulebook just added. */
+    onOpen: (path: string) => void;
   } = $props();
 
   let problem = $state('');
@@ -38,6 +42,23 @@
     await saveLinks([...campaign.links, { name: linkName.trim() || url, url }]);
     linkName = '';
     linkUrl = '';
+  }
+
+  let adding = $state(false);
+  async function addBook() {
+    problem = '';
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const picked = await open({ title: 'Choose a rulebook', filters: [{ name: 'PDF files', extensions: ['pdf'] }] });
+      if (typeof picked !== 'string') return;
+      adding = true;
+      onOpen(await fs.addPdf(`${campaign.path}/rules`, picked));
+      await onChanged();
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+    } finally {
+      adding = false;
+    }
   }
 
   let copied = $state('');
@@ -82,7 +103,12 @@
   {#if campaign.rules.length}
     <p class="hint">{campaign.rules.map((r) => r.name).join(', ')}. Each opens from the sidebar, in a pane beside the session.</p>
   {/if}
-  <p class="hint">A rulebook is a PDF file in this campaign's <span class="path">{campaign.path}/rules</span> folder. Put a PDF there and it shows in the sidebar.</p>
+  {#if inDesktopApp}
+    <div><button type="button" disabled={adding} onclick={addBook}>{adding ? 'Copying…' : 'Add a rulebook'}</button></div>
+    <p class="hint">Choose a PDF and it is copied into this campaign's <span class="path">{campaign.path}/rules</span> folder. The file you chose stays where it was.</p>
+  {:else}
+    <p class="hint">A rulebook is a PDF file in this campaign's <span class="path">{campaign.path}/rules</span> folder. Put a PDF there and it shows in the sidebar.</p>
+  {/if}
 
   <h2 class="label">Links</h2>
   <p class="hint">Pages the table shares, such as the spreadsheet that holds everyone's characters.</p>

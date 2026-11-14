@@ -40,6 +40,10 @@ export class DiskFs implements WorldFs {
     return `${url}?w=${this.worldTag}${this.imageVersion ? `&v=${this.imageVersion}` : ''}`;
   }
 
+  addPdf(dir: string, source: string): Promise<string> {
+    return invoke<string>('add_pdf', { dir, source });
+  }
+
   async setImage(stem: string, image: ImageSource): Promise<string> {
     const path = await invoke<string>('set_image', { stem, source: await picturePath(image) });
     this.imageVersion += 1;

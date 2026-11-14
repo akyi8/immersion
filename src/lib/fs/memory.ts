@@ -76,6 +76,10 @@ export class MemoryFs implements WorldFs {
     this.notify([a, b]);
   }
 
+  async addPdf(): Promise<string> {
+    throw new Error('Adding a rulebook works in the desktop app.');
+  }
+
   async setImage(stem: string, image: ImageSource): Promise<string> {
     if (image.kind !== 'file') throw new Error('A browser takes pictures as files.');
     const ext = imageExtension(image.file.name);

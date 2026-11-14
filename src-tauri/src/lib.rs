@@ -1157,6 +1157,32 @@ fn set_image(stem: String, source: String, state: State<OpenWorld>) -> Result<St
     Ok(target.strip_prefix(&root).unwrap_or(&target).to_string_lossy().replace('\\', "/"))
 }
 
+/// Copies a PDF from anywhere on the computer into a folder of the open world, such as a
+/// rulebook into a campaign's `rules` folder. Nothing already in the folder is replaced.
+/// Returns the new file's path inside the world.
+#[tauri::command]
+fn add_pdf(dir: String, source: String, state: State<OpenWorld>) -> Result<String, String> {
+    let root = root(&state)?;
+    let source = PathBuf::from(&source);
+    let is_pdf = source.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
+    let name = source.file_name().filter(|_| is_pdf).ok_or("A rulebook is a PDF file.")?;
+    let folder = inside(&root, &dir)?;
+    fs::create_dir_all(&folder).map_err(|e| format!("Could not make the folder {dir}: {e}"))?;
+    let target = folder.join(name);
+    if target.exists() {
+        return Err(format!("{dir} already has a file named {}.", name.to_string_lossy()));
+    }
+    let mut temp = target.clone().into_os_string();
+    temp.push(SAVING_SUFFIX);
+    let temp = PathBuf::from(temp);
+    fs::copy(&source, &temp).map_err(|e| format!("Could not copy the file: {e}"))?;
+    fs::rename(&temp, &target).map_err(|e| {
+        let _ = fs::remove_file(&temp);
+        format!("Could not save the file: {e}")
+    })?;
+    Ok(target.strip_prefix(&root).unwrap_or(&target).to_string_lossy().replace('\\', "/"))
+}
+
 #[tauri::command]
 fn read_text(rel: String, state: State<OpenWorld>) -> Result<String, String> {
     let path = inside(&root(&state)?, &rel)?;
@@ -1378,6 +1404,7 @@ pub fn run() {
             vault_forget,
             read_picture,
             set_image,
+            add_pdf,
             stash_picture
         ])
         .run(tauri::generate_context!())

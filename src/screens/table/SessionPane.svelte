@@ -68,9 +68,20 @@
       path,
       name: session.name,
       write: (line) => {
-        const at = view.state.doc.lineAt(view.state.selection.main.head);
+        const doc = view.state.doc;
+        // A log nobody has clicked in yet has its cursor at the very top, inside the file's
+        // hidden header, where nothing may be written. The line then goes at the end.
+        const header = /^---\n[\s\S]*?\n---(?:\n|$)/.exec(doc.toString());
+        const head = view.state.selection.main.head;
+        const at = head < (header?.[0].length ?? 0) || !view.hasFocus ? doc.line(doc.lines) : doc.lineAt(head);
         const insert = at.text.trim() ? `\n\n${line}` : line;
         view.dispatch({ changes: { from: at.to, insert }, selection: { anchor: at.to + insert.length }, scrollIntoView: true, userEvent: 'input' });
+        // Anything that still refused the line is written at the end, so a roll is never lost.
+        if (view.state.doc === doc) {
+          const end = doc.length;
+          const tail = `${doc.sliceString(Math.max(0, end - 2)).endsWith('\n\n') || end === 0 ? '' : doc.sliceString(end - 1) === '\n' ? '\n' : '\n\n'}${line}`;
+          view.dispatch({ changes: { from: end, insert: tail }, selection: { anchor: end + tail.length }, scrollIntoView: true });
+        }
       },
     });
   }
