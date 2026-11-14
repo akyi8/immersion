@@ -17,6 +17,7 @@
   import RumorsPage from './RumorsPage.svelte';
   import CampaignPage from './CampaignPage.svelte';
   import Tray from './Tray.svelte';
+  import RulebookPane from './RulebookPane.svelte';
   import { tray } from '../../lib/table/tray.svelte';
 
   /**
@@ -74,13 +75,14 @@
   const plans = $derived(view === 'narrator');
   const campaignAt = (path: string) => campaigns.find((c) => c.path === path || c.card === path) ?? null;
   const found = (id: string) => sessionOf(campaigns, id);
+  const bookAt = (id: string) => campaigns.flatMap((c) => c.rules).find((r) => r.path === id) ?? null;
   const showsPlan = (c: Campaign) => c.role === 'gm' && plans;
 
   const row = $derived(
     nav.panes.filter((id) => {
       if (index.get(id)) return true;
       if (id.startsWith(RUMORS)) return !!campaignAt(id.slice(RUMORS.length));
-      if (campaigns.some((c) => c.card === id)) return true;
+      if (campaigns.some((c) => c.card === id || c.rules.some((r) => r.path === id))) return true;
       const at = found(id);
       if (!at) return false;
       return at.session.log === id || (at.session.plan === id && showsPlan(at.campaign));
@@ -93,6 +95,8 @@
     if (id.startsWith(RUMORS)) return 'Rumors';
     const c = campaigns.find((x) => x.card === id);
     if (c) return c.name;
+    const book = bookAt(id);
+    if (book) return book.name;
     const at = found(id);
     return at ? (at.session.plan === id ? `${at.session.name} · plan` : at.session.name) : id;
   }
@@ -240,6 +244,9 @@
           {/if}
         {/each}
         <button type="button" class="item d1 quiet" onclick={() => start({ kind: 'adventure', campaign: c })}>+ New adventure</button>
+        {#each c.rules as r (r.path)}
+          <button type="button" class="item d1" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)}><span>{r.name}</span><span class="n">Rulebook</span></button>
+        {/each}
         <button type="button" class="item d1" class:on={isOpen(RUMORS + c.path)} onclick={() => nav.open(RUMORS + c.path)}><span>Rumors</span></button>
         <div class="gap"></div>
       {:else}
@@ -280,6 +287,8 @@
             }} />
         {:else if id.startsWith(RUMORS) && campaignAt(id.slice(RUMORS.length))}
           <RumorsPage {fs} {index} campaign={campaignAt(id.slice(RUMORS.length))!} {view} onOpen={(target) => nav.open(target, i)} />
+        {:else if bookAt(id)}
+          <RulebookPane {fs} path={id} name={bookAt(id)!.name} />
         {:else if card}
           <CampaignPage {fs} campaign={card} onChanged={refresh} />
         {:else if at}

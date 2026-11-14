@@ -1,6 +1,7 @@
 import { MemoryFs } from '../fs/memory';
 import worldImage from './world.jpg';
 import { SAMPLE_ENGINE, SAMPLE_GAME } from './game';
+import { SAMPLE_RULEBOOK } from './rulebook';
 
 /**
  * Harrowgate, a small demo world for browser testing. It exists only to exercise the
@@ -25,6 +26,7 @@ engine: ${SAMPLE_ENGINE}
 `,
     ...SAMPLE_GAME,
     'world.jpg': worldImage,
+    'table/the-fog-season/rules/example-engine.pdf': SAMPLE_RULEBOOK,
     'table/the-fog-season/campaign.md': `---
 name: The Fog Season
 role: gm

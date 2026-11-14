@@ -639,6 +639,10 @@ Tomas Reyes met us at the Salt Market and was already shouting.
 
 A session that has a plan and no log yet keeps these facts in the plan's header. The text of a log or a plan is ordinary markdown: names link as they do in a wiki entry, and rumors and narrator-only text are written as in section 3.
 
+### Rulebooks
+
+A PDF file in a campaign's `rules` folder is one of its rulebooks, such as `table/the-fog-season/rules/core-rules.pdf`. The book's name is its file name. The page a book was left on is remembered by each computer and is not written to the world.
+
 ### Decks
 
 A poker deck with its jokers and the tarot come with the app. Any other deck is a markdown file in `table/decks`, with one card on each line:

@@ -57,6 +57,7 @@
     "dompurify": "3.4.17",
     "hash-wasm": "4.12.0",
     "marked": "18.0.14",
+    "pdfjs-dist": "5.7.284",
     "yaml": "2.9.1"
   },
   "devDependencies": {

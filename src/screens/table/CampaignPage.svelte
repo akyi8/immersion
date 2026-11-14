@@ -78,6 +78,12 @@
     {/if}
   </div>
 
+  <h2 class="label">Rulebooks</h2>
+  {#if campaign.rules.length}
+    <p class="hint">{campaign.rules.map((r) => r.name).join(', ')}. Each opens from the sidebar, in a pane beside the session.</p>
+  {/if}
+  <p class="hint">A rulebook is a PDF file in this campaign's <span class="path">{campaign.path}/rules</span> folder. Put a PDF there and it shows in the sidebar.</p>
+
   <h2 class="label">Links</h2>
   <p class="hint">Pages the table shares, such as the spreadsheet that holds everyone's characters.</p>
   <ul>
@@ -163,6 +169,11 @@
     gap: 4px 12px;
     padding: 8px 0;
     border-bottom: 1px solid var(--line);
+  }
+  .path {
+    font-family: var(--font-label);
+    font-size: 0.92em;
+    user-select: text;
   }
   .link-name {
     color: var(--text);

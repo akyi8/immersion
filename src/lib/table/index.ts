@@ -49,6 +49,8 @@ export interface Campaign {
   /** The other game's name, such as Pendragon. */
   system: string;
   links: Link[];
+  /** The campaign's rulebooks: the PDF files in its `rules` folder. */
+  rules: { path: string; name: string }[];
   adventures: Adventure[];
 }
 
@@ -134,6 +136,11 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
       const ah = await header(fs, `${path}/${a.name}/adventure.md`);
       adventures.push({ path: `${path}/${a.name}`, name: text(ah.name) || titleFromSlug(a.name), order: Number(ah.order) || 0, sessions: await sessionsIn(fs, `${path}/${a.name}`) });
     }
+    const rules: Campaign['rules'] = [];
+    if (await fs.exists(`${path}/rules`)) {
+      for (const r of await fs.readDir(`${path}/rules`)) if (!r.isDir && /\.pdf$/i.test(r.name)) rules.push({ path: `${path}/rules/${r.name}`, name: titleFromSlug(r.name.replace(/\.pdf$/i, '')) });
+      rules.sort((a, b) => a.name.localeCompare(b.name));
+    }
     adventures.sort((a, b) => a.order - b.order || a.path.localeCompare(b.path, undefined, { numeric: true }));
     out.push({
       path,
@@ -143,6 +150,7 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
       game: text(h.game).toLowerCase() === 'own' ? 'own' : 'other',
       system: text(h.system),
       links: links(h.links),
+      rules,
       adventures,
     });
   }

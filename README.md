@@ -53,6 +53,7 @@ The Table module holds campaigns played at a real table, for the game master who
 - **Names link** in a session as they do in a chapter, and a selected name can be made into a wiki entry.
 - **Rumors.** Selected text in a session or a wiki entry can be marked as a rumor: something suspected and not known. A campaign's Rumors page lists every rumor in its sessions and in the wiki, and marks each one confirmed or false. Text with no mark is known to everyone, and narrator-only text is the game master's secret.
 - **Dice and cards.** A tray at the foot of the Table sidebar rolls dice written the way players say them, such as d20, 3d6, or 2d6+3, and draws cards from a deck. A roll or a drawn card can be written into the session log you were last in, with what it was for. A campaign that uses the world's own game also rolls for trouble, from a pressure and an edge. A poker deck and the tarot come with the app, any other deck is a file that lists its cards, and a campaign remembers what has been drawn until the cards are shuffled back.
+- **Rulebooks.** A PDF file in a campaign's `rules` folder shows in the sidebar as a rulebook and opens in a pane beside the session. It shows a page at a time, turns pages with the arrow keys, jumps by the book's own contents list, and opens on the page it was left on.
 - **A campaign's page** holds its name, whether you run it or play in it, which game it uses, and links the table shares, such as a spreadsheet of characters.
 
 ### Across the app
@@ -121,7 +122,7 @@ GitHub Actions builds the macOS and Windows apps on every push to `main` and pub
 
 ## Stack
 
-Tauri 2 with a Rust backend, Svelte 5 and TypeScript for the screens, CodeMirror 6 for the editor, and Vite. Fonts are bundled, so every theme works offline.
+Tauri 2 with a Rust backend, Svelte 5 and TypeScript for the screens, CodeMirror 6 for the editor, PDF.js for rulebooks, and Vite. Fonts are bundled, so every theme works offline.
 
 ## License
 
