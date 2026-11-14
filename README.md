@@ -1,8 +1,8 @@
 # Immersion
 
-Immersion is a desktop app for worldbuilding, writing fiction, and solo tabletop roleplaying. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with Git.
+Immersion is a desktop app for worldbuilding, writing fiction, and tabletop roleplaying: writing a game, running or playing in a campaign at a real table, and, later, playing solo. A world is an ordinary folder of markdown files, so everything Immersion shows can also be opened in Obsidian, VS Code, or any text editor, and synced with Git.
 
-Immersion is in active development. The World, Story, and Boards modules work today, and a first version of the Game module holds a tabletop game's rules. Play, which will run solo roleplaying sessions with an AI narrator, comes next, and the Character module is still being designed.
+Immersion is in active development. The World, Story, and Boards modules work today. The Game module holds a tabletop game's rules, and the Table module keeps a campaign's sessions, rumors, rulebooks, handouts, dice, and cards. Play, which will run solo roleplaying sessions with an AI narrator, and the Character module are still being designed.
 
 ## What it does
 

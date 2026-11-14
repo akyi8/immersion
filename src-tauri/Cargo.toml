@@ -1,7 +1,7 @@
 [package]
 name = "immersion"
 version = "0.2.0"
-description = "Immersion: a solo roleplaying and writing app"
+description = "Immersion: a worldbuilding, writing, and tabletop roleplaying app"
 edition = "2021"
 rust-version = "1.77.2"
 

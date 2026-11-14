@@ -300,6 +300,7 @@ Some files belong to the app, and editing them by hand risks damaging what they 
 
 - **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable.
 - **`immersion.md`** at the library root holds author profiles, the vault's key settings, and the writer's layout choices. Its `vault:` field must never be changed by hand.
+- **`draws.md`** inside a campaign's folder records the cards drawn from each deck, and the app rewrites it with every draw (see section 12).
 - **`archive/`** folders are deliberately left out of the app.
 
 ## 10. Editing a world while the app is open
