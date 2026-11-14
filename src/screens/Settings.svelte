@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tumbling } from '../lib/table/tray.svelte';
   import { clearTroubles, troubleText, troubles } from '../lib/trouble';
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
@@ -294,6 +295,9 @@
       <h3 class="label">While typing</h3>
       <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the sentence I am writing</label>
       <p class="hint">While you type, everything steps back in layers around the sentence you are writing: its paragraph a little, the rest of the page a little more, then the other open pages, then the header and the sidebar. It all returns when the pointer moves.</p>
+      <h3 class="label">Dice</h3>
+      <label class="check"><input type="checkbox" checked={tumbling.on} onchange={(e) => tumbling.set(e.currentTarget.checked)} /> Tumble the dice across the screen</label>
+      <p class="hint">Dice rolled in the Table module are thrown in the world's own color and land where they fall. With this off, a roll shows its numbers at once.</p>
       <h3 class="label">When something goes wrong</h3>
       <p class="hint">Immersion keeps a short record of errors on this computer, such as a key that changed nothing. It stays here unless you copy it. {log.length ? `It holds ${log.length} ${log.length === 1 ? 'note' : 'notes'}.` : 'It is empty.'}</p>
       {#if log.length}

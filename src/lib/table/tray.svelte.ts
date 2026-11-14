@@ -23,3 +23,27 @@ class Tray {
 }
 
 export const tray = new Tray();
+
+/** Whether dice tumble across the screen when rolled (Mike, November 14). Kept by this computer. */
+const TUMBLE = 'immersion.table.tumble';
+class Tumbling {
+  on = $state(
+    (() => {
+      try {
+        return localStorage.getItem(TUMBLE) !== 'off';
+      } catch {
+        return true;
+      }
+    })(),
+  );
+
+  set(on: boolean) {
+    this.on = on;
+    try {
+      localStorage.setItem(TUMBLE, on ? 'on' : 'off');
+    } catch {
+      // Not remembering the choice is harmless.
+    }
+  }
+}
+export const tumbling = new Tumbling();

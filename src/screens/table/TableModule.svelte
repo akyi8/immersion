@@ -18,6 +18,8 @@
   import CampaignPage from './CampaignPage.svelte';
   import Tray from './Tray.svelte';
   import RulebookPane from './RulebookPane.svelte';
+  import HandoutPane from './HandoutPane.svelte';
+  import { openInWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
 
@@ -77,13 +79,32 @@
   const campaignAt = (path: string) => campaigns.find((c) => c.path === path || c.card === path) ?? null;
   const found = (id: string) => sessionOf(campaigns, id);
   const bookAt = (id: string) => campaigns.flatMap((c) => c.rules).find((r) => r.path === id) ?? null;
+  const handoutAt = (id: string) => campaigns.flatMap((c) => c.handouts).find((h) => h.path === id) ?? null;
+
+  /** Renames a rulebook or a handout, and keeps its pane open on the new file. */
+  async function renameFile(id: string, name: string): Promise<string | null> {
+    try {
+      const to = await renameBook(fs, id, name);
+      movePage(id, to);
+      await refresh();
+      nav.replace(id, to);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  /** A rulebook or a handout moves to a window of its own, to sit on another screen or be shared on a call. */
+  function toWindow(id: string) {
+    void openInWindow(id, label(id));
+  }
   const showsPlan = (c: Campaign) => c.role === 'gm' && plans;
 
   const row = $derived(
     nav.panes.filter((id) => {
       if (index.get(id)) return true;
       if (id.startsWith(RUMORS)) return !!campaignAt(id.slice(RUMORS.length));
-      if (campaigns.some((c) => c.card === id || c.rules.some((r) => r.path === id))) return true;
+      if (campaigns.some((c) => c.card === id || c.rules.some((r) => r.path === id) || c.handouts.some((h) => h.path === id))) return true;
       const at = found(id);
       if (!at) return false;
       return at.session.log === id || (at.session.plan === id && showsPlan(at.campaign));
@@ -96,7 +117,7 @@
     if (id.startsWith(RUMORS)) return 'Rumors';
     const c = campaigns.find((x) => x.card === id);
     if (c) return c.name;
-    const book = bookAt(id);
+    const book = bookAt(id) ?? handoutAt(id);
     if (book) return book.name;
     const at = found(id);
     return at ? (at.session.plan === id ? `${at.session.name} · plan` : at.session.name) : id;
@@ -252,6 +273,12 @@
             <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} title={r.name}><span>{r.name}</span></button>
           {/each}
         {/if}
+        {#if c.handouts.length}
+          <h3 class="label d1">Handouts</h3>
+          {#each c.handouts as h (h.path)}
+            <button type="button" class="item d1 book" class:on={isOpen(h.path)} onclick={() => nav.open(h.path)} title={h.name}><span>{h.name}</span><span class="n">{h.kind === 'pdf' ? 'PDF' : 'Picture'}</span></button>
+          {/each}
+        {/if}
         <div class="gap"></div>
       {:else}
         {#if loaded}<p class="hint">No campaigns yet.</p>{/if}
@@ -267,7 +294,8 @@
       {nav}
       ids={row}
       {label}
-      canWindow={() => false}
+      canWindow={(id) => !!(bookAt(id) ?? handoutAt(id))}
+      onWindow={toWindow}
       isCard={(id) => {
         const e = index.get(id);
         return !!e?.imagePath && (e.picture ?? defaultShape(e.category, index.pictures ?? null)) === 'behind' && views.of(id).picture !== 'hide';
@@ -293,22 +321,15 @@
           <RumorsPage {fs} {index} campaign={campaignAt(id.slice(RUMORS.length))!} {view} onOpen={(target) => nav.open(target, i)} />
         {:else if bookAt(id)}
           {#key id}
-            <RulebookPane
-              {fs}
-              path={id}
-              name={bookAt(id)!.name}
-              {full}
-              onRename={async (name) => {
-                try {
-                  const to = await renameBook(fs, id, name);
-                  movePage(id, to);
-                  await refresh();
-                  nav.replace(id, to);
-                  return null;
-                } catch (e) {
-                  return e instanceof Error ? e.message : String(e);
-                }
-              }} />
+            <RulebookPane {fs} path={id} name={bookAt(id)!.name} {full} onRename={(name) => renameFile(id, name)} />
+          {/key}
+        {:else if handoutAt(id)}
+          {#key id}
+            {#if handoutAt(id)!.kind === 'pdf'}
+              <RulebookPane {fs} path={id} name={handoutAt(id)!.name} {full} kind="Handout" onRename={(name) => renameFile(id, name)} />
+            {:else}
+              <HandoutPane {fs} path={id} name={handoutAt(id)!.name} onRename={(name) => renameFile(id, name)} />
+            {/if}
           {/key}
         {:else if card}
           <CampaignPage

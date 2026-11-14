@@ -14,6 +14,9 @@
   import TimelineView from './world/TimelineView.svelte';
   import SeriesPane from './story/SeriesPane.svelte';
   import ManuscriptBoard from './boards/ManuscriptBoard.svelte';
+  import RulebookPane from './table/RulebookPane.svelte';
+  import HandoutPane from './table/HandoutPane.svelte';
+  import { bookName, isPdf, isPicture } from '../lib/table/index';
 
   /**
    * A reading window (Jen and Mike, October 25): one page and nothing else, so it can sit
@@ -55,6 +58,10 @@
     applyTheme(world?.theme ?? null, mode.current);
   });
 
+  // A rulebook or a handout shows alone and fills the window, so it can be shared on a call (Mike, November 14).
+  const media = $derived(isPdf(id) ? 'pdf' : isPicture(id) ? 'picture' : null);
+  const mediaName = $derived(bookName(id.split('/').pop() ?? id));
+
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
   const boardOf = (p: string) => (p.startsWith('@board:') ? (story?.manuscripts.find((m) => m.path === p.slice('@board:'.length)) ?? null) : null);
   const row = $derived(nav.panes.filter((p) => p === '@timeline' || p.startsWith('@series:') || boardOf(p) || index?.get(p) || pieces.has(p)));
@@ -76,7 +83,7 @@
 
   // Closing the last page closes the window.
   $effect(() => {
-    if (index && nav.panes.length === 0) closeWindow();
+    if (!media && index && nav.panes.length === 0) closeWindow();
   });
   async function closeWindow() {
     try {
@@ -89,12 +96,17 @@
 
   // The window's title follows the page it was opened on.
   $effect(() => {
-    if (row.length) document.title = label(row[0]);
+    if (media) document.title = mediaName;
+    else if (row.length) document.title = label(row[0]);
   });
 </script>
 
 <div class="reader">
-  {#if index && row.length}
+  {#if media === 'picture'}
+    <HandoutPane {fs} path={id} name={mediaName} bare />
+  {:else if media === 'pdf'}
+    <div class="showing"><RulebookPane {fs} path={id} name={mediaName} kind="" /></div>
+  {:else if index && row.length}
     <Panes {nav} ids={row} {label}>
       {#snippet pane(p, i, next)}
         {#if p.startsWith('@series:') && world}
@@ -124,7 +136,7 @@
     </Panes>
   {:else if problem}
     <p class="problem" role="alert">{problem}</p>
-  {:else if index}
+  {:else if index && !media}
     <p class="gone">This page is no longer in the world. It may have been renamed or archived.</p>
   {/if}
 
@@ -137,6 +149,12 @@
 </div>
 
 <style>
+  .showing {
+    height: 100%;
+    box-sizing: border-box;
+    padding: 18px 22px;
+    overflow: auto;
+  }
   .reader {
     height: 100%;
     display: flex;

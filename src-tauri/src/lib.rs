@@ -1157,15 +1157,20 @@ fn set_image(stem: String, source: String, state: State<OpenWorld>) -> Result<St
     Ok(target.strip_prefix(&root).unwrap_or(&target).to_string_lossy().replace('\\', "/"))
 }
 
-/// Copies a PDF from anywhere on the computer into a folder of the open world, such as a
-/// rulebook into a campaign's `rules` folder. Nothing already in the folder is replaced.
-/// Returns the new file's path inside the world.
+/// Copies a PDF or a picture from anywhere on the computer into a folder of the open
+/// world, such as a rulebook into a campaign's `rules` folder or a handout into its
+/// `handouts` folder. Nothing already in the folder is replaced. Returns the new file's
+/// path inside the world.
 #[tauri::command]
-fn add_pdf(dir: String, source: String, state: State<OpenWorld>) -> Result<String, String> {
+fn add_file(dir: String, source: String, state: State<OpenWorld>) -> Result<String, String> {
+    const TAKEN: [&str; 6] = ["pdf", "png", "jpg", "jpeg", "webp", "gif"];
     let root = root(&state)?;
     let source = PathBuf::from(&source);
-    let is_pdf = source.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
-    let name = source.file_name().filter(|_| is_pdf).ok_or("A rulebook is a PDF file.")?;
+    let fits = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| TAKEN.contains(&e.to_ascii_lowercase().as_str()));
+    let name = source.file_name().filter(|_| fits).ok_or("The file can be a PDF or a picture.")?;
     let folder = inside(&root, &dir)?;
     fs::create_dir_all(&folder).map_err(|e| format!("Could not make the folder {dir}: {e}"))?;
     let target = folder.join(name);
@@ -1404,7 +1409,7 @@ pub fn run() {
             vault_forget,
             read_picture,
             set_image,
-            add_pdf,
+            add_file,
             stash_picture
         ])
         .run(tauri::generate_context!())

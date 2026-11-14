@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import type { Campaign } from '../../lib/table/index';
-  import { chance, parseRoll, roll, rollLine, saidRoll, troubleLine, troubleRoll } from '../../lib/table/dice';
+  import { chance, diceIn, parseRoll, roll, rollLine, saidRoll, thrown, troubleLine, troubleRoll } from '../../lib/table/dice';
+  import { tumble } from '../../lib/table/tumble';
+  import { tumbling } from '../../lib/table/tray.svelte';
   import Die from './Die.svelte';
   import { draw, readDecks, readDraws, remaining, writeDraws, type Deck, type Draws } from '../../lib/table/decks';
   import { tray } from '../../lib/table/tray.svelte';
@@ -70,7 +72,20 @@
     problem = '';
   }
 
-  function throwDice() {
+  let rolling = $state(false);
+  /** Throws dice across the screen when that is switched on and the computer can draw them. */
+  async function land(dice: { qty: number; sides: number }[]) {
+    if (!tumbling.on || dice.reduce((n, d) => n + d.qty, 0) > 40) return null;
+    rolling = true;
+    try {
+      return await tumble(dice);
+    } finally {
+      rolling = false;
+    }
+  }
+
+  async function throwDice() {
+    if (rolling) return;
     wrote = false;
     if (own) return throwTrouble();
     const terms = parseRoll(said);
@@ -79,7 +94,8 @@
       return;
     }
     problem = '';
-    const r = roll(terms);
+    const landed = await land(diceIn(terms));
+    const r = roll(terms, landed ? thrown(landed) : chance);
     rolls++;
     result = {
       big: String(r.total),
@@ -91,14 +107,15 @@
 
   // A Beautiful Disasters roll: the d8s in the pool are the pressure.
   let edge = $state(7);
-  function throwTrouble() {
+  async function throwTrouble() {
     const pressure = countOf(8);
     if (!pressure) {
       problem = 'Click the die once for each point of pressure.';
       return;
     }
     problem = '';
-    const r = troubleRoll(pressure, edge);
+    const landed = await land([{ qty: pressure, sides: 8 }]);
+    const r = troubleRoll(pressure, edge, landed ? thrown(landed) : chance);
     rolls++;
     const extras = [r.eights ? `${r.eights} × 8` : '', r.ones ? `${r.ones} × 1` : ''].filter(Boolean).join(' · ');
     result = {
@@ -199,7 +216,7 @@
       {:else}
         <input type="text" aria-label="The roll" bind:value={said} placeholder="Click dice, or type 2d6+3" autocomplete="off" spellcheck="false" />
       {/if}
-      <button type="submit" class="go">Roll</button>
+      <button type="submit" class="go" disabled={rolling}>{rolling ? 'Rolling…' : 'Roll'}</button>
       <button type="button" aria-label="Empty the roll" title="Empty the roll" disabled={!said} onclick={() => ((said = ''), (problem = ''))}>×</button>
     </form>
     {#if result?.big}

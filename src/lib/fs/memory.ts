@@ -76,8 +76,8 @@ export class MemoryFs implements WorldFs {
     this.notify([a, b]);
   }
 
-  async addPdf(): Promise<string> {
-    throw new Error('Adding a rulebook works in the desktop app.');
+  async addFile(): Promise<string> {
+    throw new Error('Adding a file works in the desktop app.');
   }
 
   async setImage(stem: string, image: ImageSource): Promise<string> {

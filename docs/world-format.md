@@ -575,7 +575,7 @@ harrowgate/
         session-2.plan.md
 ```
 
-Folders named `archive`, `rules`, and `decks` inside a campaign are not adventures, and `table/decks` is not a campaign.
+Folders named `archive`, `rules`, `handouts`, and `decks` inside a campaign are not adventures, and `table/decks` is not a campaign.
 
 ### The campaign card
 
@@ -642,6 +642,10 @@ A session that has a plan and no log yet keeps these facts in the plan's header.
 ### Rulebooks
 
 A PDF file in a campaign's `rules` folder is one of its rulebooks, such as `table/the-fog-season/rules/core-rules.pdf`. The book's name is its file name without `.pdf`, with underscores read as spaces, and renaming a book in the app renames the file. The page a book was left on is remembered by each computer and is not written to the world.
+
+### Handouts
+
+A PDF or a picture in a campaign's `handouts` folder is a handout: something the game master gives the table, such as a map or a letter. Pictures can be PNG, JPEG, WebP, or GIF files. A handout's name is its file name without the ending, with underscores read as spaces, and renaming a handout in the app renames the file.
 
 ### Decks
 

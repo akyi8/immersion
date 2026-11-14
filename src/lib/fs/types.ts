@@ -57,10 +57,10 @@ export interface WorldFs {
    */
   setImage(stem: string, image: ImageSource): Promise<string>;
   /**
-   * Copies a PDF chosen on this computer into a folder of the world, such as a rulebook
-   * into a campaign's `rules` folder. Returns the new file's path.
+   * Copies a PDF or a picture chosen on this computer into a folder of the world, such as
+   * a rulebook into a campaign's `rules` folder. Returns the new file's path.
    */
-  addPdf(dir: string, source: string): Promise<string>;
+  addFile(dir: string, source: string): Promise<string>;
   /**
    * Calls back with the paths of files that changed, whoever changed them: this app,
    * Obsidian, a text editor, or a git pull. Returns a function that stops listening.

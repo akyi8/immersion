@@ -27,6 +27,8 @@ engine: ${SAMPLE_ENGINE}
     ...SAMPLE_GAME,
     'world.jpg': worldImage,
     'table/the-fog-season/rules/example-engine.pdf': SAMPLE_RULEBOOK,
+    'table/the-fog-season/handouts/harbor_map.jpg': worldImage,
+    'table/the-fog-season/handouts/a-letter-from-tomas.pdf': SAMPLE_RULEBOOK,
     'table/the-fog-season/campaign.md': `---
 name: The Fog Season
 role: gm

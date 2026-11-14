@@ -44,20 +44,29 @@
     linkUrl = '';
   }
 
-  let adding = $state(false);
-  async function addBook() {
+  let adding = $state('');
+  /** Copies files the writer chooses into one of the campaign's folders, and opens the first. */
+  async function add(folder: 'rules' | 'handouts') {
     problem = '';
     try {
       const { open } = await import('@tauri-apps/plugin-dialog');
-      const picked = await open({ title: 'Choose a rulebook', filters: [{ name: 'PDF files', extensions: ['pdf'] }] });
-      if (typeof picked !== 'string') return;
-      adding = true;
-      onOpen(await fs.addPdf(`${campaign.path}/rules`, picked));
+      const picked = await open({
+        title: folder === 'rules' ? 'Choose a rulebook' : 'Choose handouts',
+        multiple: folder === 'handouts',
+        filters: folder === 'rules' ? [{ name: 'PDF files', extensions: ['pdf'] }] : [{ name: 'PDFs and pictures', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'] }],
+      });
+      const files = Array.isArray(picked) ? picked : typeof picked === 'string' ? [picked] : [];
+      if (!files.length) return;
+      adding = folder;
+      const added: string[] = [];
+      for (const file of files) added.push(await fs.addFile(`${campaign.path}/${folder}`, file));
       await onChanged();
+      onOpen(added[0]);
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
+      await onChanged();
     } finally {
-      adding = false;
+      adding = '';
     }
   }
 
@@ -104,10 +113,21 @@
     <p class="hint">{campaign.rules.map((r) => r.name).join(', ')}. Each opens from the sidebar, in a pane beside the session.</p>
   {/if}
   {#if inDesktopApp}
-    <div><button type="button" disabled={adding} onclick={addBook}>{adding ? 'Copying…' : 'Add a rulebook'}</button></div>
+    <div><button type="button" disabled={!!adding} onclick={() => add('rules')}>{adding === 'rules' ? 'Copying…' : 'Add a rulebook'}</button></div>
     <p class="hint">Choose a PDF and it is copied into this campaign's <span class="path">{campaign.path}/rules</span> folder. The file you chose stays where it was.</p>
   {:else}
     <p class="hint">A rulebook is a PDF file in this campaign's <span class="path">{campaign.path}/rules</span> folder. Put a PDF there and it shows in the sidebar.</p>
+  {/if}
+
+  <h2 class="label">Handouts</h2>
+  {#if campaign.handouts.length}
+    <p class="hint">{campaign.handouts.length} {campaign.handouts.length === 1 ? 'handout' : 'handouts'}. Each opens from the sidebar, and its corner button moves it to a window of its own, to share on a call.</p>
+  {/if}
+  {#if inDesktopApp}
+    <div><button type="button" disabled={!!adding} onclick={() => add('handouts')}>{adding === 'handouts' ? 'Copying…' : 'Add handouts'}</button></div>
+    <p class="hint">Choose PDFs or pictures, such as maps and letters, and they are copied into this campaign's <span class="path">{campaign.path}/handouts</span> folder.</p>
+  {:else}
+    <p class="hint">A handout is a PDF or a picture in this campaign's <span class="path">{campaign.path}/handouts</span> folder.</p>
   {/if}
 
   <h2 class="label">Links</h2>

@@ -15,14 +15,17 @@
     path,
     name,
     full = false,
-    onRename,
+    kind = 'Rulebook',
+    onRename = null,
   }: {
     fs: WorldFs;
     path: string;
     name: string;
     full?: boolean;
-    /** Gives the book a new name, which renames its file. Returns a problem to show, or null. */
-    onRename: (name: string) => Promise<string | null>;
+    /** What the page calls itself: a rulebook, or a handout. */
+    kind?: string;
+    /** Gives the book a new name, which renames its file. Returns a problem to show, or null. Without it the name only shows. */
+    onRename?: ((name: string) => Promise<string | null>) | null;
   } = $props();
 
   let book = $state.raw<Book | null>(null);
@@ -178,7 +181,7 @@
   async function rename(e: Event & { currentTarget: HTMLInputElement }) {
     const next = e.currentTarget.value.trim();
     if (!next || next === name) return void (e.currentTarget.value = name);
-    problem = (await onRename(next)) ?? '';
+    problem = (await onRename?.(next)) ?? '';
     if (problem) e.currentTarget.value = name;
   }
 
@@ -210,9 +213,9 @@
     </nav>
   {/if}
   <div class="reading">
-    <div class="head">
-      <div class="label kind">Rulebook</div>
-      <input class="name" aria-label="The book's name" title="Type a new name to rename the book" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+    <div class="head" class:away={!kind}>
+      <div class="label kind">{kind}</div>
+      <input class="name" aria-label="The name" title={onRename ? 'Type a new name to rename it' : name} readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     </div>
     <div class="bar">
       <button type="button" aria-label="The page before" disabled={first <= 1} onclick={back}>‹</button>
@@ -220,7 +223,7 @@
       <button type="button" aria-label="The next page" disabled={atEnd} onclick={on}>›</button>
       {#if !full}
         <button type="button" aria-pressed={!whole} title="Fill the pane's width, and scroll down the page" onclick={() => ((whole = !whole), measure())}>{whole ? 'Larger' : 'Whole page'}</button>
-        {#if chapters.length}
+        {#if chapters.length > 1}
           <select aria-label="Contents" value={here} onchange={(e) => go(chapters[Number(e.currentTarget.value)]?.page ?? page)}>
             {#if here < 0}<option value={-1}>Contents</option>{/if}
             {#each chapters as c, i (i)}<option value={i}>{' '.repeat(c.depth)}{c.title}</option>{/each}
@@ -334,7 +337,8 @@
   .frame.busy {
     opacity: 0.6;
   }
-  canvas.away {
+  canvas.away,
+  .head.away {
     display: none;
   }
   canvas {

@@ -55,6 +55,15 @@ export function parseRoll(text: string): Term[] | null {
 const saidTerm = (t: Term) => (t.count ? `${t.count > 1 ? t.count : ''}d${t.sides}` : String(t.sides));
 export const saidRoll = (terms: Term[]) => terms.map((t, i) => `${t.sign < 0 ? (i ? ' - ' : '-') : i ? ' + ' : ''}${saidTerm(t)}`).join('');
 
+/** A source of chance that hands back dice already thrown, group by group, such as dice that tumbled on screen. */
+export function thrown(groups: number[][]): Chance {
+  const left = groups.flat();
+  return () => left.shift() ?? 1;
+}
+
+/** The groups of dice in a roll, in the order they are rolled. */
+export const diceIn = (terms: Term[]) => terms.filter((t) => t.count > 0).map((t) => ({ qty: t.count, sides: t.sides }));
+
 export function roll(terms: Term[], by: Chance = chance): Rolled {
   const dice: Rolled['dice'] = [];
   let total = 0;

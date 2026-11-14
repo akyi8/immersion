@@ -17,6 +17,16 @@ export interface Link {
   url: string;
 }
 
+export interface Handout {
+  path: string;
+  name: string;
+  kind: 'pdf' | 'picture';
+}
+
+/** A file the app shows as a page of its own: a PDF or a picture. */
+export const isPdf = (path: string) => /\.pdf$/i.test(path);
+export const isPicture = (path: string) => /\.(png|jpe?g|webp|gif)$/i.test(path);
+
 export interface Session {
   /** The session's path without `.log.md` or `.plan.md`, which is its identity. */
   stem: string;
@@ -51,6 +61,8 @@ export interface Campaign {
   links: Link[];
   /** The campaign's rulebooks: the PDF files in its `rules` folder. */
   rules: { path: string; name: string }[];
+  /** What the game master hands the table: the PDFs and pictures in its `handouts` folder. */
+  handouts: Handout[];
   adventures: Adventure[];
 }
 
@@ -132,14 +144,22 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
     const h = await header(fs, card);
     const adventures: Adventure[] = [];
     for (const a of await fs.readDir(path)) {
-      if (!a.isDir || a.name.startsWith('.') || a.name === 'archive' || a.name === 'rules' || a.name === 'decks') continue;
+      if (!a.isDir || a.name.startsWith('.') || a.name === 'archive' || a.name === 'rules' || a.name === 'decks' || a.name === 'handouts') continue;
       const ah = await header(fs, `${path}/${a.name}/adventure.md`);
       adventures.push({ path: `${path}/${a.name}`, name: text(ah.name) || titleFromSlug(a.name), order: Number(ah.order) || 0, sessions: await sessionsIn(fs, `${path}/${a.name}`) });
     }
     const rules: Campaign['rules'] = [];
     if (await fs.exists(`${path}/rules`)) {
-      for (const r of await fs.readDir(`${path}/rules`)) if (!r.isDir && /\.pdf$/i.test(r.name)) rules.push({ path: `${path}/rules/${r.name}`, name: bookName(r.name) });
+      for (const r of await fs.readDir(`${path}/rules`)) if (!r.isDir && isPdf(r.name)) rules.push({ path: `${path}/rules/${r.name}`, name: bookName(r.name) });
       rules.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const handouts: Handout[] = [];
+    if (await fs.exists(`${path}/handouts`)) {
+      for (const f of await fs.readDir(`${path}/handouts`)) {
+        if (f.isDir || !(isPdf(f.name) || isPicture(f.name))) continue;
+        handouts.push({ path: `${path}/handouts/${f.name}`, name: bookName(f.name), kind: isPdf(f.name) ? 'pdf' : 'picture' });
+      }
+      handouts.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     }
     adventures.sort((a, b) => a.order - b.order || a.path.localeCompare(b.path, undefined, { numeric: true }));
     out.push({
@@ -151,22 +171,24 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
       system: text(h.system),
       links: links(h.links),
       rules,
+      handouts,
       adventures,
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** A rulebook's name: its file's name, with underscores read as spaces. */
-export const bookName = (file: string) => file.replace(/\.pdf$/i, '').replace(/_+/g, ' ').trim();
+/** The name of a rulebook or a handout: its file's name without the ending, with underscores read as spaces. */
+export const bookName = (file: string) => file.replace(/\.[a-z0-9]+$/i, '').replace(/_+/g, ' ').trim();
 
-/** Renames a rulebook by renaming its file, and returns the file's new path. */
+/** Renames a rulebook or a handout by renaming its file, and returns the file's new path. */
 export async function renameBook(fs: WorldFs, path: string, name: string): Promise<string> {
   const clean = name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').replace(/^\.+|\.+$/g, '').trim();
-  if (!clean) throw new Error('A book needs a name.');
-  const to = `${path.slice(0, path.lastIndexOf('/'))}/${clean}.pdf`;
+  if (!clean) throw new Error('It needs a name.');
+  const ending = /\.[a-z0-9]+$/i.exec(path)?.[0] ?? '';
+  const to = `${path.slice(0, path.lastIndexOf('/'))}/${clean}${ending}`;
   if (to === path) return path;
-  if (to.toLowerCase() !== path.toLowerCase() && (await fs.exists(to))) throw new Error(`There is already a book named ${clean}.`);
+  if (to.toLowerCase() !== path.toLowerCase() && (await fs.exists(to))) throw new Error(`There is already a file named ${clean}.`);
   await fs.move(path, to);
   return to;
 }
