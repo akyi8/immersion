@@ -89,15 +89,58 @@ export const isPerson = (category: string) => category.toLowerCase() === 'people
 export const defaultShape = (category: string, world: Shape | null = null): Shape => world ?? (isPerson(category) ? 'portrait' : 'banner');
 
 /**
- * A name in two parts for a card's spine (Mike, November 10): its first word, which is set
- * large, and the rest, which is set small beside it. Lou Lewandowski gives Lou with
- * Lewandowski beside it. A leading The, A, or An stays with the word after it, so The
- * Chantry of Pain gives The Chantry with of Pain beside it.
+ * How a name stands on a card's spine: one word large, and the rest small beside it.
+ * Which word is the large one is the writer's choice (Mike, November 15), because no rule
+ * can tell that Lou Lewandowski wants the surname and Sister Agnes wants Agnes. The
+ * writer clicks a word on the spine to choose it, and the entry's `spine:` line keeps the
+ * choice. Until then the app guesses: a nickname in quotes first, and otherwise the first
+ * word that is not an article, a title, or a joining word. An article straight before
+ * the large word stays with it, so The Docks reads whole.
  */
-export function spineName(name: string): { main: string; rest: string } {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const take = words.length > 1 && /^(the|a|an)$/i.test(words[0]) ? 2 : 1;
-  return { main: words.slice(0, take).join(' '), rest: words.slice(take).join(' ') };
+export interface SpineWord {
+  /** The word as it shows, without quotes. */
+  text: string;
+  /** Whether this word stands large. */
+  big: boolean;
+  /** Whether a click can make this word the large one. Articles and joining words cannot. */
+  choice: boolean;
+}
+
+export interface Spine {
+  /** The large line. */
+  main: string;
+  /** The small line: the other words, in the order the name has them. */
+  rest: string;
+  words: SpineWord[];
+  /** The word the app would choose on its own. */
+  guess: string;
+}
+
+const ARTICLE = /^(the|a|an)$/i;
+const JOINING = /^(of|and|de|del|della|di|da|du|la|le|von|van|der|den|ap|ab|bin|ibn|al|el|y|in|on|at|for)$/i;
+const TITLE = /^(sir|dame|lord|lady|king|queen|prince|princess|duke|duchess|earl|count|countess|baron|baroness|saint|st\.?|sister|brother|father|mother|abbot|abbess|bishop|captain|commander|general|major|sergeant|officer|detective|doctor|dr\.?|professor|prof\.?|mr\.?|mrs\.?|ms\.?|miss|master|mistress|madame|don|doña|dona)$/i;
+const QUOTED = /^["“‘'](.+?)["”’']$/;
+const bare = (word: string) => word.replace(/^["“‘']|["”’',.;:]+$/g, '');
+const sameWord = (a: string, b: string) => bare(a).toLowerCase() === bare(b).toLowerCase();
+
+export function spineName(name: string, chosen: string | null = null): Spine {
+  const raw = name.trim().split(/\s+/).filter(Boolean);
+  if (!raw.length) return { main: '', rest: '', words: [], guess: '' };
+  const plain = (w: string) => ARTICLE.test(bare(w)) || JOINING.test(bare(w));
+  const nickname = raw.findIndex((w) => QUOTED.test(w) && bare(w).length > 0);
+  const firstReal = raw.findIndex((w) => !plain(w) && !TITLE.test(bare(w)));
+  const guessAt = nickname >= 0 ? nickname : firstReal >= 0 ? firstReal : Math.max(0, raw.findIndex((w) => !plain(w)));
+  const chosenAt = chosen?.trim() ? raw.findIndex((w) => sameWord(w, chosen)) : -1;
+  const at = chosenAt >= 0 ? chosenAt : guessAt;
+  // An article straight before the large word rides with it.
+  const from = at > 0 && ARTICLE.test(bare(raw[at - 1])) ? at - 1 : at;
+  const words = raw.map((w, i) => ({ text: bare(w) || w, big: i >= from && i <= at, choice: i !== at && !plain(w) }));
+  return {
+    main: words.filter((w) => w.big).map((w) => w.text).join(' '),
+    rest: words.filter((w) => !w.big).map((w) => w.text).join(' '),
+    words,
+    guess: bare(raw[guessAt]),
+  };
 }
 
 /**

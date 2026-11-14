@@ -118,6 +118,8 @@ A world can set how all its pictures show at once, with `pictures: behind`, `pic
 
 A third value, `picture: behind`, lays the picture behind the page. The page is then set like a card: the entry's name runs up its left edge with its category above it, its first sentence is set at the top right, and the picture stands as a tall strip down the page's left side, behind the name, fading toward the text. `behind_frame:` frames the picture for that shape, in the same form as the other two frames. All three are chosen in the app where the picture is framed.
 
+On a card, one word of the entry's name stands large on the spine. `spine:` names that word, such as `spine: Okafor`, and the app writes it when the writer clicks a word on the spine. Without it the app chooses a nickname in quotes, and otherwise the first word that is not a title or a joining word. A `spine:` word that the name no longer holds is ignored.
+
 ### Dates and eras
 
 An entry with a `when:` field appears on the world's timeline. The app shows the date exactly as written and uses it only to sort, so a date reads best when it is written the way a writer would say it. These forms are understood:

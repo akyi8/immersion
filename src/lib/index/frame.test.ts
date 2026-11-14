@@ -39,10 +39,36 @@ test("the world's choice of shape stands in for the category's", () => {
   assert.equal(defaultShape('places', 'portrait'), 'portrait');
 });
 
-test('a name splits into its first word and the rest', () => {
-  assert.deepEqual(spineName('Lou Lewandowski'), { main: 'Lou', rest: 'Lewandowski' });
-  assert.deepEqual(spineName('The Chantry of Pain'), { main: 'The Chantry', rest: 'of Pain' });
-  assert.deepEqual(spineName('Harrowgate'), { main: 'Harrowgate', rest: '' });
-  assert.deepEqual(spineName('Marta "Wren" Okafor'), { main: 'Marta', rest: '"Wren" Okafor' });
-  assert.deepEqual(spineName('The Docks'), { main: 'The Docks', rest: '' });
+const spine = (name: string, chosen: string | null = null) => {
+  const s = spineName(name, chosen);
+  return [s.main, s.rest];
+};
+
+test('the spine guesses which word stands large', () => {
+  assert.deepEqual(spine('Lou Lewandowski'), ['Lou', 'Lewandowski']);
+  assert.deepEqual(spine('Harrowgate'), ['Harrowgate', '']);
+  // A nickname in quotes wins, and shows without its quotes.
+  assert.deepEqual(spine('Marta "Wren" Okafor'), ['Wren', 'Marta Okafor']);
+  assert.deepEqual(spine('Signe “Doll” Halvorsen'), ['Doll', 'Signe Halvorsen']);
+  // Titles and joining words never win, and an article rides with the word after it.
+  assert.deepEqual(spine('Sister Agnes'), ['Agnes', 'Sister']);
+  assert.deepEqual(spine('Earl of Ravensford'), ['Ravensford', 'Earl of']);
+  assert.deepEqual(spine('The Chantry of Pain'), ['The Chantry', 'of Pain']);
+  assert.deepEqual(spine('The Docks'), ['The Docks', '']);
+  assert.deepEqual(spine('Sir'), ['Sir', '']);
+});
+
+test("the writer's choice of word beats the guess", () => {
+  assert.deepEqual(spine('Lou Lewandowski', 'Lewandowski'), ['Lewandowski', 'Lou']);
+  assert.deepEqual(spine('Marta "Wren" Okafor', 'okafor'), ['Okafor', 'Marta Wren']);
+  assert.deepEqual(spine('The Chantry of Pain', 'Pain'), ['Pain', 'The Chantry of']);
+  // A word the name no longer has falls back to the guess.
+  assert.deepEqual(spine('Lou Lewandowski', 'Kowalski'), ['Lou', 'Lewandowski']);
+});
+
+test('a click can choose any word but an article or a joining word', () => {
+  const s = spineName('The Chantry of Pain');
+  assert.deepEqual(s.words.map((w) => [w.text, w.big, w.choice]), [['The', true, false], ['Chantry', true, false], ['of', false, false], ['Pain', false, true]]);
+  assert.equal(s.guess, 'Chantry');
+  assert.equal(spineName('Sister Agnes').words[0].choice, true);
 });

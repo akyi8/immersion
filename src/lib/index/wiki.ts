@@ -30,6 +30,8 @@ export interface Entry {
   bannerFrame?: Frame | null;
   /** How the picture is framed when it lies behind the page (Mike, November 10). */
   behindFrame?: Frame | null;
+  /** The word of the name that stands large on a card's spine, when the writer chose one (Mike, November 15). */
+  spine?: string | null;
 }
 
 export interface Folder {
@@ -144,6 +146,7 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         portraitFrame: readFrame(header.portrait_frame),
         bannerFrame: readFrame(header.banner_frame),
         behindFrame: readFrame(header.behind_frame),
+        spine: typeof header.spine === 'string' && header.spine.trim() ? header.spine.trim() : null,
       });
       folder.entries.push(childPath);
     }

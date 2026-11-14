@@ -100,9 +100,20 @@
     if (at < first.length) parts.push({ text: first.slice(at), name: false });
     return parts;
   });
-  // The name's first word stands large on the spine, with the rest small beside it, so a
-  // long name still fits. A very long first word is set smaller.
-  const spine = $derived(spineName(entry.name));
+  // One word of the name stands large on the spine, with the rest small beside it, so a
+  // long name still fits. A very long word is set smaller. The writer chooses the word by
+  // clicking it, and the app guesses until then.
+  const spine = $derived(spineName(entry.name, entry.spine ?? null));
+  async function chooseSpine(word: string) {
+    pictureProblem = '';
+    try {
+      await saveNow(id);
+      // The app's own guess needs no line in the file.
+      await fs.writeText(id, withHeader(await fs.readText(id), { spine: word.toLowerCase() === spine.guess.toLowerCase() ? undefined : word }));
+    } catch (e) {
+      pictureProblem = e instanceof Error ? e.message : String(e);
+    }
+  }
   const spineSize = $derived(Math.round(Math.max(34, Math.min(64, 820 / Math.max(spine.main.length, 1)))));
   let framing = $state(false);
   let framingBusy = $state(false);
@@ -243,7 +254,13 @@
       <div class="kind">{folderLabel(entry.category)}</div>
       <h1 class="spine-name" aria-label={entry.name}>
         <span class="main" style:font-size="calc({spineSize}px * var(--type))">{spine.main}</span>
-        {#if spine.rest}<span class="lead">{spine.rest}</span>{/if}
+        {#if spine.rest}
+          <span class="lead">
+            {#each spine.words.filter((w) => !w.big) as w, i (i)}
+              {#if w.choice}<button type="button" class="pick" title="Make {w.text} the large word" onclick={() => chooseSpine(w.text)}>{w.text}</button>{:else}{w.text}{/if}{' '}
+            {/each}
+          </span>
+        {/if}
       </h1>
     </div>
     <div class="card-main">
@@ -389,6 +406,24 @@
     letter-spacing: 0.06em;
     line-height: 1.15;
     opacity: 0.9;
+  }
+  /* A small word is a quiet button: a click makes it the large one. */
+  .spine-name .pick {
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-shadow: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .spine-name .pick:hover,
+  .spine-name .pick:focus-visible {
+    color: var(--accent);
+    outline: none;
   }
   .spine-name .main {
     line-height: 0.92;
