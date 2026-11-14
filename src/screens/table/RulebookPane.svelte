@@ -10,7 +10,20 @@
    * It opens on the page it was left on. The arrow keys and Page Up and Page Down turn
    * pages while the book has the keyboard.
    */
-  let { fs, path, name, full = false }: { fs: WorldFs; path: string; name: string; full?: boolean } = $props();
+  let {
+    fs,
+    path,
+    name,
+    full = false,
+    onRename,
+  }: {
+    fs: WorldFs;
+    path: string;
+    name: string;
+    full?: boolean;
+    /** Gives the book a new name, which renames its file. Returns a problem to show, or null. */
+    onRename: (name: string) => Promise<string | null>;
+  } = $props();
 
   let book = $state.raw<Book | null>(null);
   let chapters = $state.raw<Chapter[]>([]);
@@ -138,6 +151,37 @@
   const back = () => go(first - (spread && first > 2 ? 2 : 1));
   const on = () => go(first + step);
 
+  // The wheel turns pages while a whole page is on screen, where there is nothing to scroll
+  // (Mike, November 14). One turn of the wheel is one turn of the page.
+  let wheeled = 0;
+  let travel = 0;
+  function wheel(e: WheelEvent) {
+    if (!(full || whole) || e.ctrlKey || (e.target as HTMLElement).closest('.contents')) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - wheeled > 400) travel = 0;
+    travel += e.deltaY;
+    if (Math.abs(travel) < 40 || now - wheeled < 220) return;
+    wheeled = now;
+    if (travel > 0) on();
+    else back();
+    travel = 0;
+  }
+  $effect(() => {
+    // Registered by hand, because a wheel listener must say it may stop the scroll.
+    const el = frame;
+    if (!el) return;
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => el.removeEventListener('wheel', wheel);
+  });
+
+  async function rename(e: Event & { currentTarget: HTMLInputElement }) {
+    const next = e.currentTarget.value.trim();
+    if (!next || next === name) return void (e.currentTarget.value = name);
+    problem = (await onRename(next)) ?? '';
+    if (problem) e.currentTarget.value = name;
+  }
+
   function keys(e: KeyboardEvent) {
     if ((e.target as HTMLElement).closest('input, select')) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') on();
@@ -168,7 +212,7 @@
   <div class="reading">
     <div class="head">
       <div class="label kind">Rulebook</div>
-      <h1>{name}</h1>
+      <input class="name" aria-label="The book's name" title="Type a new name to rename the book" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     </div>
     <div class="bar">
       <button type="button" aria-label="The page before" disabled={first <= 1} onclick={back}>‹</button>
@@ -184,10 +228,10 @@
         {/if}
       {/if}
     </div>
-    {#if problem}<p class="problem" role="alert">This book could not be shown. {problem}</p>{/if}
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <div class="frame" bind:this={frame} class:busy>
       <canvas bind:this={left}></canvas>
-      <canvas bind:this={right} hidden={!second}></canvas>
+      <canvas bind:this={right} class:away={!second}></canvas>
     </div>
   </div>
 </article>
@@ -216,13 +260,19 @@
   .kind {
     color: var(--structure);
   }
-  h1 {
-    margin: 0;
+  input.name {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
     font-family: var(--font-display);
-    font-weight: 400;
     font-size: calc(30px * var(--type));
     line-height: 1.1;
     color: var(--title);
+  }
+  input.name:focus-visible {
+    outline: 1px solid var(--edge);
+    outline-offset: 4px;
   }
   .full .head {
     display: flex;
@@ -283,6 +333,9 @@
   }
   .frame.busy {
     opacity: 0.6;
+  }
+  canvas.away {
+    display: none;
   }
   canvas {
     display: block;

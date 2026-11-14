@@ -8,7 +8,7 @@
   import { views } from '../../lib/view.svelte';
   import { defaultShape } from '../../lib/index/frame';
   import { createEntry, likelyCategory } from '../../lib/index/create';
-  import { TABLE_DIR, createAdventure, createCampaign, createSession, readTable, sessionOf, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
+  import { TABLE_DIR, createAdventure, createCampaign, createSession, readTable, renameBook, sessionOf, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
   import Panes from '../Panes.svelte';
   import Dialog from '../shelf/Dialog.svelte';
   import EntryView from '../world/EntryView.svelte';
@@ -18,6 +18,7 @@
   import CampaignPage from './CampaignPage.svelte';
   import Tray from './Tray.svelte';
   import RulebookPane from './RulebookPane.svelte';
+  import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
 
   /**
@@ -244,10 +245,13 @@
           {/if}
         {/each}
         <button type="button" class="item d1 quiet" onclick={() => start({ kind: 'adventure', campaign: c })}>+ New adventure</button>
-        {#each c.rules as r (r.path)}
-          <button type="button" class="item d1" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)}><span>{r.name}</span><span class="n">Rulebook</span></button>
-        {/each}
-        <button type="button" class="item d1" class:on={isOpen(RUMORS + c.path)} onclick={() => nav.open(RUMORS + c.path)}><span>Rumors</span></button>
+        <button type="button" class="item d1 kept" class:on={isOpen(RUMORS + c.path)} onclick={() => nav.open(RUMORS + c.path)}><span>Rumors</span><span class="n">heard so far</span></button>
+        {#if c.rules.length}
+          <h3 class="label d1">Rulebooks</h3>
+          {#each c.rules as r (r.path)}
+            <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} title={r.name}><span>{r.name}</span></button>
+          {/each}
+        {/if}
         <div class="gap"></div>
       {:else}
         {#if loaded}<p class="hint">No campaigns yet.</p>{/if}
@@ -288,7 +292,24 @@
         {:else if id.startsWith(RUMORS) && campaignAt(id.slice(RUMORS.length))}
           <RumorsPage {fs} {index} campaign={campaignAt(id.slice(RUMORS.length))!} {view} onOpen={(target) => nav.open(target, i)} />
         {:else if bookAt(id)}
-          <RulebookPane {fs} path={id} name={bookAt(id)!.name} {full} />
+          {#key id}
+            <RulebookPane
+              {fs}
+              path={id}
+              name={bookAt(id)!.name}
+              {full}
+              onRename={async (name) => {
+                try {
+                  const to = await renameBook(fs, id, name);
+                  movePage(id, to);
+                  await refresh();
+                  nav.replace(id, to);
+                  return null;
+                } catch (e) {
+                  return e instanceof Error ? e.message : String(e);
+                }
+              }} />
+          {/key}
         {:else if card}
           <CampaignPage
             {fs}
@@ -445,6 +466,19 @@
     color: var(--selected-fg);
     background: var(--selected-bg);
     box-shadow: inset 2px 0 0 var(--selected-border);
+  }
+  .sidebar .label {
+    margin: 12px 0 2px;
+    padding-left: 30px;
+    font-size: calc(10px * var(--type));
+    color: var(--muted);
+  }
+  .kept {
+    margin-top: 6px;
+  }
+  .book {
+    font-size: calc(14px * var(--type));
+    color: var(--text-soft);
   }
   .quiet {
     color: var(--muted);

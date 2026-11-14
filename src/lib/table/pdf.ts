@@ -106,6 +106,11 @@ export function rememberedPage(path: string): number {
     return 1;
   }
 }
+/** Keeps a book's page when its file is renamed. */
+export function movePage(from: string, to: string) {
+  const page = rememberedPage(from);
+  if (page > 1) rememberPage(to, page);
+}
 export function rememberPage(path: string, page: number) {
   try {
     const all = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, number>;

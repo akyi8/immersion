@@ -641,7 +641,7 @@ A session that has a plan and no log yet keeps these facts in the plan's header.
 
 ### Rulebooks
 
-A PDF file in a campaign's `rules` folder is one of its rulebooks, such as `table/the-fog-season/rules/core-rules.pdf`. The book's name is its file name. The page a book was left on is remembered by each computer and is not written to the world.
+A PDF file in a campaign's `rules` folder is one of its rulebooks, such as `table/the-fog-season/rules/core-rules.pdf`. The book's name is its file name without `.pdf`, with underscores read as spaces, and renaming a book in the app renames the file. The page a book was left on is remembered by each computer and is not written to the world.
 
 ### Decks
 

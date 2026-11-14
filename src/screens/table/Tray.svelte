@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import type { Campaign } from '../../lib/table/index';
-  import { chance, parseRoll, roll, rollLine, troubleLine, troubleRoll } from '../../lib/table/dice';
+  import { chance, parseRoll, roll, rollLine, saidRoll, troubleLine, troubleRoll } from '../../lib/table/dice';
+  import Die from './Die.svelte';
   import { draw, readDecks, readDraws, remaining, writeDraws, type Deck, type Draws } from '../../lib/table/decks';
   import { tray } from '../../lib/table/tray.svelte';
 
@@ -30,37 +31,82 @@
     }
   }
 
-  // Dice
-  const QUICK = ['d20', 'd6', '2d6', '3d6', 'd100'];
-  let said = $state('d20');
+  // Dice. The roll is built by clicking the dice (Mike, November 14): a click adds one die
+  // of that shape, and a right click takes one away. The roll can also be typed.
+  const SHAPES = [4, 6, 8, 10, 12, 20, 100];
+  // A game built on Beautiful Disasters rolls a pool of eight-sided dice and nothing else.
+  const own = $derived(campaign?.game === 'own');
+  let said = $state('');
   let why = $state('');
-  let result = $state<{ big: string; small: string; line: (why: string) => string } | null>(null);
+  type Shown = { sides: number; value: number; mark?: 'trouble' | 'high' | 'low' };
+  let result = $state<{ big: string; small: string; dice: Shown[]; line: (why: string) => string } | null>(null);
   let problem = $state('');
   let wrote = $state(false);
+  let rolls = $state(0);
 
-  function throwDice(text = said) {
-    const terms = parseRoll(text);
+  // A different kind of game starts with an empty roll.
+  $effect(() => {
+    void own;
+    said = '';
+    result = null;
+  });
+
+  const pool = $derived(parseRoll(said) ?? []);
+  const countOf = (sides: number) => pool.filter((t) => t.count && t.sides === sides && t.sign > 0).reduce((n, t) => n + t.count, 0);
+
+  function change(sides: number, by: 1 | -1) {
+    const terms = pool.map((t) => ({ ...t }));
+    const at = terms.findIndex((t) => t.count && t.sides === sides && t.sign > 0);
+    if (at >= 0) {
+      terms[at].count += by;
+      if (terms[at].count < 1) terms.splice(at, 1);
+    } else if (by > 0) {
+      // Dice go before plain numbers, so the roll reads 2d6 + 3.
+      const numbers = terms.findIndex((t) => !t.count);
+      terms.splice(numbers < 0 ? terms.length : numbers, 0, { sign: 1, count: 1, sides });
+    }
+    if (terms.some((t) => t.count > 99)) return;
+    said = terms.some((t) => t.count) ? saidRoll(terms) : '';
+    problem = '';
+  }
+
+  function throwDice() {
     wrote = false;
+    if (own) return throwTrouble();
+    const terms = parseRoll(said);
     if (!terms) {
-      problem = 'Write a roll such as d20, 3d6, or 2d6+3.';
+      problem = said.trim() ? 'Write a roll such as d20, 3d6, or 2d6+3.' : 'Click a die to add it to the roll.';
       return;
     }
     problem = '';
-    said = text;
     const r = roll(terms);
-    const each = r.dice.map((d) => d.values.join(', ')).join(' | ');
-    result = { big: String(r.total), small: r.dice.length === 1 && r.dice[0].values.length === 1 ? r.said : `${r.said} · ${each}`, line: (w) => rollLine(r, w) };
+    rolls++;
+    result = {
+      big: String(r.total),
+      small: r.said,
+      dice: r.dice.flatMap((d) => d.values.map((value) => ({ sides: Number(d.said.split('d')[1]), value }))),
+      line: (w) => rollLine(r, w),
+    };
   }
 
-  // A Beautiful Disasters roll, offered when the campaign uses the world's own game.
-  let pressure = $state(4);
+  // A Beautiful Disasters roll: the d8s in the pool are the pressure.
   let edge = $state(7);
   function throwTrouble() {
+    const pressure = countOf(8);
+    if (!pressure) {
+      problem = 'Click the die once for each point of pressure.';
+      return;
+    }
     problem = '';
-    wrote = false;
     const r = troubleRoll(pressure, edge);
+    rolls++;
     const extras = [r.eights ? `${r.eights} × 8` : '', r.ones ? `${r.ones} × 1` : ''].filter(Boolean).join(' · ');
-    result = { big: `${r.trouble} trouble`, small: `${r.values.join(', ') || 'no dice'} at edge ${r.edge}${extras ? ` · ${extras}` : ''}`, line: (w) => troubleLine(r, w) };
+    result = {
+      big: `${r.trouble} trouble`,
+      small: `${r.values.length}d8 at edge ${r.edge}${extras ? ` · ${extras}` : ''}`,
+      dice: r.values.map((value) => ({ sides: 8, value, mark: value === 8 ? 'high' : value === 1 ? 'low' : value < r.edge ? 'trouble' : undefined })),
+      line: (w) => troubleLine(r, w),
+    };
   }
 
   // Cards
@@ -94,7 +140,7 @@
     card = next;
     const name = deck.name;
     draws = { ...draws, [deck.id]: [...drawn, next] };
-    result = { big: '', small: '', line: (w) => `Drew from the ${name}${w.trim() ? ` for ${w.trim()}` : ''}: ${next}` };
+    result = { big: '', small: '', dice: [], line: (w) => `Drew from the ${name}${w.trim() ? ` for ${w.trim()}` : ''}: ${next}` };
     try {
       await writeDraws(fs, campaign.path, draws);
     } catch (e) {
@@ -130,22 +176,43 @@
     <button type="button" aria-pressed={tab === 'cards'} onclick={() => show('cards')}>Cards</button>
   </div>
   {#if tab === 'dice'}
-    <div class="quick">
-      {#each QUICK as q (q)}<button type="button" onclick={() => throwDice(q)}>{q}</button>{/each}
+    <div class="dice">
+      {#each own ? [8] : SHAPES as sides (sides)}
+        {@const n = countOf(sides)}
+        <button
+          type="button"
+          class="pick"
+          class:in={n > 0}
+          aria-label="Add a d{sides}. {n} in the roll. Right click takes one away."
+          title="Click to add a d{sides}. Right click to take one away."
+          onclick={() => change(sides, 1)}
+          oncontextmenu={(e) => (e.preventDefault(), change(sides, -1))}>
+          <Die {sides} face={sides === 100 ? '%' : sides} />
+          {#if n}<span class="count">{n}</span>{/if}
+        </button>
+      {/each}
     </div>
     <form class="line" onsubmit={(e) => (e.preventDefault(), throwDice())}>
-      <input type="text" aria-label="The roll" bind:value={said} placeholder="2d6+3" autocomplete="off" spellcheck="false" />
-      <button type="submit">Roll</button>
+      {#if own}
+        <span class="pool">{countOf(8) ? `Pressure ${countOf(8)}` : 'Click the die for each point of pressure'}</span>
+        <label class="edge">Edge <input type="number" min="2" max="8" bind:value={edge} /></label>
+      {:else}
+        <input type="text" aria-label="The roll" bind:value={said} placeholder="Click dice, or type 2d6+3" autocomplete="off" spellcheck="false" />
+      {/if}
+      <button type="submit" class="go">Roll</button>
+      <button type="button" aria-label="Empty the roll" title="Empty the roll" disabled={!said} onclick={() => ((said = ''), (problem = ''))}>×</button>
     </form>
-    {#if campaign?.game === 'own'}
-      <div class="line trouble">
-        <label>Pressure <input type="number" min="0" max="20" bind:value={pressure} /></label>
-        <label>Edge <input type="number" min="2" max="8" bind:value={edge} /></label>
-        <button type="button" onclick={throwTrouble}>Roll</button>
-      </div>
-    {/if}
     {#if result?.big}
-      <div class="result" aria-live="polite"><span class="big">{result.big}</span><span class="small">{result.small}</span></div>
+      <div class="result" aria-live="polite">
+        {#key rolls}
+          <div class="rolled">
+            {#each result.dice.slice(0, 40) as d, i (i)}
+              <span class="landed {d.mark ?? ''}" style:animation-delay="{Math.min(i, 12) * 35}ms"><Die sides={d.sides} face={d.value} size={30} /></span>
+            {/each}
+          </div>
+        {/key}
+        <span class="big">{result.big}</span><span class="small">{result.small}</span>
+      </div>
     {/if}
   {:else if tab === 'cards'}
     {#if !campaign}
@@ -229,16 +296,84 @@
   .line input[type='text'] {
     flex: 1;
   }
-  .trouble label {
+  .dice,
+  .rolled {
     display: flex;
-    align-items: center;
-    gap: 5px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pick {
+    position: relative;
+    padding: 3px;
+    border-color: transparent;
+    color: var(--muted);
+  }
+  .pick.in {
+    color: var(--structure);
+    --die-ink: var(--text);
+  }
+  .count {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 15px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: calc(10px * var(--type));
+    line-height: 15px;
+    text-align: center;
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border: 1px solid var(--selected-border, var(--edge));
+  }
+  .pool,
+  .edge {
     font-family: var(--font-label);
     font-size: calc(11px * var(--type));
     color: var(--muted);
   }
-  .trouble input {
-    width: 46px;
+  .pool {
+    flex: 1;
+  }
+  .edge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .edge input {
+    width: 44px;
+  }
+  .go {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+    border-color: var(--selected-border, var(--edge));
+  }
+  .landed {
+    color: var(--structure);
+    animation: land 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  }
+  .landed.trouble {
+    color: var(--accent);
+    --die-fill: var(--accent-wash);
+  }
+  .landed.high,
+  .landed.low {
+    --die-ink: var(--accent);
+  }
+  .landed.low {
+    color: var(--accent);
+  }
+  @keyframes land {
+    from {
+      opacity: 0;
+      transform: translateY(-14px) rotate(-140deg) scale(0.6);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .landed {
+      animation: none;
+    }
   }
   .result {
     display: flex;

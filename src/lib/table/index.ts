@@ -138,7 +138,7 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
     }
     const rules: Campaign['rules'] = [];
     if (await fs.exists(`${path}/rules`)) {
-      for (const r of await fs.readDir(`${path}/rules`)) if (!r.isDir && /\.pdf$/i.test(r.name)) rules.push({ path: `${path}/rules/${r.name}`, name: titleFromSlug(r.name.replace(/\.pdf$/i, '')) });
+      for (const r of await fs.readDir(`${path}/rules`)) if (!r.isDir && /\.pdf$/i.test(r.name)) rules.push({ path: `${path}/rules/${r.name}`, name: bookName(r.name) });
       rules.sort((a, b) => a.name.localeCompare(b.name));
     }
     adventures.sort((a, b) => a.order - b.order || a.path.localeCompare(b.path, undefined, { numeric: true }));
@@ -155,6 +155,20 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** A rulebook's name: its file's name, with underscores read as spaces. */
+export const bookName = (file: string) => file.replace(/\.pdf$/i, '').replace(/_+/g, ' ').trim();
+
+/** Renames a rulebook by renaming its file, and returns the file's new path. */
+export async function renameBook(fs: WorldFs, path: string, name: string): Promise<string> {
+  const clean = name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').replace(/^\.+|\.+$/g, '').trim();
+  if (!clean) throw new Error('A book needs a name.');
+  const to = `${path.slice(0, path.lastIndexOf('/'))}/${clean}.pdf`;
+  if (to === path) return path;
+  if (to.toLowerCase() !== path.toLowerCase() && (await fs.exists(to))) throw new Error(`There is already a book named ${clean}.`);
+  await fs.move(path, to);
+  return to;
 }
 
 /** A path nothing uses yet, made from a name. */
