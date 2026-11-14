@@ -44,6 +44,7 @@ stories: stories
 - `theme:` holds the world's colors and fonts, which the app's theme editor writes.
 - `profile:` names the author profile that new manuscripts in this world use.
 - `series_threads:` and `series_structures:` belong to series boards, which section 6 describes.
+- `archived: true` moves the world below the others on the Worlds page, under an Archived heading. Nothing else about the world changes.
 - `journal:` and `daily:` mark the writer's journal world, which the app creates and manages.
 - `engine:` names the engine this world's game is built on, as the engine folder's path from the top of the library. `game:` names the folder that holds the world's own game elements, and defaults to `game`. Section 11 describes both.
 

@@ -8,7 +8,7 @@
   import { views } from '../../lib/view.svelte';
   import { defaultShape } from '../../lib/index/frame';
   import { createEntry, likelyCategory } from '../../lib/index/create';
-  import { TABLE_DIR, createAdventure, createCampaign, createSession, readTable, renameBook, sessionOf, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
+  import { TABLE_DIR, createAdventure, createCampaign, createSession, readTable, renameBook, sessionOf, setFacts, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
   import Panes from '../Panes.svelte';
   import Dialog from '../shelf/Dialog.svelte';
   import EntryView from '../world/EntryView.svelte';
@@ -23,6 +23,7 @@
   import { chooseAndAdd, createTextHandout } from '../../lib/table/add';
   import { inDesktopApp } from '../../lib/runtime';
   import { contextMenu } from '../../lib/contextMenu.svelte';
+  import { saveNow } from '../../lib/saves';
   import { openInWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
@@ -163,7 +164,8 @@
   }
 
   // One small form makes a campaign, an adventure, or a session.
-  type Making = { kind: 'campaign' } | { kind: 'adventure'; campaign: Campaign } | { kind: 'session'; campaign: Campaign; adventure: Adventure } | { kind: 'handout'; campaign: Campaign };
+  type Making = { kind: 'campaign' } | { kind: 'adventure'; campaign: Campaign } | { kind: 'session'; campaign: Campaign; adventure: Adventure } | { kind: 'handout'; campaign: Campaign }
+    | { kind: 'rename'; what: string; was: string; files: string[] };
   let making = $state<Making | null>(null);
   let name = $state('');
   let role = $state<Role>('player');
@@ -175,7 +177,7 @@
   function start(m: Making) {
     making = m;
     problem = '';
-    name = m.kind === 'session' ? `Session ${m.campaign.adventures.reduce((n, a) => n + a.sessions.length, 0) + 1}` : '';
+    name = m.kind === 'session' ? `Session ${m.campaign.adventures.reduce((n, a) => n + a.sessions.length, 0) + 1}` : m.kind === 'rename' ? m.was : '';
   }
 
   const today = () => {
@@ -194,6 +196,13 @@
         nav.open(`${path}/campaign.md`);
       } else if (making.kind === 'adventure') {
         await createAdventure(fs, making.campaign, name);
+        await refresh();
+      } else if (making.kind === 'rename') {
+        // The name is kept in the card or the header, so the files stay where they are.
+        for (const file of making.files) {
+          await saveNow(file);
+          await setFacts(fs, file, { name: name.trim() });
+        }
         await refresh();
       } else if (making.kind === 'handout') {
         const path = await createTextHandout(fs, making.campaign, name);
@@ -253,6 +262,11 @@
     }
   }
 
+  /** A right click on a row of the sidebar offers to rename what it stands for. */
+  function renameMenu(e: MouseEvent, what: string, was: string, files: (string | null)[]) {
+    contextMenu.show(e, [{ label: `Rename this ${what}`, run: () => start({ kind: 'rename', what, was, files: files.filter((f): f is string => !!f) }) }]);
+  }
+
   /** A handout is a file brought in, or words written or pasted here. */
   function handoutMenu(e: MouseEvent, c: Campaign) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -279,20 +293,21 @@
     <nav class="sidebar" aria-label="Table">
       {#each campaigns as c (c.path)}
         <div class="head">
-          <button type="button" class="item campaign" class:on={isOpen(c.card)} onclick={() => nav.open(c.card)}>
+          <button type="button" class="item campaign" class:on={isOpen(c.card)} onclick={() => nav.open(c.card)} oncontextmenu={(e) => renameMenu(e, 'campaign', c.name, [c.card])}>
             <span>{c.name}</span><span class="n">{c.role === 'gm' ? 'Running' : 'Playing'}{c.system ? ` · ${c.system}` : ''}</span>
           </button>
         </div>
         {#each c.adventures as a (a.path)}
           <div class="head d1">
-            <button type="button" class="item fold" aria-expanded={!shut.includes(a.path)} onclick={() => fold(a.path)}>
+            <button type="button" class="item fold" aria-expanded={!shut.includes(a.path)} title="Right click to rename" onclick={() => fold(a.path)} oncontextmenu={(e) => renameMenu(e, 'adventure', a.name, [`${a.path}/adventure.md`])}>
               <span><span class="arrow" aria-hidden="true">{shut.includes(a.path) ? '▸' : '▾'}</span> {a.name}</span>
             </button>
+            <button type="button" class="plus more" aria-label="Rename {a.name}" title="Rename this adventure" onclick={() => start({ kind: 'rename', what: 'adventure', was: a.name, files: [`${a.path}/adventure.md`] })}>✎</button>
             <button type="button" class="plus" aria-label="New session in {a.name}" title="New session" onclick={() => start({ kind: 'session', campaign: c, adventure: a })}>+</button>
           </div>
           {#if !shut.includes(a.path)}
             {#each a.sessions as s (s.stem)}
-              <button type="button" class="item d2" class:on={isOpen(s.log) || isOpen(s.plan)} onclick={() => openSession(c, s)}>
+              <button type="button" class="item d2" class:on={isOpen(s.log) || isOpen(s.plan)} onclick={() => openSession(c, s)} oncontextmenu={(e) => renameMenu(e, 'session', s.name, [s.log, s.plan])}>
                 <span>{s.name}</span><span class="n">{short(s.played)}</span>
               </button>
             {:else}
@@ -422,8 +437,8 @@
 
 {#if making}
   <Dialog
-    title={making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : making.kind === 'handout' ? 'New text handout' : 'New session'}
-    action={making.kind === 'session' ? 'Start the session' : 'Create'}
+    title={making.kind === 'rename' ? `Rename this ${making.what}` : making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : making.kind === 'handout' ? 'New text handout' : 'New session'}
+    action={making.kind === 'session' ? 'Start the session' : making.kind === 'rename' ? 'Rename' : 'Create'}
     ready={!!name.trim()}
     {busy}
     {problem}
@@ -446,6 +461,8 @@
       {#if game === 'other'}
         <input type="text" bind:value={system} aria-label="The game's name" autocomplete="off" placeholder="The game's name, such as Pendragon" />
       {/if}
+    {:else if making.kind === 'rename'}
+      <p class="hint">The new name shows everywhere in the app. The files on disk keep the names they have.</p>
     {:else if making.kind === 'handout'}
       <p class="hint">A page for words, such as a message from the game master pasted in from a chat. It is kept with {making.campaign.name}'s handouts.</p>
     {:else if making.kind === 'adventure'}
@@ -560,6 +577,15 @@
   .arrow {
     color: var(--muted);
     font-size: 0.8em;
+  }
+  .more {
+    width: 28px;
+    font-size: calc(12px * var(--type));
+    opacity: 0;
+  }
+  .head:hover .more,
+  .more:focus-visible {
+    opacity: 1;
   }
   .plus {
     width: 34px;

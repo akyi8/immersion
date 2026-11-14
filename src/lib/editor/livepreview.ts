@@ -1,4 +1,4 @@
-import { EditorSelection, EditorState, Prec, RangeSet, StateEffect, StateField, type Extension, type Range } from '@codemirror/state';
+import { EditorSelection, EditorState, Prec, RangeSet, StateEffect, StateField, Transaction, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, keymap, type DecorationSet } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { hasNoProse, startWriting } from './writeHere';
@@ -167,19 +167,23 @@ function outlineZones(state: EditorState): Zone[] {
  * title flashed as the cursor passed through).
  */
 function titleZone(state: EditorState, title: string): Zone | null {
-  // A page with no title has no title line to hide. Without this, a heading just begun
-  // at the top of a game's text, a bare `# `, counted as that title, and the next
-  // letter typed after it was refused (found November 13).
-  if (!title) return null;
+  const n = titleLineOf(state, title);
+  return n ? { from: -1, to: pastSeparator(state, n) } : null;
+}
+
+/**
+ * The number of the line that holds the page's own title as a heading, or 0. It is the
+ * first line of the file's text, after any header, and only when it is a top heading
+ * that says the title. A page with no title has no such line.
+ */
+function titleLineOf(state: EditorState, title: string): number {
+  if (!title) return 0;
   const doc = state.doc;
   const header = headerRange(state);
   let n = header ? doc.lineAt(header.to).number + 1 : 1;
   while (n <= doc.lines && doc.line(n).text.trim() === '') n++;
-  if (n > doc.lines || doc.line(n).text.replace(/^#\s+/, '').trim() !== title || !/^#\s/.test(doc.line(n).text)) return null;
-  return {
-    from: -1,
-    to: pastSeparator(state, n),
-  };
+  if (n > doc.lines || !/^#\s/.test(doc.line(n).text) || doc.line(n).text.replace(/^#\s+/, '').trim() !== title) return 0;
+  return n;
 }
 
 /** The bold `**Aliases:**` line near the top of a file, if there is one. */
@@ -283,7 +287,9 @@ const protectZones = (title: string) =>
       }
     });
     if (blocked) {
-      noteTrouble('typing refused', { why: 'the change touched a protected part of the page', zones, lines: doc.lines, at: tr.startState.selection.main.head });
+      const changed: [number, number, number][] = [];
+      tr.changes.iterChanges((fromA, toA, _b, _c, inserted) => changed.push([fromA, toA, inserted.length]));
+      noteTrouble('typing refused', { why: 'the change touched a protected part of the page', zones, changed, title, event: tr.annotation(Transaction.userEvent), lines: doc.lines, at: tr.startState.selection.main.head });
       return [];
     }
     if (atEnd !== null) {
@@ -369,6 +375,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   const marks: Range<Decoration>[] = [];
   const lines: Range<Decoration>[] = [];
   const doc = state.doc;
+  const titleLine = titleLineOf(state, title);
 
   // The YAML header is never shown (Mike, November 10). What it holds is offered by the
   // page itself, such as its other names, its date, and its picture, so nobody has to
@@ -408,7 +415,12 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
         const level = Number(name.slice(-1));
         const text = line.text.replace(/^#+\s*/, '').trim();
         // The entry's own title is already shown above the editor, so its heading hides.
-        if (level === 1 && text === title) {
+        // Only the title line itself hides: the first line of the file's text. A page with
+        // no title hides nothing. Before November 15 any top heading that matched the title
+        // hid, so on a page with no title a bare `#` typed anywhere vanished as it was
+        // typed and the next key was refused, and a heading that happened to repeat the
+        // page's name vanished too (Mike's reports of November 13 and 15).
+        if (level === 1 && line.number === titleLine) {
           marks.push(Decoration.replace({ block: true }).range(line.from, line.to));
           return false;
         }

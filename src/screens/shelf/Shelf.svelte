@@ -14,7 +14,7 @@
   import UpdateButton from '../UpdateButton.svelte';
   import { account } from '../../lib/account.svelte';
   import { ui } from '../../lib/ui.svelte';
-  import { JOURNAL_FOLDER, journalFile } from '../../lib/world';
+  import { JOURNAL_FOLDER, journalFile, splitHeader, withHeader } from '../../lib/world';
   import realWorld from '../../assets/real-world.jpg';
 
   /**
@@ -187,12 +187,25 @@
     await refresh();
   }
 
+  // A world not in use is archived (Mike, November 15): it moves below the others, under
+  // its own heading, and nothing else about it changes. The world's own `world.md` says
+  // so, which carries the choice to every computer.
+  const isArchived = (world: ShelfWorld) => !!world.worldMd && splitHeader(world.worldMd).header.archived === true;
+  const active = $derived((worlds ?? []).filter((w) => !isArchived(w)));
+  const archived = $derived((worlds ?? []).filter(isArchived));
+  async function archive(world: ShelfWorld, on: boolean) {
+    if (world.worldMd === null) return;
+    await library.writeWorldMd(world.path, withHeader(world.worldMd, { archived: on ? true : undefined }));
+    await refresh();
+  }
+
   function worldMenu(event: MouseEvent, world: ShelfWorld) {
     contextMenu.show(event, [
       { label: 'Open', run: () => onOpen(world.path), disabled: world.missing },
       { label: 'Edit details', run: () => (editing = world), disabled: world.missing },
       { label: 'Change cover', run: async () => setCover(world, await library.pickImage()), disabled: world.missing },
       { label: 'Theme', run: () => (theming = world), disabled: world.missing },
+      { label: isArchived(world) ? 'Unarchive' : 'Archive', run: () => archive(world, !isArchived(world)), disabled: world.missing },
       'separator',
       { label: 'Remove from the shelf', run: () => forget(world) },
     ]);
@@ -234,17 +247,7 @@
     </section>
   {/if}
 
-  {#if worlds}
-    <div class="grid">
-      {#if info?.path && !hasJournal}
-        <div class="card">
-          <button type="button" class="cover" onclick={openJournal} title="Your journal">
-            <img src={realWorld} alt="" />
-            <span class="words"><span class="tagline">Your journal</span><span class="name">Real World</span></span>
-          </button>
-        </div>
-      {/if}
-      {#each worlds as world (world.path)}
+  {#snippet worldCard(world: ShelfWorld)}
         <div class="card" class:missing={world.missing} oncontextmenu={(e) => worldMenu(e, world)} role="presentation" use:dropImage={(image) => !world.missing && setCover(world, image)}>
           <button type="button" class="cover" disabled={world.missing} onclick={() => onOpen(world.path)} title={world.path}>
             {#if world.cover}<img src={world.cover} alt="" />{:else if world.journal}<img src={realWorld} alt="" />{/if}
@@ -265,9 +268,27 @@
               <button type="button" onclick={async () => setCover(world, await library.pickImage())}>Change cover</button>
               <button type="button" onclick={() => (theming = world)}>Theme</button>
             {/if}
+            {#if !world.missing}
+              <button type="button" onclick={() => archive(world, !isArchived(world))} title={isArchived(world) ? 'Moves the world back up with the active ones.' : 'Moves the world down to the archived ones. Nothing else about it changes.'}>{isArchived(world) ? 'Unarchive' : 'Archive'}</button>
+            {/if}
             <button type="button" onclick={() => forget(world)} title="Takes the world off this shelf. Its files stay where they are.">Remove</button>
           </div>
         </div>
+  {/snippet}
+
+  {#if worlds}
+    {#if archived.length}<h2 class="label shelf-head">Active</h2>{/if}
+    <div class="grid">
+      {#if info?.path && !hasJournal}
+        <div class="card">
+          <button type="button" class="cover" onclick={openJournal} title="Your journal">
+            <img src={realWorld} alt="" />
+            <span class="words"><span class="tagline">Your journal</span><span class="name">Real World</span></span>
+          </button>
+        </div>
+      {/if}
+      {#each active as world (world.path)}
+        {@render worldCard(world)}
       {/each}
 
       <button type="button" class="card blank new" onclick={() => (making = true)}>
@@ -283,6 +304,14 @@
         <span class="hint">Bring in a folder you already write in</span>
       </button>
     </div>
+    {#if archived.length}
+      <h2 class="label shelf-head">Archived</h2>
+      <div class="grid">
+        {#each archived as world (world.path)}
+          {@render worldCard(world)}
+        {/each}
+      </div>
+    {/if}
   {/if}
   {#if theming && theming.worldMd !== null}
     <ThemeEditor
@@ -415,6 +444,13 @@
     color: #d8d2cb;
     border: 1px solid rgb(216 210 203 / 0.5);
     padding: 2px 6px;
+  }
+  .shelf-head {
+    margin: 34px 0 14px;
+    font-size: calc(12px * var(--type));
+  }
+  .shelf-head:first-of-type {
+    margin-top: 0;
   }
   .grid {
     display: grid;

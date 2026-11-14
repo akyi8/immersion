@@ -79,7 +79,7 @@
   {:else}
     <input class="name" aria-label="The handout's name" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     {#key path}
-      <EntryEditor {fs} {index} id={path} title={name} autofocus={fresh} {onOpen} {next} rumorTool narratorTool {onMakeEntry} />
+      <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool {onMakeEntry} />
     {/key}
   {/if}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

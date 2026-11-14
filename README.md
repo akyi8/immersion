@@ -8,7 +8,7 @@ Immersion is in active development. The World, Story, and Boards modules work to
 
 ### The library and the Worlds page
 
-A library is one folder that holds a writer's worlds. The app asks where the library lives on first run, finds every world in it up to six folders deep, and lists them on the Worlds page with their cover pictures. Any folder of writing becomes a world when it gains a `world.md`, and the app can create a new world with starter categories for people, places, factions, and history.
+A library is one folder that holds a writer's worlds. The app asks where the library lives on first run, finds every world in it up to six folders deep, and lists them on the Worlds page with their cover pictures. Any folder of writing becomes a world when it gains a `world.md`, and the app can create a new world with starter categories for people, places, factions, and history. A world not in use can be archived, which moves it below the others under an Archived heading and changes nothing else about it.
 
 When the library is a Git repository, Immersion keeps it in sync. It commits and syncs an open world every five minutes, three minutes after typing stops, whenever the app comes back to the front, and when the world closes. The header shows how many files are waiting to go out and how many are waiting to come in, and a button syncs at once.
 
@@ -49,6 +49,7 @@ A game's rulebook is kept as a book. The Game sidebar shows it as a tree: the bo
 The Table module holds campaigns played at a real table, for the game master who runs one and for a player who plays in one. A campaign holds adventures, and an adventure holds sessions. The sidebar shows them as a tree.
 
 - **A session has two sides.** The log is what happened, and the plan is what the game master prepared. For a campaign you run, a session opens with its plan and its log side by side. For a campaign you play in, a session is its log. Plans show only in Narrator view.
+- **Renaming.** A right click on a campaign, an adventure, or a session in the sidebar renames it, and an adventure also shows a rename button when the pointer is over it. A campaign and a session can also be renamed by typing over the name on their pages.
 - **A session's facts** sit under its name: the day it was played, the date in the game, and who was at the table. A new session starts with the last session's date in the game and its table, and its log opens with where the last session ended.
 - **Names link** in a session as they do in a chapter, and a selected name can be made into a wiki entry.
 - **Rumors.** Selected text in a session or a wiki entry can be marked as a rumor: something suspected and not known. A campaign's Rumors page lists every rumor in its sessions and in the wiki, and marks each one confirmed or false. Text with no mark is known to everyone, and narrator-only text is the game master's secret.

@@ -120,7 +120,7 @@
     </details>
   {/if}
   {#key path}
-    <EntryEditor {fs} {index} id={path} title={session.name} autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} onReady={(v) => ((editor = v), tray.target || aim())} />
+    <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} onReady={(v) => ((editor = v), tray.target || aim())} />
   {/key}
 </article>
 
