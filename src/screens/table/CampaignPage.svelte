@@ -2,6 +2,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
   import { inDesktopApp } from '../../lib/runtime';
+  import { chooseAndAdd } from '../../lib/table/add';
 
   /**
    * A campaign's own page (Mike, November 14): its name, whether the writer runs it or
@@ -45,23 +46,13 @@
   }
 
   let adding = $state('');
-  /** Copies files the writer chooses into one of the campaign's folders, and opens the first. */
   async function add(folder: 'rules' | 'handouts') {
     problem = '';
+    adding = folder;
     try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const picked = await open({
-        title: folder === 'rules' ? 'Choose a rulebook' : 'Choose handouts',
-        multiple: folder === 'handouts',
-        filters: folder === 'rules' ? [{ name: 'PDF files', extensions: ['pdf'] }] : [{ name: 'PDFs and pictures', extensions: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'] }],
-      });
-      const files = Array.isArray(picked) ? picked : typeof picked === 'string' ? [picked] : [];
-      if (!files.length) return;
-      adding = folder;
-      const added: string[] = [];
-      for (const file of files) added.push(await fs.addFile(`${campaign.path}/${folder}`, file));
+      const added = await chooseAndAdd(fs, campaign, folder);
       await onChanged();
-      onOpen(added[0]);
+      if (added.length) onOpen(added[0]);
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
       await onChanged();
@@ -121,7 +112,7 @@
 
   <h2 class="label">Handouts</h2>
   {#if campaign.handouts.length}
-    <p class="hint">{campaign.handouts.length} {campaign.handouts.length === 1 ? 'handout' : 'handouts'}. Each opens from the sidebar, and its corner button moves it to a window of its own, to share on a call.</p>
+    <p class="hint">{campaign.handouts.length} {campaign.handouts.length === 1 ? 'handout' : 'handouts'}. Each opens from the sidebar, and its corner button opens it in a window of its own, to share on a call. The + beside Handouts in the sidebar also starts a handout made of words.</p>
   {/if}
   {#if inDesktopApp}
     <div><button type="button" disabled={!!adding} onclick={() => add('handouts')}>{adding === 'handouts' ? 'Copying…' : 'Add handouts'}</button></div>

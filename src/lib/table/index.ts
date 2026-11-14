@@ -20,12 +20,14 @@ export interface Link {
 export interface Handout {
   path: string;
   name: string;
-  kind: 'pdf' | 'picture';
+  kind: 'pdf' | 'picture' | 'text';
 }
 
 /** A file the app shows as a page of its own: a PDF or a picture. */
 export const isPdf = (path: string) => /\.pdf$/i.test(path);
 export const isPicture = (path: string) => /\.(png|jpe?g|webp|gif)$/i.test(path);
+/** A handout made of words: a markdown file in a campaign's `handouts` folder. */
+export const isTextHandout = (path: string) => /(^|\/)handouts\/[^/]+\.md$/i.test(path);
 
 export interface Session {
   /** The session's path without `.log.md` or `.plan.md`, which is its identity. */
@@ -156,8 +158,11 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
     const handouts: Handout[] = [];
     if (await fs.exists(`${path}/handouts`)) {
       for (const f of await fs.readDir(`${path}/handouts`)) {
-        if (f.isDir || !(isPdf(f.name) || isPicture(f.name))) continue;
-        handouts.push({ path: `${path}/handouts/${f.name}`, name: bookName(f.name), kind: isPdf(f.name) ? 'pdf' : 'picture' });
+        const file = `${path}/handouts/${f.name}`;
+        if (f.isDir) continue;
+        if (isPdf(f.name) || isPicture(f.name)) handouts.push({ path: file, name: bookName(f.name), kind: isPdf(f.name) ? 'pdf' : 'picture' });
+        // A handout made of words is a markdown file, named in its header.
+        else if (/\.md$/i.test(f.name)) handouts.push({ path: file, name: text((await header(fs, file)).name) || titleFromSlug(f.name.replace(/\.md$/i, '')), kind: 'text' });
       }
       handouts.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     }

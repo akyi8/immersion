@@ -19,6 +19,10 @@
   import Tray from './Tray.svelte';
   import RulebookPane from './RulebookPane.svelte';
   import HandoutPane from './HandoutPane.svelte';
+  import TextHandout from './TextHandout.svelte';
+  import { chooseAndAdd, createTextHandout } from '../../lib/table/add';
+  import { inDesktopApp } from '../../lib/runtime';
+  import { contextMenu } from '../../lib/contextMenu.svelte';
   import { openInWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
@@ -159,7 +163,7 @@
   }
 
   // One small form makes a campaign, an adventure, or a session.
-  type Making = { kind: 'campaign' } | { kind: 'adventure'; campaign: Campaign } | { kind: 'session'; campaign: Campaign; adventure: Adventure };
+  type Making = { kind: 'campaign' } | { kind: 'adventure'; campaign: Campaign } | { kind: 'session'; campaign: Campaign; adventure: Adventure } | { kind: 'handout'; campaign: Campaign };
   let making = $state<Making | null>(null);
   let name = $state('');
   let role = $state<Role>('player');
@@ -191,6 +195,11 @@
       } else if (making.kind === 'adventure') {
         await createAdventure(fs, making.campaign, name);
         await refresh();
+      } else if (making.kind === 'handout') {
+        const path = await createTextHandout(fs, making.campaign, name);
+        await refresh();
+        fresh = path;
+        nav.open(path);
       } else {
         const stem = await createSession(fs, making.campaign, making.adventure, name, today());
         await refresh();
@@ -231,6 +240,32 @@
       null,
   );
 
+  /** Copies rulebooks or handouts chosen on this computer into a campaign, and opens the first. */
+  async function addFiles(c: Campaign, folder: 'rules' | 'handouts') {
+    problem = '';
+    try {
+      const added = await chooseAndAdd(fs, c, folder);
+      await refresh();
+      if (added.length) nav.open(added[0]);
+    } catch (e) {
+      await refresh();
+      problem = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  /** A handout is a file brought in, or words written or pasted here. */
+  function handoutMenu(e: MouseEvent, c: Campaign) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    contextMenu.show(
+      e,
+      [
+        { label: 'Write or paste text', run: () => start({ kind: 'handout', campaign: c }) },
+        ...(inDesktopApp ? [{ label: 'Add PDFs or pictures', run: () => void addFiles(c, 'handouts') }] : []),
+      ],
+      { x: r.left, y: r.bottom + 4 },
+    );
+  }
+
   const isOpen = (id: string | null) => !!id && nav.panes.includes(id);
   const short = (played: string) => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(played);
@@ -267,18 +302,20 @@
         {/each}
         <button type="button" class="item d1 quiet" onclick={() => start({ kind: 'adventure', campaign: c })}>+ New adventure</button>
         <button type="button" class="item d1 kept" class:on={isOpen(RUMORS + c.path)} onclick={() => nav.open(RUMORS + c.path)}><span>Rumors</span><span class="n">heard so far</span></button>
-        {#if c.rules.length}
-          <h3 class="label d1">Rulebooks</h3>
-          {#each c.rules as r (r.path)}
-            <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} title={r.name}><span>{r.name}</span></button>
-          {/each}
-        {/if}
-        {#if c.handouts.length}
-          <h3 class="label d1">Handouts</h3>
-          {#each c.handouts as h (h.path)}
-            <button type="button" class="item d1 book" class:on={isOpen(h.path)} onclick={() => nav.open(h.path)} title={h.name}><span>{h.name}</span><span class="n">{h.kind === 'pdf' ? 'PDF' : 'Picture'}</span></button>
-          {/each}
-        {/if}
+        <div class="head heading">
+          <h3 class="label">Rulebooks</h3>
+          {#if inDesktopApp}<button type="button" class="plus" aria-label="Add a rulebook to {c.name}" title="Add a rulebook" onclick={() => addFiles(c, 'rules')}>+</button>{/if}
+        </div>
+        {#each c.rules as r (r.path)}
+          <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} title={r.name}><span>{r.name}</span></button>
+        {/each}
+        <div class="head heading">
+          <h3 class="label">Handouts</h3>
+          <button type="button" class="plus" aria-label="Add a handout to {c.name}" title="Add a handout" aria-haspopup="menu" onclick={(e) => handoutMenu(e, c)}>+</button>
+        </div>
+        {#each c.handouts as h (h.path)}
+          <button type="button" class="item d1 book" class:on={isOpen(h.path)} onclick={() => nav.open(h.path)} title={h.name}><span>{h.name}</span><span class="n">{h.kind === 'pdf' ? 'PDF' : h.kind === 'picture' ? 'Picture' : 'Text'}</span></button>
+        {/each}
         <div class="gap"></div>
       {:else}
         {#if loaded}<p class="hint">No campaigns yet.</p>{/if}
@@ -290,6 +327,7 @@
   {/if}
 
   {#if row.length}
+    {#if problem && !making}<p class="problem floating" role="alert">{problem} <button type="button" onclick={() => (problem = '')}>Dismiss</button></p>{/if}
     <Panes
       {nav}
       ids={row}
@@ -325,7 +363,9 @@
           {/key}
         {:else if handoutAt(id)}
           {#key id}
-            {#if handoutAt(id)!.kind === 'pdf'}
+            {#if handoutAt(id)!.kind === 'text'}
+              <TextHandout {fs} {index} path={id} name={handoutAt(id)!.name} {next} fresh={fresh === id} onOpen={(target) => nav.open(target, i)} onMakeEntry={(n) => (makingEntry = { name: n, after: i })} onChanged={refresh} />
+            {:else if handoutAt(id)!.kind === 'pdf'}
               <RulebookPane {fs} path={id} name={handoutAt(id)!.name} {full} kind="Handout" onRename={(name) => renameFile(id, name)} />
             {:else}
               <HandoutPane {fs} path={id} name={handoutAt(id)!.name} onRename={(name) => renameFile(id, name)} />
@@ -382,7 +422,7 @@
 
 {#if making}
   <Dialog
-    title={making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : 'New session'}
+    title={making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : making.kind === 'handout' ? 'New text handout' : 'New session'}
     action={making.kind === 'session' ? 'Start the session' : 'Create'}
     ready={!!name.trim()}
     {busy}
@@ -391,7 +431,7 @@
     onCancel={() => (making = null)}>
     <label for="tb-name" class="label">Name</label>
     <!-- svelte-ignore a11y_autofocus -->
-    <input id="tb-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={making.kind === 'campaign' ? 'The Salt Ledger' : making.kind === 'adventure' ? 'The first winter' : 'Session 1'} />
+    <input id="tb-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={making.kind === 'campaign' ? 'The Salt Ledger' : making.kind === 'adventure' ? 'The first winter' : making.kind === 'handout' ? 'A letter from the Earl' : 'Session 1'} />
     {#if making.kind === 'campaign'}
       <label for="tb-role" class="label">I am</label>
       <select id="tb-role" bind:value={role}>
@@ -406,6 +446,8 @@
       {#if game === 'other'}
         <input type="text" bind:value={system} aria-label="The game's name" autocomplete="off" placeholder="The game's name, such as Pendragon" />
       {/if}
+    {:else if making.kind === 'handout'}
+      <p class="hint">A page for words, such as a message from the game master pasted in from a chat. It is kept with {making.campaign.name}'s handouts.</p>
     {:else if making.kind === 'adventure'}
       <p class="hint">An adventure is one stretch of {making.campaign.name}: a story, a year, or whatever the table calls it. Its sessions go inside it.</p>
     {:else}
@@ -488,8 +530,18 @@
     background: var(--selected-bg);
     box-shadow: inset 2px 0 0 var(--selected-border);
   }
+  .heading {
+    align-items: center;
+    margin-top: 8px;
+  }
+  .heading .label {
+    flex: 1;
+  }
+  .heading .plus {
+    min-height: 26px;
+  }
   .sidebar .label {
-    margin: 12px 0 2px;
+    margin: 4px 0 2px;
     padding-left: 30px;
     font-size: calc(10px * var(--type));
     color: var(--muted);
@@ -591,5 +643,24 @@
   }
   .problem {
     color: var(--danger, var(--accent));
+  }
+  .floating {
+    position: fixed;
+    left: 310px;
+    bottom: 14px;
+    z-index: 5;
+    margin: 0;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+  }
+  .floating button {
+    margin-left: 10px;
+    font: inherit;
+    color: var(--text-soft);
+    background: none;
+    border: 0;
+    text-decoration: underline;
   }
 </style>

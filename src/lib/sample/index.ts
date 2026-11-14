@@ -28,6 +28,15 @@ engine: ${SAMPLE_ENGINE}
     'world.jpg': worldImage,
     'table/the-fog-season/rules/example-engine.pdf': SAMPLE_RULEBOOK,
     'table/the-fog-season/handouts/harbor_map.jpg': worldImage,
+    'table/the-fog-season/handouts/the-harbor-masters-notice.md': `---
+name: The Harbor Master's Notice
+---
+
+By order of the harbor master, no boat leaves Harrowgate while the fog holds.
+
+> [!narrator]
+> The notice is forged. Tomas Reyes paid for it.
+`,
     'table/the-fog-season/handouts/a-letter-from-tomas.pdf': SAMPLE_RULEBOOK,
     'table/the-fog-season/campaign.md': `---
 name: The Fog Season

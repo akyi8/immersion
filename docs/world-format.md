@@ -647,6 +647,8 @@ A PDF file in a campaign's `rules` folder is one of its rulebooks, such as `tabl
 
 A PDF or a picture in a campaign's `handouts` folder is a handout: something the game master gives the table, such as a map or a letter. Pictures can be PNG, JPEG, WebP, or GIF files. A handout's name is its file name without the ending, with underscores read as spaces, and renaming a handout in the app renames the file.
 
+A markdown file in the same folder is a handout made of words, such as `handouts/a-letter-from-the-earl.md`. Its header holds its `name`, and its body is ordinary markdown, where names link and narrator-only text and rumors are written as in section 3. Renaming a text handout in the app changes the `name` and leaves the file where it is.
+
 ### Decks
 
 A poker deck with its jokers and the tarot come with the app. Any other deck is a markdown file in `table/decks`, with one card on each line:

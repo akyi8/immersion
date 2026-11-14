@@ -16,7 +16,9 @@
   import ManuscriptBoard from './boards/ManuscriptBoard.svelte';
   import RulebookPane from './table/RulebookPane.svelte';
   import HandoutPane from './table/HandoutPane.svelte';
-  import { bookName, isPdf, isPicture } from '../lib/table/index';
+  import { bookName, isPdf, isPicture, isTextHandout } from '../lib/table/index';
+  import TextHandout from './table/TextHandout.svelte';
+  import { splitHeader } from '../lib/world';
 
   /**
    * A reading window (Jen and Mike, October 25): one page and nothing else, so it can sit
@@ -60,11 +62,16 @@
 
   // A rulebook or a handout shows alone and fills the window, so it can be shared on a call (Mike, November 14).
   const media = $derived(isPdf(id) ? 'pdf' : isPicture(id) ? 'picture' : null);
+  const words = $derived(isTextHandout(id));
+  let wordsName = $state('');
+  $effect(() => {
+    if (words) void fs.readText(id).then((t) => (wordsName = String(splitHeader(t).header.name ?? '') || mediaName), () => {});
+  });
   const mediaName = $derived(bookName(id.split('/').pop() ?? id));
 
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
   const boardOf = (p: string) => (p.startsWith('@board:') ? (story?.manuscripts.find((m) => m.path === p.slice('@board:'.length)) ?? null) : null);
-  const row = $derived(nav.panes.filter((p) => p === '@timeline' || p.startsWith('@series:') || boardOf(p) || index?.get(p) || pieces.has(p)));
+  const row = $derived(nav.panes.filter((p) => isTextHandout(p) || p === '@timeline' || p.startsWith('@series:') || boardOf(p) || index?.get(p) || pieces.has(p)));
 
   function label(p: string): string {
     if (p === '@timeline') return 'Timeline';
@@ -73,6 +80,7 @@
     if (board) return board.title;
     const entry = index?.get(p);
     if (entry) return entry.name;
+    if (isTextHandout(p)) return wordsName || bookName(p.split('/').pop() ?? p);
     for (const m of story?.manuscripts ?? []) {
       if (m.path === p || m.book === p) return m.title;
       const s = [...m.front, ...m.sections, ...m.back].find((x) => x.path === p);
@@ -115,6 +123,8 @@
           <ManuscriptBoard {fs} manuscript={boardOf(p)!} onWrite={(path) => nav.open(path, i)} />
         {:else if p === '@timeline'}
           <TimelineView index={index!} {fs} rebuild={load} onOpen={(target) => nav.open(target, i)} />
+        {:else if isTextHandout(p)}
+          <TextHandout {fs} index={index!} path={p} name={wordsName || mediaName} reading onOpen={(target) => nav.open(target, i)} />
         {:else if index!.get(p)}
           <EntryView index={index!} {fs} id={p} {view} {next} fresh={false} onOpen={(target) => nav.open(target, i)} />
         {:else}
