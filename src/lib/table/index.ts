@@ -124,7 +124,7 @@ export async function readTable(fs: WorldFs, dir = TABLE_DIR): Promise<Campaign[
   if (!(await fs.exists(dir))) return [];
   const out: Campaign[] = [];
   for (const c of await fs.readDir(dir)) {
-    if (!c.isDir || c.name.startsWith('.') || c.name === 'archive') continue;
+    if (!c.isDir || c.name.startsWith('.') || c.name === 'archive' || c.name === 'decks') continue;
     const path = `${dir}/${c.name}`;
     const card = `${path}/campaign.md`;
     const h = await header(fs, card);

@@ -404,12 +404,14 @@ html.typing .pane:not(:focus-within) > .body {
    pointer (Mike, November 10). The parts are named here so each screen need not know. */
 .shell > header,
 .sidebar,
+.tray,
 .pane .tools,
 .pane-actions {
   transition: opacity 900ms ease;
 }
 html.typing .shell > header,
 html.typing .sidebar,
+html.typing .tray,
 html.typing .pane .tools,
 html.typing .pane-actions {
   opacity: 0.16;
@@ -417,6 +419,7 @@ html.typing .pane-actions {
 @media (prefers-reduced-motion: reduce) {
   .shell > header,
   .sidebar,
+  .tray,
   .pane .tools,
   .pane-actions {
     transition: none;

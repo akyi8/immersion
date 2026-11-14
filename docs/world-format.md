@@ -575,7 +575,7 @@ harrowgate/
         session-2.plan.md
 ```
 
-Folders named `archive`, `rules`, and `decks` inside a campaign are not adventures.
+Folders named `archive`, `rules`, and `decks` inside a campaign are not adventures, and `table/decks` is not a campaign.
 
 ### The campaign card
 
@@ -638,3 +638,39 @@ Tomas Reyes met us at the Salt Market and was already shouting.
 | `table` | Who was at the table. |
 
 A session that has a plan and no log yet keeps these facts in the plan's header. The text of a log or a plan is ordinary markdown: names link as they do in a wiki entry, and rumors and narrator-only text are written as in section 3.
+
+### Decks
+
+A poker deck with its jokers and the tarot come with the app. Any other deck is a markdown file in `table/decks`, with one card on each line:
+
+```markdown
+---
+name: Fate Deck
+reversals: false
+---
+
+Red Joker
+Black Joker
+1 of Rams
+2 of Rams
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | The deck's name. Without it, the file's name is used. |
+| `reversals` | `true` when a card can come out upside down, as tarot cards do. |
+
+A line may begin with a list mark, and a line that begins with `#` is skipped. A card listed twice is in the deck twice. A file named `poker.md` or `tarot.md` takes the place of the deck that comes with the app.
+
+A campaign remembers what it has drawn in `draws.md` in its own folder, which the app writes. Its header lists the cards drawn from each deck, oldest first, and a card that came out upside down ends with ` (reversed)`. Shuffling a deck back removes its list.
+
+```yaml
+---
+drawn:
+  poker:
+    - King of Clubs
+  tarot:
+    - Four of Wands (reversed)
+---
+```
+

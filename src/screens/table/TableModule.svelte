@@ -16,6 +16,8 @@
   import SessionPane from './SessionPane.svelte';
   import RumorsPage from './RumorsPage.svelte';
   import CampaignPage from './CampaignPage.svelte';
+  import Tray from './Tray.svelte';
+  import { tray } from '../../lib/table/tray.svelte';
 
   /**
    * The Table module (Mike, November 14): where a tabletop campaign is planned and
@@ -195,6 +197,14 @@
     }
   }
 
+  // The tray serves the campaign of the log it writes to, or of the last session open, or the only campaign.
+  const trayCampaign = $derived(
+    (tray.target && found(tray.target.path)?.campaign) ||
+      row.map((id) => found(id)?.campaign ?? campaigns.find((c) => c.card === id || id === RUMORS + c.path)).filter((c) => !!c).at(-1) ||
+      campaigns[0] ||
+      null,
+  );
+
   const isOpen = (id: string | null) => !!id && nav.panes.includes(id);
   const short = (played: string) => {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(played);
@@ -204,6 +214,7 @@
 
 <div class="table">
   {#if !ui.full}
+    <div class="side">
     <nav class="sidebar" aria-label="Table">
       {#each campaigns as c (c.path)}
         <div class="head">
@@ -236,6 +247,8 @@
       {/each}
       <button type="button" class="item quiet" onclick={() => start({ kind: 'campaign' })}>+ New campaign</button>
     </nav>
+    <Tray {fs} campaign={trayCampaign} />
+    </div>
   {/if}
 
   {#if row.length}
@@ -353,11 +366,18 @@
     display: flex;
     min-height: 0;
   }
-  .sidebar {
+  .side {
     width: 290px;
     flex-shrink: 0;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     border-right: 1px solid var(--line);
+  }
+  .sidebar {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     padding: 12px 0 24px;
   }
   .head {

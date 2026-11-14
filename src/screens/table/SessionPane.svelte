@@ -4,6 +4,9 @@
   import { lastWords, setFacts, type Campaign, type Session } from '../../lib/table/index';
   import { saveNow } from '../../lib/saves';
   import EntryEditor from '../world/EntryEditor.svelte';
+  import type { EditorView } from '@codemirror/view';
+  import { onDestroy } from 'svelte';
+  import { tray } from '../../lib/table/tray.svelte';
 
   /**
    * One side of a session (Mike, November 14). The log is what happened, and the plan is
@@ -56,6 +59,23 @@
     }
   }
 
+  // The tray writes rolls and drawn cards into the log the writer was last in.
+  let editor: EditorView | null = null;
+  function aim() {
+    if (side !== 'log' || !editor) return;
+    const view = editor;
+    tray.aim({
+      path,
+      name: session.name,
+      write: (line) => {
+        const at = view.state.doc.lineAt(view.state.selection.main.head);
+        const insert = at.text.trim() ? `\n\n${line}` : line;
+        view.dispatch({ changes: { from: at.to, insert }, selection: { anchor: at.to + insert.length }, scrollIntoView: true, userEvent: 'input' });
+      },
+    });
+  }
+  onDestroy(() => side === 'log' && session.log && tray.leave(session.log));
+
   // Where the last session ended, read when the page opens.
   let last = $state('');
   $effect(() => {
@@ -69,7 +89,8 @@
   });
 </script>
 
-<article class="session">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<article class="session" onfocusin={aim}>
   <div class="kind label">
     {#if side === 'plan'}Session plan · narrator only{:else}Session log{/if}
     <span class="where">{campaign.name}</span>
@@ -88,7 +109,7 @@
     </details>
   {/if}
   {#key path}
-    <EntryEditor {fs} {index} id={path} title={session.name} autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} />
+    <EntryEditor {fs} {index} id={path} title={session.name} autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} onReady={(v) => ((editor = v), tray.target || aim())} />
   {/key}
 </article>
 
