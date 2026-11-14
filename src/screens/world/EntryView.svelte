@@ -223,7 +223,7 @@
        because narrator-only text is hidden there and typing near it could damage it. -->
   {#if view === 'narrator'}
     {#key id}
-      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} narratorTool {onMakeEntry} />
+      <EntryEditor {fs} {index} {id} title={entry.name} autofocus={fresh} {onOpen} {next} rumorTool narratorTool {onMakeEntry} />
     {/key}
   {:else}
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->

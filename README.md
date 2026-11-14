@@ -44,6 +44,16 @@ The Game module holds a tabletop game's rules as separate elements, one file eac
 
 A game's rulebook is kept as a book. The Game sidebar shows it as a tree: the book's title page, its front matter, its divisions, the rule sections in each division, and the rules in each section, then its back matter. Rules can be dragged into a new order or added with a click. A rule opens in the same editor as a chapter, with its title, its tags, the engine's text that every game built on the engine prints, and below it the world's own text, which holds the world's examples and additions. A section opens as the book prints it, every rule formatted in order. Any page can carry a header picture, and a world can give a core rule a picture of its own. A division can list every element of some kinds instead, so the aspects print as lists. When a world has its own book and its engine has a base game book, a switch shows either one. A world's game can also have expansions, each a folder of its own that adds gear, vendors, and its own pieces to rules without changing anything in the world, so a table can play with any mix of the expansions it owns. An element can move between the world and its expansions. The title page is drawn from fields, as a manuscript's is: the title, a line under it, the author from an author profile, and the copyright line. A book prints its title page, then its front matter, then its divisions, so an introduction is a page of the front matter.
 
+### Table
+
+The Table module holds campaigns played at a real table, for the game master who runs one and for a player who plays in one. A campaign holds adventures, and an adventure holds sessions. The sidebar shows them as a tree.
+
+- **A session has two sides.** The log is what happened, and the plan is what the game master prepared. For a campaign you run, a session opens with its plan and its log side by side. For a campaign you play in, a session is its log. Plans show only in Narrator view.
+- **A session's facts** sit under its name: the day it was played, the date in the game, and who was at the table. A new session starts with the last session's date in the game and its table, and its log opens with where the last session ended.
+- **Names link** in a session as they do in a chapter, and a selected name can be made into a wiki entry.
+- **Rumors.** Selected text in a session or a wiki entry can be marked as a rumor: something suspected and not known. A campaign's Rumors page lists every rumor in its sessions and in the wiki, and marks each one confirmed or false. Text with no mark is known to everyone, and narrator-only text is the game master's secret.
+- **A campaign's page** holds its name, whether you run it or play in it, which game it uses, and links the table shares, such as a spreadsheet of characters.
+
 ### Across the app
 
 - **Quick finder.** Ctrl or Cmd K finds any entry, chapter, board, or action in the open world.
@@ -60,7 +70,7 @@ A game's rulebook is kept as a book. The Game sidebar shows it as a tree: the bo
 - **An entry's facts.** An entry's other names sit under its name, its date under those, and under both the small buttons that add a name or a date. The file's own header is never shown in the app, and nothing in it has to be edited by hand there. Other names written as a bold line in the text show in that row and are hidden from the text. A rule drawn straight under an entry's title, before any text, is not shown.
 - **Back and forward.** The header's arrows, Cmd with a bracket on a Mac, Alt with an arrow elsewhere, and a mouse's side buttons move through everything looked at.
 - **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
-- **Modules.** Settings show or hide each module in the header. World, Boards, and Story are on from the start, and Character, Play, and Game wait until they are turned on.
+- **Modules.** Settings show or hide each module in the header. World, Boards, and Story are on from the start, and Character, Play, Game, and Table wait until they are turned on.
 - **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.
 
 ## What a world looks like
@@ -79,6 +89,7 @@ harrowgate/
   stories/          the desk: work in progress
     ideas/          the drawer
     finished/       the shelf
+  table/            campaigns, each with its adventures and sessions
 ```
 
 `world.md` starts with a YAML header:
@@ -92,7 +103,7 @@ stories: stories
 ---
 ```
 
-[docs/world-format.md](docs/world-format.md) describes every file and header field the app reads, including entries, pictures and framing, dates and eras, manuscripts, beats and threads, series, story structures, and game engines and elements.
+[docs/world-format.md](docs/world-format.md) describes every file and header field the app reads, including entries, pictures and framing, dates and eras, manuscripts, beats and threads, series, story structures, game engines and elements, and campaigns and sessions.
 
 ## Building
 

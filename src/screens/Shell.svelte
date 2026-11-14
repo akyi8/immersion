@@ -15,6 +15,7 @@
   import { account } from '../lib/account.svelte';
   import { MODULES } from '../lib/you';
   import GameModule from './game/GameModule.svelte';
+  import TableModule from './table/TableModule.svelte';
   import type { GameFs } from '../lib/game/game';
 
   let {
@@ -109,6 +110,7 @@
     world: '',
     boards: '',
     game: '',
+    table: '',
   };
   // A module switched off while it is on screen gives way to the first one still shown.
   $effect(() => {
@@ -185,7 +187,7 @@
       </button>
       <SyncStatus />
       <UpdateButton />
-      {#if nav.current.module === 'world'}
+      {#if nav.current.module === 'world' || nav.current.module === 'table'}
         <div class="toggle" role="group" aria-label="Wiki view">
           <button type="button" class:on={view === 'narrator'} aria-pressed={view === 'narrator'} onclick={() => setView('narrator')}>Narrator</button>
           <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
@@ -210,6 +212,12 @@
   {:else if nav.current.module === 'story'}
     {#if index}
       <StoryModule {index} {fs} {nav} {storiesDir} {rebuild} {journal} {daily} />
+    {:else}
+      <div class="waiting">Reading the world…</div>
+    {/if}
+  {:else if nav.current.module === 'table'}
+    {#if index}
+      <TableModule {index} {fs} {nav} {view} {worldName} {rebuild} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}

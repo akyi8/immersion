@@ -268,6 +268,10 @@ const theme = EditorView.theme(
     '.cm-rule': { display: 'inline-block', width: '100%', borderTop: '1px solid var(--rule)', verticalAlign: 'middle' },
     '.cm-quote': { borderLeft: '2px solid var(--rule-strong)', paddingLeft: '16px !important', color: 'var(--text-soft)' },
     '.cm-callout-narrator': { borderLeftColor: 'var(--structure)', backgroundColor: 'var(--surface)', color: 'var(--text)' },
+    // A rumor: suspected, not known (Mike, November 14). A settled one steps back.
+    '.cm-callout-rumor': { borderLeftColor: 'var(--accent)', borderLeftStyle: 'dashed', backgroundColor: 'var(--accent-wash)', color: 'var(--text)' },
+    '.cm-callout-rumor .cm-callout-label': { color: 'var(--accent)' },
+    '.cm-callout-settled': { backgroundColor: 'transparent', color: 'var(--text-soft)' },
     '.cm-callout-label': {
       fontFamily: 'var(--font-label)',
       fontSize: '11px',

@@ -20,6 +20,7 @@
     onCursor,
     onOutline,
     narratorTool = false,
+    rumorTool = false,
     onMakeEntry,
     onReady,
   }: {
@@ -36,6 +37,8 @@
     onOutline?: (at: number) => void;
     /** Offer "Narrator only" on selected text, which only means something in the wiki. */
     narratorTool?: boolean;
+    /** Offer "Rumor" on selected text. */
+    rumorTool?: boolean;
     onMakeEntry?: (name: string) => void;
     /** Hands over the editor once it exists, for panels that work through it. */
     onReady?: (view: EditorView) => void;
@@ -104,7 +107,7 @@
       onMention: (id) => onOpen(id),
       onCursor: (pos) => onCursor?.(pos),
       onOutline: (at) => onOutline?.(at),
-      toolbar: { narrator: narratorTool, onMakeEntry: (name) => onMakeEntry?.(name) },
+      toolbar: { narrator: narratorTool, rumor: rumorTool, onMakeEntry: (name) => onMakeEntry?.(name) },
     });
     saver.start(text);
     ready = true;

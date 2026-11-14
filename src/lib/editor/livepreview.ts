@@ -3,6 +3,7 @@ import { Decoration, EditorView, WidgetType, keymap, type DecorationSet } from '
 import { ensureSyntaxTree } from '@codemirror/language';
 import { hasNoProse, startWriting } from './writeHere';
 import { noteTrouble } from '../trouble';
+import { standingOf } from '../table/rumors';
 
 /**
  * Live preview. The file stays plain markdown, and this extension only changes how it
@@ -454,7 +455,8 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
           );
           return false;
         }
-        const cls = kind ? `cm-quote cm-callout cm-callout-${kind}` : 'cm-quote';
+        const settled = kind === 'rumor' && standingOf(first.text.slice(callout![0].length)) !== 'open';
+        const cls = kind ? `cm-quote cm-callout cm-callout-${kind}${settled ? ' cm-callout-settled' : ''}` : 'cm-quote';
         for (let n = first.number; n <= last.number; n++) {
           const line = doc.line(n);
           lines.push(Decoration.line({ class: cls }).range(line.from));
@@ -462,8 +464,16 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
           const quoteMark = /^\s*>\s?/.exec(line.text);
           if (n === first.number && callout) {
             // "> [!narrator]" becomes a small label, like the reading view's callout.
-            const markerEnd = line.from + callout[0].length;
-            const label = kind === 'narrator' ? 'Narrator only' : kind!;
+            let markerEnd = line.from + callout[0].length;
+            let label = kind === 'narrator' ? 'Narrator only' : kind!;
+            if (kind === 'rumor') {
+              // A rumor says how it stands on its tag line, and the label says it for the reader.
+              const rest = line.text.slice(callout[0].length);
+              const standing = standingOf(rest);
+              label = standing === 'open' ? 'Rumor' : `Rumor · ${standing}`;
+              if (standing !== 'open') markerEnd = line.to;
+              else if (/^[-+]/.test(rest)) markerEnd += 1;
+            }
             marks.push(Decoration.replace({ widget: new LabelWidget(label) }).range(line.from, markerEnd));
           } else if (quoteMark && quoteMark[0].length > 0) {
             marks.push(hide.range(line.from, line.from + quoteMark[0].length));

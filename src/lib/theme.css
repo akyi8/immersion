@@ -233,6 +233,18 @@ button {
   background: var(--surface);
   color: var(--text);
 }
+.prose .callout-rumor {
+  border-left: 2px dashed var(--accent);
+  background: var(--accent-wash);
+  color: var(--text);
+}
+.prose .callout-rumor .callout-label {
+  color: var(--accent);
+}
+.prose .callout-settled {
+  background: none;
+  color: var(--text-soft);
+}
 .prose .callout-label {
   font-family: var(--font-label);
   font-size: 11px;

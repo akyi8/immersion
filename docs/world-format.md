@@ -17,6 +17,7 @@ The examples use Harrowgate, the small demo world that the browser build opens. 
 9. [Files the app keeps for itself](#9-files-the-app-keeps-for-itself)
 10. [Editing a world while the app is open](#10-editing-a-world-while-the-app-is-open)
 11. [Games: engines and elements](#11-games-engines-and-elements)
+12. [The table: campaigns and sessions](#12-the-table-campaigns-and-sessions)
 
 ## 1. The library
 
@@ -82,6 +83,20 @@ Immersion shows the wiki in two views. Narrator view shows everything, and Prota
 > [!narrator]
 > Tomas is quietly informing for the harbor watch.
 ```
+
+### Rumors
+
+A `> [!rumor]` callout marks text that is suspected and not known. Both views show it. A rumor that has been settled says so on its first line, as `confirmed` or `false`:
+
+```markdown
+> [!rumor]
+> A dock boy saw Wren leave the market with a book under her coat.
+
+> [!rumor] false
+> The ledger was thrown in the harbor.
+```
+
+Text with no callout is known to everyone. A game master who wants to keep a rumor's truth writes a `> [!narrator]` callout after it. Rumors work the same way in a session's log or plan, and a campaign's Rumors page lists every rumor in its sessions and in the wiki (see section 12).
 
 ### Pictures, framing, and banners
 
@@ -543,3 +558,83 @@ reskins: gear/lantern
 A brass lamp that stays lit in the narrows' wind.
 ```
 
+## 12. The table: campaigns and sessions
+
+A world's `table` folder holds its campaigns. A campaign is a folder with a `campaign.md` card. Inside it, each adventure is a folder with an `adventure.md` card, and each session is one or two files in its adventure's folder.
+
+```
+harrowgate/
+  table/
+    the-fog-season/
+      campaign.md
+      the-missing-ledger/
+        adventure.md
+        session-1.log.md
+        session-1.plan.md
+        session-2.log.md
+        session-2.plan.md
+```
+
+Folders named `archive`, `rules`, and `decks` inside a campaign are not adventures.
+
+### The campaign card
+
+```yaml
+---
+name: The Fog Season
+role: gm
+game: own
+system: Pendragon
+links:
+  - name: Our characters
+    url: https://example.com/characters
+---
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | The campaign's name. Without it, the folder's name is used. |
+| `role` | `gm` when the writer runs the campaign, or `player` when the writer plays in it. `player` is the default. |
+| `game` | `own` for the world's own game, or `other` for any other game. `other` is the default. |
+| `system` | The other game's name. |
+| `links` | Pages the table shares, each with a `name` and a `url`. |
+
+### The adventure card
+
+```yaml
+---
+name: The Missing Ledger
+order: 1
+---
+```
+
+Adventures show in the order of `order`, and then by folder name.
+
+### A session
+
+A session is two files that share a name. `<name>.log.md` is what happened. `<name>.plan.md` is what the game master prepared, and a player's session has no plan. A plan shows only in Narrator view, and only in a campaign whose `role` is `gm`.
+
+The log's header holds the session's facts:
+
+```markdown
+---
+name: The Ledger Goes Missing
+played: 2026-11-05
+when: The first night of fog
+table: [ Mike, Dana, Rob ]
+---
+
+Tomas Reyes met us at the Salt Market and was already shouting.
+
+> [!rumor]
+> A dock boy swears he saw Wren leave the market with a book under her coat.
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | The session's name, written in both files. Without it, the file's name is used. |
+| `played` | The real day the session was played, as `YYYY-MM-DD`. Sessions show in this order, and then by file name. |
+| `when` | The date in the game, in any words. |
+| `table` | Who was at the table. |
+
+A session that has a plan and no log yet keeps these facts in the plan's header. The text of a log or a plan is ordinary markdown: names link as they do in a wiki entry, and rumors and narrator-only text are written as in section 3.

@@ -41,7 +41,7 @@ export type BoardFont = 'theme' | 'cabin' | 'plex';
  * the start. Character, Play, and Game serve fewer writers, so each waits until the
  * writer turns it on in Settings.
  */
-export type ModuleId = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game';
+export type ModuleId = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game' | 'table';
 export const MODULES: [ModuleId, string, string][] = [
   ['character', 'Character', 'Protagonists for play. Still being designed.'],
   ['play', 'Play', 'Solo sessions with a narrator. Coming after the Game module.'],
@@ -49,6 +49,7 @@ export const MODULES: [ModuleId, string, string][] = [
   ['boards', 'Boards', 'The timeline, series boards, and manuscript boards.'],
   ['story', 'Story', 'The desk, the drawer, and the shelf.'],
   ['game', 'Game', "A game's rules, kept as separate elements, for writing a tabletop game."],
+  ['table', 'Table', 'Campaigns at a real table: sessions with a plan and a log, and the rumors heard along the way.'],
 ];
 export const DEFAULT_MODULES: ModuleId[] = ['world', 'boards', 'story'];
 export const BOARD_FONTS: [BoardFont, string, string][] = [

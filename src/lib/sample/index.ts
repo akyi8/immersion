@@ -25,6 +25,67 @@ engine: ${SAMPLE_ENGINE}
 `,
     ...SAMPLE_GAME,
     'world.jpg': worldImage,
+    'table/the-fog-season/campaign.md': `---
+name: The Fog Season
+role: gm
+game: own
+links:
+  - name: Our characters
+    url: https://example.com/harrowgate-characters
+---
+`,
+    'table/the-fog-season/the-missing-ledger/adventure.md': `---
+name: The Missing Ledger
+order: 1
+---
+`,
+    'table/the-fog-season/the-missing-ledger/session-1.plan.md': `---
+name: The Ledger Goes Missing
+---
+
+Goal: put the ledger in play and let them meet Tomas Reyes angry.
+
+- Open at the Salt Market at low water.
+- Tomas Reyes hires them. He will not say what the ledger holds.
+
+> [!rumor]
+> The harbor watch already has the ledger.
+
+> [!narrator]
+> They do not. Wren took it, and she has not opened it.
+`,
+    'table/the-fog-season/the-missing-ledger/session-1.log.md': `---
+name: The Ledger Goes Missing
+played: 2026-11-05
+when: The first night of fog
+table: [ Mike, Dana, Rob ]
+---
+
+Tomas Reyes met us at the Salt Market and was already shouting. His ledger is gone, and with it every favor owed to him in Harrowgate.
+
+> [!rumor]
+> A dock boy swears he saw Wren leave the market with a book under her coat.
+
+We agreed to find it before the fog lifts.
+`,
+    'table/the-fog-season/the-missing-ledger/session-2.plan.md': `---
+name: Low Water
+---
+
+Goal: the mudflats, and the first real trouble.
+`,
+    'table/the-fog-season/the-missing-ledger/session-2.log.md': `---
+name: Low Water
+played: 2026-11-12
+when: The second night of fog
+table: [ Mike, Dana, Rob ]
+---
+
+We searched the mudflats at low water.
+
+> [!rumor] false
+> The ledger was thrown in the harbor.
+`,
     'wiki/people/wren-okafor.md': `# Marta "Wren" Okafor
 
 **Aliases:** Marta, Wren

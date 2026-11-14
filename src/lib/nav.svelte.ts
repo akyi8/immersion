@@ -5,7 +5,7 @@
  * entries opened from it in Story. Every change to a row is one step of history, so
  * Back after following a name closes the pane it opened.
  */
-export type Module = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game';
+export type Module = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game' | 'table';
 
 export interface Location {
   module: Module;

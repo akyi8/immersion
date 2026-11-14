@@ -10,6 +10,8 @@ import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view'
 export interface ToolbarOptions {
   /** Offer "Narrator only", which only means something in the wiki. */
   narrator: boolean;
+  /** Offer "Rumor", for something suspected and not known (Mike, November 14). */
+  rumor?: boolean;
   /** Called with the selected name when the writer chooses "Make an entry". */
   onMakeEntry?: (name: string) => void;
 }
@@ -90,15 +92,16 @@ export function toggleMark(view: EditorView, mark: string, close: string = mark)
 
 const underline = (view: EditorView) => toggleMark(view, '<u>', '</u>');
 
-/** Turns the selected paragraphs into a narrator-only callout, or back into plain text. */
-export function toggleNarrator(view: EditorView): boolean {
+/** Turns the selected paragraphs into a callout of one kind, such as narrator-only text or a rumor, or back into plain text. */
+export function toggleCallout(view: EditorView, kind: string): boolean {
   const { state } = view;
   const first = state.doc.lineAt(state.selection.main.from);
   const last = state.doc.lineAt(state.selection.main.to);
   const above = first.number > 1 ? state.doc.line(first.number - 1) : null;
+  const tag = new RegExp(`^>\\s*\\[!${kind}\\]`, 'i');
   const changes = [];
-  if (/^>/.test(first.text) && above && /^>\s*\[!narrator\]/i.test(above.text)) {
-    // Already narrator-only: remove the callout marker and the quote marks.
+  if (/^>/.test(first.text) && above && tag.test(above.text)) {
+    // Already tagged: remove the callout marker and the quote marks.
     changes.push({ from: above.from, to: first.from });
     for (let n = first.number; n <= last.number; n++) {
       const line = state.doc.line(n);
@@ -106,12 +109,14 @@ export function toggleNarrator(view: EditorView): boolean {
       if (mark) changes.push({ from: line.from, to: line.from + mark[0].length });
     }
   } else {
-    changes.push({ from: first.from, insert: '> [!narrator]\n' });
+    changes.push({ from: first.from, insert: `> [!${kind}]\n` });
     for (let n = first.number; n <= last.number; n++) changes.push({ from: state.doc.line(n).from, insert: '> ' });
   }
   view.dispatch({ changes, userEvent: 'input.format' });
   return true;
 }
+
+export const toggleNarrator = (view: EditorView) => toggleCallout(view, 'narrator');
 
 /** The selected text when it could be a name: one line, short, and not blank. */
 function nameIn(state: EditorState): string | null {
@@ -152,6 +157,7 @@ export function selectionToolbar(options: ToolbarOptions): Extension {
           dom.append(button('U', 'Underline (Cmd-U or Ctrl-U)', () => underline(view)));
           dom.lastElementChild!.classList.add('underline');
           if (options.narrator) dom.append(button('Narrator only', 'Hide this from the protagonist view', () => toggleNarrator(view)));
+          if (options.rumor) dom.append(button('Rumor', 'Mark this as suspected, not known', () => toggleCallout(view, 'rumor')));
           const name = nameIn(view.state);
           if (options.onMakeEntry && name) dom.append(button('Make an entry', `Start a wiki entry for ${name}`, () => options.onMakeEntry!(name)));
           return { dom };

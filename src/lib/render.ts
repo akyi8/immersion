@@ -1,3 +1,4 @@
+import { standingOf } from './table/rumors';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { WikiIndex } from './index/wiki';
@@ -40,6 +41,16 @@ export function renderBody(markdown: string, index: WikiIndex, selfId: string | 
     const label = doc.createElement('div');
     label.className = 'callout-label';
     label.textContent = kind === 'narrator' ? 'Narrator only' : kind;
+    if (kind === 'rumor') {
+      // A rumor says how it stands on its tag line (Mike, November 14).
+      const word = /^(\w+)[^\S\n]*(?:<br>|\n|$)\s*/.exec(first.innerHTML);
+      const standing = word ? standingOf(word[1]) : 'open';
+      if (standing !== 'open') {
+        first.innerHTML = first.innerHTML.slice(word![0].length);
+        quote.classList.add('callout-settled');
+      }
+      label.textContent = standing === 'open' ? 'Rumor' : `Rumor · ${standing}`;
+    }
     quote.prepend(label);
   }
 
