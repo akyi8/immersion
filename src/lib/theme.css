@@ -187,9 +187,16 @@ button {
   outline-offset: 2px;
 }
 
+/* Checkboxes, radios, and sliders wear the world's own color, not the system's blue. */
+:root {
+  accent-color: var(--structure);
+}
+
 .label {
   font-family: var(--font-label);
-  font-size: 12px;
+  font-size: calc(12px * var(--type, 1));
+  font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--structure);

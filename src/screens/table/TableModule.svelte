@@ -450,14 +450,7 @@
             {/if}
           {/key}
         {:else if card}
-          <CampaignPage
-            {fs}
-            campaign={card}
-            onChanged={refresh}
-            onOpen={async (book) => {
-              await refresh();
-              nav.open(book, i);
-            }} />
+          <CampaignPage {fs} campaign={card} onChanged={refresh} />
         {:else if at}
           {#key at.session.stem}
             <SessionPane
@@ -718,7 +711,7 @@
     border-radius: var(--round-box);
   }
   .card.new {
-    background: none;
+    background: var(--well);
     border-style: dashed;
   }
   .card:hover {

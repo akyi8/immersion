@@ -1,26 +1,22 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
-  import { inDesktopApp } from '../../lib/runtime';
-  import { chooseAndAdd } from '../../lib/table/add';
   import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
    * A campaign's own page (Mike, November 14): its name, whether the writer runs it or
    * plays in it, which game it uses, and links the table shares, such as the spreadsheet
-   * that holds everyone's characters.
+   * that holds everyone's characters. Its rulebooks and handouts are added from the
+   * sidebar, where they are listed, so this page does not explain them.
    */
   let {
     fs,
     campaign,
     onChanged,
-    onOpen,
   }: {
     fs: WorldFs;
     campaign: Campaign;
     onChanged: () => Promise<void>;
-    /** Opens a rulebook just added. */
-    onOpen: (path: string) => void;
   } = $props();
 
   let problem = $state('');
@@ -44,22 +40,6 @@
     await saveLinks([...campaign.links, { name: linkName.trim() || url, url }]);
     linkName = '';
     linkUrl = '';
-  }
-
-  let adding = $state('');
-  async function add(folder: 'rules' | 'handouts') {
-    problem = '';
-    adding = folder;
-    try {
-      const added = await chooseAndAdd(fs, campaign, folder);
-      await onChanged();
-      if (added.length) onOpen(added[0]);
-    } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
-      await onChanged();
-    } finally {
-      adding = '';
-    }
   }
 
   let copied = $state('');
@@ -103,28 +83,6 @@
       <input type="text" aria-label="The game's name" placeholder="The game's name, such as Pendragon" value={campaign.system} onchange={(e) => change({ system: e.currentTarget.value.trim() || undefined })} />
     {/if}
   </div>
-
-  <h2 class="label">Rulebooks</h2>
-  {#if campaign.rules.length}
-    <p class="hint">{campaign.rules.map((r) => r.name).join(', ')}. Each opens from the sidebar, in a pane beside the session.</p>
-  {/if}
-  {#if inDesktopApp}
-    <div><button type="button" disabled={!!adding} onclick={() => add('rules')}>{adding === 'rules' ? 'Copying…' : 'Add a rulebook'}</button></div>
-    <p class="hint">Choose a PDF and it is copied into this campaign's <span class="path">{campaign.path}/rules</span> folder. The file you chose stays where it was.</p>
-  {:else}
-    <p class="hint">A rulebook is a PDF file in this campaign's <span class="path">{campaign.path}/rules</span> folder. Put a PDF there and it shows in the sidebar.</p>
-  {/if}
-
-  <h2 class="label">Handouts</h2>
-  {#if campaign.handouts.length}
-    <p class="hint">{campaign.handouts.length} {campaign.handouts.length === 1 ? 'handout' : 'handouts'}. Each opens from the sidebar, and its corner button opens it in a window of its own, to share on a call. The + beside Handouts in the sidebar also starts a handout made of words.</p>
-  {/if}
-  {#if inDesktopApp}
-    <div><button type="button" disabled={!!adding} onclick={() => add('handouts')}>{adding === 'handouts' ? 'Copying…' : 'Add handouts'}</button></div>
-    <p class="hint">Choose PDFs or pictures, such as maps and letters, and they are copied into this campaign's <span class="path">{campaign.path}/handouts</span> folder.</p>
-  {:else}
-    <p class="hint">A handout is a PDF or a picture in this campaign's <span class="path">{campaign.path}/handouts</span> folder.</p>
-  {/if}
 
   <h2 class="label">Links</h2>
   <p class="hint">Pages the table shares, such as the spreadsheet that holds everyone's characters.</p>
@@ -212,11 +170,6 @@
     padding: 8px 0;
     border-bottom: 1px solid var(--line);
   }
-  .path {
-    font-family: var(--font-label);
-    font-size: 0.92em;
-    user-select: text;
-  }
   .link-name {
     color: var(--text);
   }
@@ -242,7 +195,8 @@
     font-family: var(--font-label);
     font-size: calc(12px * var(--type));
     color: var(--text-soft);
-    background: none;
+    /* A button has a shape of its own, so it reads as one where the layout draws no lines. */
+    background: var(--well);
     border: 1px solid var(--edge);
     border-radius: var(--round);
     padding: 5px 12px;

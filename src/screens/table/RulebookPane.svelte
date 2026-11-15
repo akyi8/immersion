@@ -306,7 +306,8 @@
   input {
     font: inherit;
     color: var(--text-soft);
-    background: none;
+    /* A button has a shape of its own, so it reads as one where the layout draws no lines. */
+    background: var(--well);
     border: 1px solid var(--edge);
     border-radius: var(--round);
     padding: 4px 10px;

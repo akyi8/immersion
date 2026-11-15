@@ -797,7 +797,7 @@
       {/snippet}
     </Panes>
   {:else}
-    <main class="home">
+    <main class="home sheet">
       <h1>Game</h1>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <p>

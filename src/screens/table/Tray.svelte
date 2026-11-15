@@ -187,7 +187,7 @@
   const canWrite = $derived(!!result && !!tray.target && ((tab === 'dice' && !!result.big) || (tab === 'cards' && !!card)));
 </script>
 
-<section class="tray" aria-label="Dice and cards">
+<section class="tray" class:open={!!tab} aria-label="Dice and cards">
   <div class="tabs">
     <button type="button" aria-pressed={tab === 'dice'} onclick={() => show('dice')}>Dice</button>
     <button type="button" aria-pressed={tab === 'cards'} onclick={() => show('cards')}>Cards</button>
@@ -268,6 +268,13 @@
     flex-direction: column;
     gap: 8px;
   }
+  /* An open tray keeps one height, so its controls stay under the pointer while a result
+     comes and goes (the design pass, November 15). */
+  .tray.open {
+    height: 318px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
   .tabs,
   .quick,
   .line {
@@ -282,7 +289,8 @@
     font-family: var(--font-label);
     font-size: calc(12px * var(--type));
     color: var(--text-soft);
-    background: none;
+    /* A button has a shape of its own, so it reads as one where the layout draws no lines. */
+    background: var(--well);
     border: 1px solid var(--edge);
     border-radius: var(--round);
     padding: 5px 9px;
@@ -423,6 +431,7 @@
     margin-left: auto;
   }
   .why {
+    margin-top: auto;
     width: 100%;
     box-sizing: border-box;
   }

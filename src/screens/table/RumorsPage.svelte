@@ -176,7 +176,8 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-soft);
-    background: none;
+    /* A button has a shape of its own, so it reads as one where the layout draws no lines. */
+    background: var(--well);
     border: 1px solid var(--edge);
     border-radius: 999px;
     padding: 3px 10px;
@@ -196,10 +197,12 @@
   }
   .pill {
     color: var(--muted);
+    background: none;
+    border-color: transparent;
+    padding-left: 0;
   }
   .pill.true {
     color: var(--structure);
-    border-color: var(--structure);
   }
   .problem {
     color: var(--danger, var(--accent));

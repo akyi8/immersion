@@ -255,7 +255,9 @@
     border: 1px dashed var(--edge);
     border-radius: var(--round);
     padding: 8px 14px;
+    margin-inline: -14px;
     color: var(--text-soft);
+    background: var(--well);
   }
   .last summary {
     cursor: pointer;
