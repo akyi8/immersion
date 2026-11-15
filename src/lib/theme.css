@@ -498,3 +498,23 @@ html.typing .pane-actions {
   box-shadow: 0 0 0 6px color-mix(in oklab, var(--text) 8%, transparent);
   background: color-mix(in oklab, var(--text) 8%, transparent);
 }
+
+/* A narrow window (the design pass, November 15): the sidebars slim down and the header
+   keeps to one row. */
+@media (max-width: 1100px) {
+  .sidebar,
+  .side:not(.floating) {
+    width: 236px !important;
+  }
+  .shell > header .find {
+    min-width: 0;
+  }
+  .shell > header .find kbd {
+    display: none;
+  }
+}
+@media (max-height: 720px) {
+  .tray.open {
+    height: 236px !important;
+  }
+}

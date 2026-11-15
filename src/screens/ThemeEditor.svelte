@@ -123,7 +123,7 @@
   const groups = (list: FontChoice[]) => (['Sans', 'Serif', 'Mono', 'Display'] as const).map((k) => [k, list.filter((f) => f.kind === k)] as const).filter(([, fonts]) => fonts.length);
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), onCancel())} />
 
 <aside class="panel" aria-label="Theme for {worldName}">
   <h2>Theme</h2>

@@ -102,7 +102,7 @@
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !removing && (ui.settings = null)} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && !removing && (e.preventDefault(), (ui.settings = null))} />
 
 <div class="backdrop" role="presentation" onclick={() => (ui.settings = null)} use:portal></div>
 <section class="settings" aria-label="Settings" use:portal>

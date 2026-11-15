@@ -135,6 +135,7 @@
   function key(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.preventDefault();
       onClose();
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();

@@ -53,7 +53,7 @@
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), onCancel())} />
 
 <div class="backdrop" role="presentation" onclick={onCancel} use:portal></div>
 <form use:portal class="dialog" aria-label={kind === 'entry' ? 'New entry' : 'New category'} onsubmit={submit}>

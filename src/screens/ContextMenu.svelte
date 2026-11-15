@@ -27,7 +27,11 @@
 
   function onkey(event: KeyboardEvent) {
     if (!contextMenu.open || !menu) return;
-    if (event.key === 'Escape') return contextMenu.close();
+    if (event.key === 'Escape') {
+      // Escape is answered here, so the page under the menu stays open.
+      event.preventDefault();
+      return contextMenu.close();
+    }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
     const buttons = [...menu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];

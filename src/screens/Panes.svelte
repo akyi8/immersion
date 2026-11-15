@@ -74,7 +74,13 @@
   let width = $state(560);
 
   function fit() {
-    if (strip) width = Math.round(Math.min(680, Math.max(420, (strip.clientWidth - 2 * SPINE) / 2)));
+    if (strip) {
+      const room = strip.clientWidth;
+      // Two panes side by side need about 420 each. In a narrower window one pane takes the
+      // room and the others stack as spines, so no page is cut off mid-word.
+      const half = (room - 2 * SPINE) / 2;
+      width = Math.round(half >= 420 ? Math.min(680, half) : Math.max(320, Math.min(680, room - 2 * SPINE)));
+    }
     measure();
   }
 
@@ -149,7 +155,9 @@
     if (e.key !== 'Escape' || e.defaultPrevented) return;
     if (viewing) viewing = null;
     else if (full) leaveFull();
-    else void closeCurrent(e);
+    // Anything else that answers Escape marks the key as handled, whichever listener
+    // runs first, so this waits a moment and looks again before closing a page.
+    else setTimeout(() => !e.defaultPrevented && void closeCurrent(e), 0);
   }}
   onmousedown={outsideView} />
 

@@ -456,6 +456,11 @@
           {:else}
             <p>The desk holds what you are writing, the drawer what you might write, and the shelf what is finished. Names in your writing open their wiki entries beside it.</p>
           {/if}
+          <!-- The home offers the next step, and not only an account of the module (the design pass, November 15). -->
+          <div class="starts">
+            <button type="button" class="make" onclick={() => ((creating = { kind: 'manuscript', place: 'desk' }), (problem = ''))}>+ New manuscript</button>
+            <button type="button" class="start" onclick={() => ((creating = { kind: 'note', place: 'desk' }), (problem = ''))}>+ New note</button>
+          </div>
         {/if}
         {#if activity}
           <h2 class="label">Writing, the last year</h2>
@@ -573,6 +578,20 @@
   }
   .problem {
     color: var(--danger) !important;
+  }
+  .starts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0 6px;
+  }
+  .start {
+    font-size: calc(14px * var(--type));
+    color: var(--text);
+    background: var(--well, var(--surface));
+    border: 1px solid var(--edge);
+    padding: 10px 16px;
+    min-height: 44px;
   }
   .make {
     font-size: calc(14px * var(--type));

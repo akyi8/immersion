@@ -128,7 +128,9 @@
     const book = bookAt(id) ?? handoutAt(id);
     if (book) return book.name;
     const at = found(id);
-    return at ? (at.session.plan === id ? `${at.session.name} · plan` : at.session.name) : id;
+    if (!at) return id;
+    // With a plan beside it, the log says it is the log, so two spines can be told apart.
+    return at.session.plan === id ? `${at.session.name} · plan` : at.session.plan && showsPlan(at.campaign) ? `${at.session.name} · log` : at.session.name;
   }
 
   /** Opens a session: its plan and its log side by side for the game master, and the log alone for a player. */
