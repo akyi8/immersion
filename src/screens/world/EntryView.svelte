@@ -104,12 +104,24 @@
   // long name still fits. A very long word is set smaller. The writer chooses the word by
   // clicking it, and the app guesses until then.
   const spine = $derived(spineName(entry.name, entry.spine ?? null));
-  async function chooseSpine(word: string) {
+  /**
+   * A click makes a word the one large word. A click with Shift held adds the word to the
+   * large ones, or takes it away, so two or more can stand large.
+   */
+  async function chooseSpine(word: string, add: boolean) {
     pictureProblem = '';
+    const now = spine.words.filter((w) => w.chosen).map((w) => w.text);
+    const same = (a: string) => a.toLowerCase() === word.toLowerCase();
+    let next = add ? (now.some(same) ? now.filter((w) => !same(w)) : [...now, word]) : [word];
+    if (!next.length) next = [spine.guess];
+    // Kept in the order the name has them.
+    const order = spine.words.map((w) => w.text.toLowerCase());
+    next.sort((a, b) => order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase()));
     try {
       await saveNow(id);
       // The app's own guess needs no line in the file.
-      await fs.writeText(id, withHeader(await fs.readText(id), { spine: word.toLowerCase() === spine.guess.toLowerCase() ? undefined : word }));
+      const value = next.join(' ');
+      await fs.writeText(id, withHeader(await fs.readText(id), { spine: value.toLowerCase() === spine.guess.toLowerCase() ? undefined : value }));
     } catch (e) {
       pictureProblem = e instanceof Error ? e.message : String(e);
     }
@@ -253,11 +265,15 @@
     <div class="spine">
       <div class="kind">{folderLabel(entry.category)}</div>
       <h1 class="spine-name" aria-label={entry.name}>
-        <span class="main" style:font-size="calc({spineSize}px * var(--type))">{spine.main}</span>
+        <span class="main" style:font-size="calc({spineSize}px * var(--type))">
+          {#each spine.words.filter((w) => w.big) as w, i (i)}
+            {#if w.chosen && spine.words.filter((x) => x.chosen).length > 1}<button type="button" class="pick" title="Shift and click to make {w.text} small again" onclick={(e) => chooseSpine(w.text, e.shiftKey)}>{w.text}</button>{:else}{w.text}{/if}{' '}
+          {/each}
+        </span>
         {#if spine.rest}
           <span class="lead">
             {#each spine.words.filter((w) => !w.big) as w, i (i)}
-              {#if w.choice}<button type="button" class="pick" title="Make {w.text} the large word" onclick={() => chooseSpine(w.text)}>{w.text}</button>{:else}{w.text}{/if}{' '}
+              {#if w.choice}<button type="button" class="pick" title="Click to make {w.text} the large word. Shift and click to make it large as well." onclick={(e) => chooseSpine(w.text, e.shiftKey)}>{w.text}</button>{:else}{w.text}{/if}{' '}
             {/each}
           </span>
         {/if}

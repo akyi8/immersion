@@ -68,7 +68,15 @@ test("the writer's choice of word beats the guess", () => {
 
 test('a click can choose any word but an article or a joining word', () => {
   const s = spineName('The Chantry of Pain');
-  assert.deepEqual(s.words.map((w) => [w.text, w.big, w.choice]), [['The', true, false], ['Chantry', true, false], ['of', false, false], ['Pain', false, true]]);
+  assert.deepEqual(s.words.map((w) => [w.text, w.big, w.choice]), [['The', true, false], ['Chantry', true, true], ['of', false, false], ['Pain', false, true]]);
   assert.equal(s.guess, 'Chantry');
   assert.equal(spineName('Sister Agnes').words[0].choice, true);
+});
+
+test('more than one word can stand large', () => {
+  assert.deepEqual(spine('The Salt Market', 'Salt Market'), ['The Salt Market', '']);
+  assert.deepEqual(spine('Marta "Wren" Okafor', 'Marta Okafor'), ['Marta Okafor', 'Wren']);
+  // A joining word between two large words rides with them.
+  assert.deepEqual(spine('The Chantry of Pain', 'Chantry Pain'), ['The Chantry of Pain', '']);
+  assert.deepEqual(spine('Lou Lewandowski the Younger', 'Lou Younger'), ['Lou the Younger', 'Lewandowski']);
 });

@@ -102,7 +102,9 @@ export interface SpineWord {
   text: string;
   /** Whether this word stands large. */
   big: boolean;
-  /** Whether a click can make this word the large one. Articles and joining words cannot. */
+  /** Whether the writer or the guess picked this word, as against an article that rides with one. */
+  chosen: boolean;
+  /** Whether a click can choose this word. Articles and joining words cannot be chosen. */
   choice: boolean;
 }
 
@@ -130,11 +132,24 @@ export function spineName(name: string, chosen: string | null = null): Spine {
   const nickname = raw.findIndex((w) => QUOTED.test(w) && bare(w).length > 0);
   const firstReal = raw.findIndex((w) => !plain(w) && !TITLE.test(bare(w)));
   const guessAt = nickname >= 0 ? nickname : firstReal >= 0 ? firstReal : Math.max(0, raw.findIndex((w) => !plain(w)));
-  const chosenAt = chosen?.trim() ? raw.findIndex((w) => sameWord(w, chosen)) : -1;
-  const at = chosenAt >= 0 ? chosenAt : guessAt;
-  // An article straight before the large word rides with it.
-  const from = at > 0 && ARTICLE.test(bare(raw[at - 1])) ? at - 1 : at;
-  const words = raw.map((w, i) => ({ text: bare(w) || w, big: i >= from && i <= at, choice: i !== at && !plain(w) }));
+  // The writer may choose more than one word, such as Salt Market (Mike, November 15).
+  const wanted = (chosen ?? '').trim().split(/\s+/).filter(Boolean);
+  const picked = new Set<number>();
+  for (const word of wanted) {
+    const at = raw.findIndex((w, i) => !picked.has(i) && sameWord(w, word));
+    if (at >= 0) picked.add(at);
+  }
+  if (!picked.size) picked.add(guessAt);
+  const big = new Set(picked);
+  for (const at of picked) {
+    // An article straight before a large word rides with it, and so does a joining word
+    // caught between two large words, so Chantry of Pain reads whole.
+    if (at > 0 && ARTICLE.test(bare(raw[at - 1]))) big.add(at - 1);
+    for (let j = at + 1; j < raw.length && plain(raw[j]); j++) {
+      if (picked.has(j + 1)) for (let k = at + 1; k <= j; k++) big.add(k);
+    }
+  }
+  const words = raw.map((w, i) => ({ text: bare(w) || w, big: big.has(i), chosen: picked.has(i), choice: !plain(w) }));
   return {
     main: words.filter((w) => w.big).map((w) => w.text).join(' '),
     rest: words.filter((w) => !w.big).map((w) => w.text).join(' '),
