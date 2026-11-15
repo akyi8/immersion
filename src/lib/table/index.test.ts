@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
-import { createAdventure, createCampaign, createSession, lastWords, readTable, sessionOf, setFacts } from './index.ts';
+import { archivePath, archiveSession, createAdventure, createCampaign, createSession, lastWords, readTable, sessionOf, setFacts } from './index.ts';
 
 test('a campaign is made, filled, and read back', async () => {
   const fs = new MemoryFs({ 'world.md': '# W\n' });
@@ -44,4 +44,30 @@ test('where a session ended is its last plain paragraph', () => {
   const log = '---\nname: One\n---\n\nWe rode out.\n\nThe bear is dead.\n\n> [!rumor]\n> It had eyes.\n';
   assert.equal(lastWords(log), 'The bear is dead.');
   assert.equal(lastWords('---\nname: One\n---\n'), '');
+});
+
+test('archiving moves a thing out of sight and deletes nothing', async () => {
+  const fs = new MemoryFs({});
+  await createCampaign(fs, { name: 'C', role: 'gm', game: 'other', system: '' });
+  await fs.writeText('table/c/rules/core.pdf', 'pdf');
+  let c = (await readTable(fs)).find((x) => x.path === 'table/c')!;
+  await createAdventure(fs, c, 'One');
+  await createAdventure(fs, c, 'Two');
+  c = (await readTable(fs)).find((x) => x.path === 'table/c')!;
+  await createSession(fs, c, c.adventures[0], 'First', '2026-11-19');
+  await createSession(fs, c, c.adventures[0], 'Second', '2026-11-26');
+  c = (await readTable(fs)).find((x) => x.path === 'table/c')!;
+  await archiveSession(fs, c.adventures[0].sessions[0]);
+  assert.equal(await archivePath(fs, 'table/c/rules/core.pdf'), 'table/c/rules/archive/core.pdf');
+  await archivePath(fs, c.adventures[1].path);
+  c = (await readTable(fs)).find((x) => x.path === 'table/c')!;
+  assert.deepEqual(c.adventures.map((a) => a.name), ['One']);
+  assert.deepEqual(c.adventures[0].sessions.map((x) => x.name), ['Second']);
+  assert.deepEqual(c.rules, []);
+  assert.equal(await fs.exists('table/c/one/archive/first.log.md'), true);
+  assert.equal(await fs.exists('table/c/one/archive/first.plan.md'), true);
+  assert.equal(await fs.exists('table/c/archive/two/adventure.md'), true);
+  await archivePath(fs, 'table/c');
+  assert.equal((await readTable(fs)).some((x) => x.path === 'table/c'), false);
+  assert.equal(await fs.exists('table/archive/c/campaign.md'), true);
 });

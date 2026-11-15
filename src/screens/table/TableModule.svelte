@@ -8,7 +8,7 @@
   import { views } from '../../lib/view.svelte';
   import { defaultShape } from '../../lib/index/frame';
   import { createEntry, likelyCategory } from '../../lib/index/create';
-  import { TABLE_DIR, createAdventure, createCampaign, createSession, readTable, renameBook, sessionOf, setFacts, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
+  import { TABLE_DIR, createAdventure, createCampaign, archivePath, archiveSession, createSession, readTable, renameBook, sessionOf, setFacts, type Adventure, type Campaign, type Role, type Session } from '../../lib/table/index';
   import Panes from '../Panes.svelte';
   import Dialog from '../shelf/Dialog.svelte';
   import EntryView from '../world/EntryView.svelte';
@@ -24,6 +24,9 @@
   import { inDesktopApp } from '../../lib/runtime';
   import { contextMenu } from '../../lib/contextMenu.svelte';
   import { saveNow } from '../../lib/saves';
+  import { pageActions } from '../../lib/pane.svelte';
+  import type { MenuEntry } from '../../lib/contextMenu.svelte';
+  import { titleFocus } from '../../lib/table/tray.svelte';
   import { openInWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
@@ -165,7 +168,8 @@
 
   // One small form makes a campaign, an adventure, or a session.
   type Making = { kind: 'campaign' } | { kind: 'adventure'; campaign: Campaign } | { kind: 'session'; campaign: Campaign; adventure: Adventure } | { kind: 'handout'; campaign: Campaign }
-    | { kind: 'rename'; what: string; was: string; files: string[] };
+    | { kind: 'rename'; what: string; was: string; files: string[] }
+    | { kind: 'archive'; what: string; was: string; run: () => Promise<void> };
   let making = $state<Making | null>(null);
   let name = $state('');
   let role = $state<Role>('player');
@@ -186,7 +190,7 @@
   };
 
   async function make() {
-    if (!making || !name.trim()) return;
+    if (!making || (making.kind !== 'archive' && !name.trim())) return;
     busy = true;
     problem = '';
     try {
@@ -196,6 +200,9 @@
         nav.open(`${path}/campaign.md`);
       } else if (making.kind === 'adventure') {
         await createAdventure(fs, making.campaign, name);
+        await refresh();
+      } else if (making.kind === 'archive') {
+        await making.run();
         await refresh();
       } else if (making.kind === 'rename') {
         // The name is kept in the card or the header, so the files stay where they are.
@@ -262,23 +269,70 @@
     }
   }
 
-  /** A right click on a row of the sidebar offers to rename what it stands for. */
-  function renameMenu(e: MouseEvent, what: string, was: string, files: (string | null)[]) {
-    contextMenu.show(e, [{ label: `Rename this ${what}`, run: () => start({ kind: 'rename', what, was, files: files.filter((f): f is string => !!f) }) }]);
+  /**
+   * What can be done to a thing in the Table module, as one menu (Mike, November 15). The
+   * same menu opens from a right click on its row, from the row's hover button, and from
+   * its page's corner. Renaming is typing over the page's title, so Rename opens the page
+   * with the cursor there. An adventure has no page, so it is renamed in a small form.
+   * Archiving moves the files into an `archive` folder and deletes nothing.
+   */
+  type Thing =
+    | { kind: 'campaign'; c: Campaign }
+    | { kind: 'adventure'; c: Campaign; a: Adventure }
+    | { kind: 'session'; c: Campaign; s: Session }
+    | { kind: 'rulebook' | 'handout'; path: string; name: string };
+
+  function thingAt(id: string): Thing | null {
+    const c = campaigns.find((x) => x.card === id);
+    if (c) return { kind: 'campaign', c };
+    const at = found(id);
+    if (at) return { kind: 'session', c: at.campaign, s: at.session };
+    const book = bookAt(id);
+    if (book) return { kind: 'rulebook', ...book };
+    const h = handoutAt(id);
+    return h ? { kind: 'handout', path: h.path, name: h.name } : null;
   }
 
-  /** A handout is a file brought in, or words written or pasted here. */
-  function handoutMenu(e: MouseEvent, c: Campaign) {
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    contextMenu.show(
-      e,
-      [
-        { label: 'Write or paste text', run: () => start({ kind: 'handout', campaign: c }) },
-        ...(inDesktopApp ? [{ label: 'Add PDFs or pictures', run: () => void addFiles(c, 'handouts') }] : []),
-      ],
-      { x: r.left, y: r.bottom + 4 },
-    );
+  function retitle(id: string) {
+    nav.open(id);
+    titleFocus.request(id);
   }
+
+  function menuFor(t: Thing): MenuEntry[] {
+    const name = t.kind === 'campaign' ? t.c.name : t.kind === 'adventure' ? t.a.name : t.kind === 'session' ? t.s.name : t.name;
+    const rename =
+      t.kind === 'adventure'
+        ? () => start({ kind: 'rename', what: 'adventure', was: t.a.name, files: [`${t.a.path}/adventure.md`] })
+        : () => retitle(t.kind === 'campaign' ? t.c.card : t.kind === 'session' ? (t.s.log ?? t.s.plan!) : t.path);
+    const archive = async () => {
+      if (t.kind === 'campaign') await archivePath(fs, t.c.path);
+      else if (t.kind === 'adventure') await archivePath(fs, t.a.path);
+      else if (t.kind === 'session') {
+        for (const file of [t.s.log, t.s.plan]) if (file) await saveNow(file);
+        await archiveSession(fs, t.s);
+      } else await archivePath(fs, t.path);
+    };
+    return [
+      { label: 'Rename', run: rename },
+      ...(t.kind === 'rulebook' || t.kind === 'handout' ? [{ label: 'Open in a new window', run: () => toWindow(t.path) }] : []),
+      'separator',
+      { label: 'Archive', run: () => start({ kind: 'archive', what: t.kind, was: name, run: archive }) },
+    ];
+  }
+
+  function rowMenu(e: MouseEvent, t: Thing, below = false) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    contextMenu.show(e, menuFor(t), below ? { x: r.left, y: r.bottom + 4 } : undefined);
+  }
+
+  // Each open page offers the same menu from its corner.
+  $effect(() => {
+    const ids = row.filter((id) => thingAt(id));
+    for (const id of ids) pageActions.set(id, menuFor(thingAt(id)!));
+    return () => {
+      for (const id of ids) pageActions.clear(id);
+    };
+  });
 
   const isOpen = (id: string | null) => !!id && nav.panes.includes(id);
   const short = (played: string) => {
@@ -288,60 +342,69 @@
 </script>
 
 <div class="table">
-  {#if !ui.full}
-    <div class="side">
+  <div class="side" class:floating={!!ui.full}>
+    {#if !ui.full}
     <nav class="sidebar" aria-label="Table">
+      {#snippet more(t: Thing, name: string)}
+        <button type="button" class="plus more" aria-label="What can be done with {name}" title="Rename or archive" aria-haspopup="menu" onclick={(e) => rowMenu(e, t, true)}>⋯</button>
+      {/snippet}
       {#each campaigns as c (c.path)}
         <div class="head">
-          <button type="button" class="item campaign" class:on={isOpen(c.card)} onclick={() => nav.open(c.card)} oncontextmenu={(e) => renameMenu(e, 'campaign', c.name, [c.card])}>
+          <button type="button" class="item campaign" class:on={isOpen(c.card)} onclick={() => nav.open(c.card)} oncontextmenu={(e) => rowMenu(e, { kind: 'campaign', c })}>
             <span>{c.name}</span><span class="n">{c.role === 'gm' ? 'Running' : 'Playing'}{c.system ? ` · ${c.system}` : ''}</span>
           </button>
+          {@render more({ kind: 'campaign', c }, c.name)}
         </div>
         {#each c.adventures as a (a.path)}
           <div class="head d1">
-            <button type="button" class="item fold" aria-expanded={!shut.includes(a.path)} title="Right click to rename" onclick={() => fold(a.path)} oncontextmenu={(e) => renameMenu(e, 'adventure', a.name, [`${a.path}/adventure.md`])}>
+            <button type="button" class="item fold" aria-expanded={!shut.includes(a.path)} onclick={() => fold(a.path)} oncontextmenu={(e) => rowMenu(e, { kind: 'adventure', c, a })}>
               <span><span class="arrow" aria-hidden="true">{shut.includes(a.path) ? '▸' : '▾'}</span> {a.name}</span>
             </button>
-            <button type="button" class="plus more" aria-label="Rename {a.name}" title="Rename this adventure" onclick={() => start({ kind: 'rename', what: 'adventure', was: a.name, files: [`${a.path}/adventure.md`] })}>✎</button>
-            <button type="button" class="plus" aria-label="New session in {a.name}" title="New session" onclick={() => start({ kind: 'session', campaign: c, adventure: a })}>+</button>
+            {@render more({ kind: 'adventure', c, a }, a.name)}
           </div>
           {#if !shut.includes(a.path)}
             {#each a.sessions as s (s.stem)}
-              <button type="button" class="item d2" class:on={isOpen(s.log) || isOpen(s.plan)} onclick={() => openSession(c, s)} oncontextmenu={(e) => renameMenu(e, 'session', s.name, [s.log, s.plan])}>
-                <span>{s.name}</span><span class="n">{short(s.played)}</span>
-              </button>
-            {:else}
-              <p class="hint d2">No sessions yet.</p>
+              <div class="head">
+                <button type="button" class="item d2" class:on={isOpen(s.log) || isOpen(s.plan)} onclick={() => openSession(c, s)} oncontextmenu={(e) => rowMenu(e, { kind: 'session', c, s })}>
+                  <span>{s.name}</span><span class="n">{short(s.played)}</span>
+                </button>
+                {@render more({ kind: 'session', c, s }, s.name)}
+              </div>
             {/each}
+            <button type="button" class="item d2 quiet" onclick={() => start({ kind: 'session', campaign: c, adventure: a })}>+ New session</button>
           {/if}
         {/each}
         <button type="button" class="item d1 quiet" onclick={() => start({ kind: 'adventure', campaign: c })}>+ New adventure</button>
         <button type="button" class="item d1 kept" class:on={isOpen(RUMORS + c.path)} onclick={() => nav.open(RUMORS + c.path)}><span>Rumors</span><span class="n">heard so far</span></button>
-        <div class="head heading">
-          <h3 class="label">Rulebooks</h3>
-          {#if inDesktopApp}<button type="button" class="plus" aria-label="Add a rulebook to {c.name}" title="Add a rulebook" onclick={() => addFiles(c, 'rules')}>+</button>{/if}
-        </div>
+        <h3 class="label">Rulebooks</h3>
         {#each c.rules as r (r.path)}
-          <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} title={r.name}><span>{r.name}</span></button>
+          <div class="head">
+            <button type="button" class="item d1 book" class:on={isOpen(r.path)} onclick={() => nav.open(r.path)} oncontextmenu={(e) => rowMenu(e, { kind: 'rulebook', ...r })} title={r.name}><span>{r.name}</span></button>
+            {@render more({ kind: 'rulebook', ...r }, r.name)}
+          </div>
         {/each}
-        <div class="head heading">
-          <h3 class="label">Handouts</h3>
-          <button type="button" class="plus" aria-label="Add a handout to {c.name}" title="Add a handout" aria-haspopup="menu" onclick={(e) => handoutMenu(e, c)}>+</button>
-        </div>
+        {#if inDesktopApp}<button type="button" class="item d1 quiet" onclick={() => addFiles(c, 'rules')}>+ Add a rulebook</button>{/if}
+        <h3 class="label">Handouts</h3>
         {#each c.handouts as h (h.path)}
-          <button type="button" class="item d1 book" class:on={isOpen(h.path)} onclick={() => nav.open(h.path)} title={h.name}><span>{h.name}</span><span class="n">{h.kind === 'pdf' ? 'PDF' : h.kind === 'picture' ? 'Picture' : 'Text'}</span></button>
+          <div class="head">
+            <button type="button" class="item d1 book" class:on={isOpen(h.path)} onclick={() => nav.open(h.path)} oncontextmenu={(e) => rowMenu(e, { kind: 'handout', path: h.path, name: h.name })} title={h.name}><span>{h.name}</span><span class="n">{h.kind === 'pdf' ? 'PDF' : h.kind === 'picture' ? 'Picture' : 'Text'}</span></button>
+            {@render more({ kind: 'handout', path: h.path, name: h.name }, h.name)}
+          </div>
         {/each}
+        <button type="button" class="item d1 quiet" onclick={() => start({ kind: 'handout', campaign: c })}>+ New text handout</button>
+        {#if inDesktopApp}<button type="button" class="item d1 quiet" onclick={() => addFiles(c, 'handouts')}>+ Add PDFs or pictures</button>{/if}
         <div class="gap"></div>
       {:else}
         {#if loaded}<p class="hint">No campaigns yet.</p>{/if}
       {/each}
       <button type="button" class="item quiet" onclick={() => start({ kind: 'campaign' })}>+ New campaign</button>
     </nav>
+    {/if}
     <Tray {fs} campaign={trayCampaign} />
-    </div>
-  {/if}
+  </div>
 
   {#if row.length}
+    {#if view === 'protagonist'}<p class="showing" role="status">Protagonist view: showing what players may see. Plans and narrator-only text are put away, and pages are for reading.</p>{/if}
     {#if problem && !making}<p class="problem floating" role="alert">{problem} <button type="button" onclick={() => (problem = '')}>Dismiss</button></p>{/if}
     <Panes
       {nav}
@@ -379,7 +442,7 @@
         {:else if handoutAt(id)}
           {#key id}
             {#if handoutAt(id)!.kind === 'text'}
-              <TextHandout {fs} {index} path={id} name={handoutAt(id)!.name} {next} fresh={fresh === id} onOpen={(target) => nav.open(target, i)} onMakeEntry={(n) => (makingEntry = { name: n, after: i })} onChanged={refresh} />
+              <TextHandout {fs} {index} path={id} name={handoutAt(id)!.name} {next} fresh={fresh === id} reading={view === 'protagonist'} onOpen={(target) => nav.open(target, i)} onMakeEntry={(n) => (makingEntry = { name: n, after: i })} onChanged={refresh} />
             {:else if handoutAt(id)!.kind === 'pdf'}
               <RulebookPane {fs} path={id} name={handoutAt(id)!.name} {full} kind="Handout" onRename={(name) => renameFile(id, name)} />
             {:else}
@@ -406,6 +469,7 @@
               side={at.session.plan === id ? 'plan' : 'log'}
               {next}
               fresh={fresh === id}
+              reading={view === 'protagonist'}
               onOpen={(target) => nav.open(target, i)}
               onMakeEntry={(n) => (makingEntry = { name: n, after: i })}
               onChanged={refresh} />
@@ -437,16 +501,20 @@
 
 {#if making}
   <Dialog
-    title={making.kind === 'rename' ? `Rename this ${making.what}` : making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : making.kind === 'handout' ? 'New text handout' : 'New session'}
-    action={making.kind === 'session' ? 'Start the session' : making.kind === 'rename' ? 'Rename' : 'Create'}
-    ready={!!name.trim()}
+    title={making.kind === 'archive' ? `Archive this ${making.what}` : making.kind === 'rename' ? `Rename this ${making.what}` : making.kind === 'campaign' ? 'New campaign' : making.kind === 'adventure' ? 'New adventure' : making.kind === 'handout' ? 'New text handout' : 'New session'}
+    action={making.kind === 'session' ? 'Start the session' : making.kind === 'rename' ? 'Rename' : making.kind === 'archive' ? 'Archive' : 'Create'}
+    ready={making.kind === 'archive' || !!name.trim()}
     {busy}
     {problem}
     onSubmit={make}
     onCancel={() => (making = null)}>
+    {#if making.kind === 'archive'}
+      <p class="hint">“{making.was}” moves to an archive folder and leaves the app. The files are kept, so nothing is lost, and moving them back out of the archive folder restores it.</p>
+    {:else}
     <label for="tb-name" class="label">Name</label>
-    <!-- svelte-ignore a11y_autofocus -->
-    <input id="tb-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={making.kind === 'campaign' ? 'The Salt Ledger' : making.kind === 'adventure' ? 'The first winter' : making.kind === 'handout' ? 'A letter from the Earl' : 'Session 1'} />
+      <!-- svelte-ignore a11y_autofocus -->
+      <input id="tb-name" type="text" bind:value={name} autofocus autocomplete="off" placeholder={making.kind === 'campaign' ? 'The Salt Ledger' : making.kind === 'adventure' ? 'The first winter' : making.kind === 'handout' ? 'A letter from the Earl' : 'Session 1'} />
+    {/if}
     {#if making.kind === 'campaign'}
       <label for="tb-role" class="label">I am</label>
       <select id="tb-role" bind:value={role}>
@@ -467,7 +535,7 @@
       <p class="hint">A page for words, such as a message from the game master pasted in from a chat. It is kept with {making.campaign.name}'s handouts.</p>
     {:else if making.kind === 'adventure'}
       <p class="hint">An adventure is one stretch of {making.campaign.name}: a story, a year, or whatever the table calls it. Its sessions go inside it.</p>
-    {:else}
+    {:else if making.kind === 'session'}
       <p class="hint">In {making.adventure.name}. {making.campaign.role === 'gm' ? 'It starts with a plan and a log.' : 'It starts with a log.'} Today is set as the day it was played, and you can change that on the page.</p>
     {/if}
   </Dialog>
@@ -483,7 +551,21 @@
     display: flex;
     min-height: 0;
   }
+  /* In full screen the tree is put away and the tray stays, in a corner, so a roll is
+     always one click off (Mike's design pass, November 15). */
+  .side.floating {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 30;
+    width: 280px;
+    border: 0;
+    border-radius: var(--round-box);
+    background: var(--surface);
+    box-shadow: var(--lift, 0 10px 30px var(--shadow));
+  }
   .side {
+    box-sizing: border-box;
     width: 290px;
     flex-shrink: 0;
     display: flex;
@@ -547,18 +629,8 @@
     background: var(--selected-bg);
     box-shadow: inset 2px 0 0 var(--selected-border);
   }
-  .heading {
-    align-items: center;
-    margin-top: 8px;
-  }
-  .heading .label {
-    flex: 1;
-  }
-  .heading .plus {
-    min-height: 26px;
-  }
   .sidebar .label {
-    margin: 4px 0 2px;
+    margin: 14px 0 2px;
     padding-left: 30px;
     font-size: calc(10px * var(--type));
     color: var(--muted);
@@ -579,8 +651,9 @@
     font-size: 0.8em;
   }
   .more {
-    width: 28px;
-    font-size: calc(12px * var(--type));
+    width: 30px;
+    flex-shrink: 0;
+    font-size: calc(14px * var(--type));
     opacity: 0;
   }
   .head:hover .more,
@@ -605,9 +678,6 @@
     font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--muted);
-  }
-  .hint.d2 {
-    margin-left: 48px;
   }
   .gap {
     height: 14px;
@@ -669,6 +739,20 @@
   }
   .problem {
     color: var(--danger, var(--accent));
+  }
+  .showing {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 12px;
+    z-index: 5;
+    margin: 0;
+    padding: 6px 14px;
+    font-size: calc(13px * var(--type));
+    color: var(--text-soft);
+    background: var(--surface);
+    border-radius: 999px;
+    box-shadow: 0 4px 14px var(--shadow);
   }
   .floating {
     position: fixed;

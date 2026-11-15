@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
+  import { titleFocus } from '../../lib/table/tray.svelte';
   import { chaptersOf, drawPage, openBook, rememberPage, rememberedPage, shapeOf, type Book, type Chapter } from '../../lib/table/pdf';
 
   /**
@@ -198,6 +199,10 @@
   /** The chapter the open page falls in, for the contents list. */
   const here = $derived(chapters.reduce((last, c, i) => (c.page <= (second || first) ? i : last), -1));
   const atEnd = $derived(!pages || (second || first) >= pages);
+
+  // Rename in a menu puts the cursor here.
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(path, titleInput));
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -215,7 +220,7 @@
   <div class="reading">
     <div class="head" class:away={!kind}>
       <div class="label kind">{kind}</div>
-      <input class="name" aria-label="The name" title={onRename ? 'Type a new name to rename it' : name} readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+      <input class="name" bind:this={titleInput} aria-label="The name" title={onRename ? 'Type a new name to rename it' : name} readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     </div>
     <div class="bar">
       <button type="button" aria-label="The page before" disabled={first <= 1} onclick={back}>‹</button>

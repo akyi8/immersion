@@ -47,3 +47,25 @@ class Tumbling {
   }
 }
 export const tumbling = new Tumbling();
+
+/**
+ * Renaming is typing over a page's title (Mike, November 15). "Rename" in a menu opens
+ * the page and asks it to put the cursor in its title, which this carries.
+ */
+class TitleFocus {
+  ask = $state<{ id: string; at: number } | null>(null);
+
+  request(id: string) {
+    this.ask = { id, at: Date.now() };
+  }
+
+  /** Puts the cursor in a title field when it is the one asked for. Used from an effect. */
+  serve(id: string, input: HTMLInputElement | undefined) {
+    const ask = this.ask;
+    if (!ask || ask.id !== id || !input || Date.now() - ask.at > 4000) return;
+    input.focus();
+    input.select();
+    this.ask = null;
+  }
+}
+export const titleFocus = new TitleFocus();

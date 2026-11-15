@@ -34,13 +34,16 @@
   --danger: #ff9a9a;
 
   /* Where the highlight falls (Mike, October 25): the names of things, both page
-     titles and names in the prose, and whatever is selected or active. */
+     titles and names in the prose. */
   --title: var(--accent);
   /* Names in the prose sit a little paler than the highlight, so a paragraph full of
      them stays calm (Mike, October 25). */
   --name: color-mix(in oklab, var(--accent) 85%, white);
-  --selected-fg: var(--accent);
-  --selected-bg: color-mix(in srgb, var(--accent) 14%, var(--bg));
+  /* What is selected is a quiet wash of the text's own color (Mike, November 15), so the
+     highlight keeps to names and to the one main action on a page. The thin bar beside a
+     selected row is still the highlight. */
+  --selected-fg: var(--text);
+  --selected-bg: color-mix(in oklab, var(--text) 10%, transparent);
   --selected-border: var(--accent);
   --shadow: rgb(0 0 0 / 0.5);
   --scrim: rgb(0 0 0 / 0.55);
@@ -88,7 +91,7 @@
   /* On a pale page too, names sit a little lighter than the highlight, so a deep
      highlight such as navy still reads as a name and not as ink (Mike, October 25). */
   --name: color-mix(in oklab, var(--accent) 80%, white);
-  --selected-bg: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  --selected-bg: color-mix(in oklab, var(--text) 9%, transparent);
 
   --font-display: 'Playfair Display', serif;
   --font-body: 'Literata', serif;

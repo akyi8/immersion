@@ -211,7 +211,7 @@
     </div>
     <form class="line" onsubmit={(e) => (e.preventDefault(), throwDice())}>
       {#if own}
-        <span class="pool">{countOf(8) ? `Pressure ${countOf(8)}` : 'Click the die for each point of pressure'}</span>
+        <span class="pool">Pressure {countOf(8)}</span>
         <label class="edge">Edge <input type="number" min="2" max="8" bind:value={edge} /></label>
       {:else}
         <input type="text" aria-label="The roll" bind:value={said} placeholder="Click dice, or type 2d6+3" autocomplete="off" spellcheck="false" />
@@ -428,6 +428,12 @@
   }
   .tolog {
     text-align: left;
+    color: var(--text);
+    background: var(--well);
+    padding: 8px 10px;
+  }
+  .tolog:disabled {
+    background: none;
   }
   .problem {
     margin: 0;

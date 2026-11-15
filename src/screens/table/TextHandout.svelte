@@ -5,6 +5,7 @@
   import { splitHeader } from '../../lib/world';
   import { setFacts } from '../../lib/table/index';
   import { saveNow } from '../../lib/saves';
+  import { titleFocus } from '../../lib/table/tray.svelte';
   import EntryEditor from '../world/EntryEditor.svelte';
 
   /**
@@ -68,6 +69,10 @@
     const id = (e.target as HTMLElement).closest<HTMLElement>('[data-entry]')?.dataset.entry;
     if (id) onOpen(id);
   }
+
+  // Rename in a menu puts the cursor here.
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(path, titleInput));
 </script>
 
 <article class="text-handout" class:reading>
@@ -77,7 +82,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="prose" onclick={follow}>{@html html}</div>
   {:else}
-    <input class="name" aria-label="The handout's name" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+    <input class="name" bind:this={titleInput} aria-label="The handout's name" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     {#key path}
       <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool {onMakeEntry} />
     {/key}

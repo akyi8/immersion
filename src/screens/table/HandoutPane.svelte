@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
+  import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
    * A handout that is a picture (Mike, November 14): a map, a letter, a portrait. It shows
@@ -28,12 +29,16 @@
     problem = (await onRename?.(next)) ?? '';
     if (problem) e.currentTarget.value = name;
   }
+
+  // Rename in a menu puts the cursor here.
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(path, titleInput));
 </script>
 
 <article class="handout" class:bare>
   {#if !bare}
     <div class="label kind">Handout</div>
-    <input class="name" aria-label="The name" readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+    <input class="name" bind:this={titleInput} aria-label="The name" readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {/if}
   <img src={fs.imageUrl(path)} alt={name} />

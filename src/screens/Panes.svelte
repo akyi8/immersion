@@ -472,7 +472,7 @@
     position: fixed;
     top: 14px;
     right: 18px;
-    opacity: 0.25;
+    opacity: 0.6;
     transition: opacity 200ms;
   }
   .pane.alone .tools:hover,

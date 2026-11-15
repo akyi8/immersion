@@ -242,6 +242,36 @@ export async function setFacts(fs: WorldFs, path: string, facts: Record<string, 
   await fs.writeText(path, withHeader(source, facts));
 }
 
+/**
+ * Archives a file or a folder: it moves into an `archive` folder beside it, which the app
+ * leaves out. Nothing is deleted, and moving it back out restores it. Returns the new path.
+ */
+export async function archivePath(fs: WorldFs, path: string): Promise<string> {
+  const at = path.lastIndexOf('/');
+  const dir = `${path.slice(0, at)}/archive`;
+  const name = path.slice(at + 1);
+  const dot = name.search(/(\.(log|plan))?\.[a-z0-9]+$/i);
+  const [stem, ending] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
+  await fs.createDir(dir);
+  for (let n = 1; ; n++) {
+    const to = `${dir}/${n === 1 ? stem : `${stem}-${n}`}${ending}`;
+    if (await fs.exists(to)) continue;
+    await fs.move(path, to);
+    return to;
+  }
+}
+
+/** Archives a session: its log and its plan together, under one name. */
+export async function archiveSession(fs: WorldFs, session: Session): Promise<void> {
+  const dir = `${session.stem.slice(0, session.stem.lastIndexOf('/'))}/archive`;
+  const base = session.stem.slice(session.stem.lastIndexOf('/') + 1);
+  await fs.createDir(dir);
+  let stem = base;
+  for (let n = 2; (await fs.exists(`${dir}/${stem}.log.md`)) || (await fs.exists(`${dir}/${stem}.plan.md`)); n++) stem = `${base}-${n}`;
+  if (session.log) await fs.move(session.log, `${dir}/${stem}.log.md`);
+  if (session.plan) await fs.move(session.plan, `${dir}/${stem}.plan.md`);
+}
+
 /** Where the session before this one ended: the last plain paragraph of its log. */
 export function lastWords(log: string, limit = 320): string {
   const paragraphs = splitHeader(log)

@@ -3,10 +3,12 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { lastWords, setFacts, type Campaign, type Session } from '../../lib/table/index';
   import { saveNow } from '../../lib/saves';
+  import { renderBody } from '../../lib/render';
+  import { splitHeader } from '../../lib/world';
   import EntryEditor from '../world/EntryEditor.svelte';
   import type { EditorView } from '@codemirror/view';
   import { onDestroy } from 'svelte';
-  import { tray } from '../../lib/table/tray.svelte';
+  import { titleFocus, tray } from '../../lib/table/tray.svelte';
 
   /**
    * One side of a session (Mike, November 14). The log is what happened, and the plan is
@@ -22,6 +24,7 @@
     side,
     next,
     fresh = false,
+    reading = false,
     onOpen,
     onMakeEntry,
     onChanged,
@@ -35,6 +38,8 @@
     side: 'log' | 'plan';
     next: string | null;
     fresh?: boolean;
+    /** Protagonist view: the log shows for reading, with narrator-only text left out. */
+    reading?: boolean;
     onOpen: (id: string) => void;
     onMakeEntry: (name: string) => void;
     onChanged: () => Promise<void>;
@@ -87,6 +92,28 @@
   }
   onDestroy(() => side === 'log' && session.log && tray.leave(session.log));
 
+  // For reading: the file as it is on disk, read again whenever it changes.
+  let html = $state('');
+  $effect(() => {
+    if (!reading) return;
+    const file = path;
+    const show = () =>
+      void fs.readText(file).then(
+        (text) => (html = renderBody(splitHeader(text.replace(/\r\n?/g, '\n')).body, index, null, 'protagonist')),
+        () => {},
+      );
+    show();
+    return fs.onChange((paths) => paths.includes(file) && show());
+  });
+  function follow(e: MouseEvent) {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-entry]')?.dataset.entry;
+    if (id) onOpen(id);
+  }
+
+  // Rename in a menu puts the cursor in the title.
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(path, titleInput));
+
   // Where the last session ended, read when the page opens.
   let last = $state('');
   $effect(() => {
@@ -106,22 +133,33 @@
     {#if side === 'plan'}Session plan · narrator only{:else}Session log{/if}
     <span class="where">{campaign.name}</span>
   </div>
-  <input class="name" aria-label="The session's name" value={session.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() }, true)} />
-  <div class="facts">
-    <label>Played <input type="date" value={session.played} onchange={(e) => change({ played: e.currentTarget.value })} /></label>
-    <label class="wide">In the game <input type="text" value={session.when} placeholder="Spring, 485" onchange={(e) => change({ when: e.currentTarget.value.trim() })} /></label>
-    <label class="wide">At the table <input type="text" value={session.people.join(', ')} placeholder="Names, with commas between" onchange={(e) => change({ table: e.currentTarget.value.split(',').map((p) => p.trim()).filter(Boolean) })} /></label>
-  </div>
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-  {#if last}
-    <details class="last">
-      <summary class="label">Last time · {before!.name}</summary>
-      <p>{last}</p>
-    </details>
+  {#if reading}
+    <h1 class="name">{session.name}</h1>
+    <div class="facts shown">
+      {#if session.played}<span>Played <b>{session.played}</b></span>{/if}
+      {#if session.when}<span>In the game <b>{session.when}</b></span>{/if}
+      {#if session.people.length}<span>At the table <b>{session.people.join(', ')}</b></span>{/if}
+    </div>
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="prose" onclick={follow}>{@html html}</div>
+  {:else}
+    <input class="name" bind:this={titleInput} aria-label="The session's name" value={session.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() }, true)} />
+    <div class="facts">
+      <label>Played <input type="date" value={session.played} onchange={(e) => change({ played: e.currentTarget.value })} /></label>
+      <label class="wide">In the game <input type="text" value={session.when} placeholder="Spring, 485" onchange={(e) => change({ when: e.currentTarget.value.trim() })} /></label>
+      <label class="wide">At the table <input type="text" value={session.people.join(', ')} placeholder="Names, with commas between" onchange={(e) => change({ table: e.currentTarget.value.split(',').map((p) => p.trim()).filter(Boolean) })} /></label>
+    </div>
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    {#if last && before}
+      <details class="last">
+        <summary class="label">Last time · {before.name}</summary>
+        <p>{last}</p>
+      </details>
+    {/if}
+    {#key path}
+      <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} onReady={(v) => ((editor = v), tray.target || aim())} />
+    {/key}
   {/if}
-  {#key path}
-    <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool={campaign.role === 'gm'} {onMakeEntry} onReady={(v) => ((editor = v), tray.target || aim())} />
-  {/key}
 </article>
 
 <style>
@@ -152,6 +190,19 @@
     border: 0;
     padding: 0;
     width: 100%;
+  }
+  h1.name {
+    margin: 0;
+    font-weight: 400;
+  }
+  .facts.shown {
+    font-family: var(--font-label);
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
+  }
+  .facts.shown b {
+    font-weight: 400;
+    color: var(--text-soft);
   }
   .name:focus-visible {
     outline: 1px solid var(--edge);

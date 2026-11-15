@@ -581,6 +581,8 @@ harrowgate/
 
 Folders named `archive`, `rules`, `handouts`, and `decks` inside a campaign are not adventures, and `table/decks` is not a campaign.
 
+Archiving something in the app moves it into an `archive` folder beside it: a campaign into `table/archive`, an adventure into its campaign's `archive`, a session's files into its adventure's `archive`, and a rulebook or a handout into an `archive` inside `rules` or `handouts`. The app leaves every `archive` folder out, and moving a thing back out restores it.
+
 ### The campaign card
 
 ```yaml

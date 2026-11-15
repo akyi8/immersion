@@ -5,6 +5,7 @@
   import type { WorldFs } from '../lib/fs/types';
   import type { Navigator } from '../lib/nav.svelte';
   import { buildStoryIndex } from '../lib/story/index';
+  import { readTable } from '../lib/table/index';
   import { find, type Findable } from '../lib/finder';
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
@@ -13,8 +14,11 @@
 
   /**
    * The quick finder (Mike, October 31). Typing finds any entry, manuscript, note,
-   * chapter, or board in the open world, and a few actions, and Enter opens what is
-   * chosen in the module it belongs to. The vault is never searched.
+   * chapter, board, campaign, session, rulebook, or handout in the open world, and a few
+   * actions. Enter opens what is chosen in the module it belongs to. A wiki entry opens
+   * beside what is already open, in the module on screen, so looking someone up in the
+   * middle of a session or a chapter never loses the place (Mike's design pass, November
+   * 15). The vault is never searched.
    */
   let {
     index,
@@ -56,6 +60,8 @@
     { kind: 'Go to', name: 'World', detail: 'The wiki', run: go(() => nav.show('world')) },
     { kind: 'Go to', name: 'Story', detail: 'Desk, drawer, and shelf', run: go(() => nav.show('story')) },
     { kind: 'Go to', name: 'Boards', detail: 'Timeline, series, and manuscripts', run: go(() => nav.show('boards')) },
+    { kind: 'Go to', name: 'Game', detail: "The game's rules", run: go(() => nav.show('game')) },
+    { kind: 'Go to', name: 'Table', detail: 'Campaigns and sessions', run: go(() => nav.show('table')) },
     { kind: 'Go to', name: 'All worlds', detail: 'The Worlds page', run: go(() => onShowShelf()) },
     { kind: 'Open', name: 'Vault', detail: 'Encrypted stories', run: go(() => nav.openIn('story', '@vault')) },
     { kind: 'Open', name: 'Settings', detail: 'You, this world, this computer', run: go(() => (ui.settings = 'you')) },
@@ -64,15 +70,23 @@
     { kind: 'Open', name: 'Loading screen', detail: "This world's picture", run: go(() => onShowLoading()) },
     { kind: 'Do', name: 'Sync now', detail: 'Git', run: go(() => sync.retry()) },
   ];
-  const actions = allActions.filter((a) => a.kind !== 'Go to' || !['World', 'Story', 'Boards'].includes(a.name) || shown(a.name.toLowerCase()));
+  const actions = allActions.filter((a) => a.kind !== 'Go to' || !['World', 'Story', 'Boards', 'Game', 'Table'].includes(a.name) || shown(a.name.toLowerCase()));
+
+  // Story, Boards, Game, and Table each show a wiki entry in a pane beside their own pages.
+  const BESIDE = ['story', 'boards', 'game', 'table'];
+  function openEntry(id: string) {
+    if (BESIDE.includes(nav.current.module) && nav.panes.length) nav.open(id);
+    else nav.openIn('world', id);
+  }
 
   const entries: Findable[] = $derived(
     index
       .all()
-      .map((e) => ({ kind: 'Entry', name: e.name, detail: e.category ? folderLabel(e.category) : 'Unfiled', also: e.aliases, run: go(() => nav.openIn('world', e.id)) })),
+      .map((e) => ({ kind: 'Entry', name: e.name, detail: e.category ? folderLabel(e.category) : 'Unfiled', also: e.aliases, run: go(() => openEntry(e.id)) })),
   );
 
   let story = $state.raw<Findable[]>([]);
+  let table = $state.raw<Findable[]>([]);
   onMount(() => {
     void tick().then(() => input?.focus());
     void buildStoryIndex(fs, storiesDir)
@@ -94,9 +108,25 @@
         story = out;
       })
       .catch(() => {});
+    if (shown('table')) {
+      void readTable(fs)
+        .then((campaigns) => {
+          const out: Findable[] = [];
+          const open = (id: string) => go(() => nav.openIn('table', id));
+          for (const c of campaigns) {
+            out.push({ kind: 'Campaign', name: c.name, detail: c.system || 'Table', run: open(c.card) });
+            out.push({ kind: 'Rumors', name: `Rumors in ${c.name}`, detail: 'Heard so far', also: ['Rumors'], run: open(`@rumors:${c.path}`) });
+            for (const a of c.adventures) for (const s of a.sessions) if (s.log ?? s.plan) out.push({ kind: 'Session', name: s.name, detail: `${a.name} · ${c.name}`, run: open((s.log ?? s.plan)!) });
+            for (const r of c.rules) out.push({ kind: 'Rulebook', name: r.name, detail: c.name, run: open(r.path) });
+            for (const h of c.handouts) out.push({ kind: 'Handout', name: h.name, detail: c.name, run: open(h.path) });
+          }
+          table = out;
+        })
+        .catch(() => {});
+    }
   });
 
-  const results = $derived(query.trim() ? find([...entries, ...story, ...actions], query) : actions);
+  const results = $derived(query.trim() ? find([...entries, ...story, ...table, ...actions], query) : actions);
   $effect(() => {
     void results;
     chosen = 0;

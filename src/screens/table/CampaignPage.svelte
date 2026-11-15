@@ -3,6 +3,7 @@
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
   import { inDesktopApp } from '../../lib/runtime';
   import { chooseAndAdd } from '../../lib/table/add';
+  import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
    * A campaign's own page (Mike, November 14): its name, whether the writer runs it or
@@ -73,11 +74,15 @@
   }
 
   const sessions = $derived(campaign.adventures.reduce((n, a) => n + a.sessions.length, 0));
+
+  // Rename in a menu puts the cursor here.
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(campaign.card, titleInput));
 </script>
 
 <article class="campaign">
   <div class="label kind">Campaign</div>
-  <input class="name" aria-label="The campaign's name" value={campaign.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() })} />
+  <input class="name" bind:this={titleInput} aria-label="The campaign's name" value={campaign.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() })} />
   <p class="count">{campaign.adventures.length} {campaign.adventures.length === 1 ? 'adventure' : 'adventures'} · {sessions} {sessions === 1 ? 'session' : 'sessions'}</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
