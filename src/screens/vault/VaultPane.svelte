@@ -257,7 +257,7 @@
     <div class="list">
       <div class="row">
         {#if daily && showing === world}<button type="button" class="primary" onclick={today} disabled={busy}>Today</button>{/if}
-        <button type="button" class="add" onclick={newStory} disabled={busy}>+ Story</button>
+        <button type="button" class="add" onclick={newStory} disabled={busy}>+ New story</button>
       </div>
       {#each stories as s (s.name)}
         <button type="button" class="item" onclick={() => (current = s)}>

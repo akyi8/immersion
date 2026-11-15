@@ -111,7 +111,7 @@
       {#each ids as id}
         <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>
       {/each}
-      <button type="button" class="add" onclick={() => onNewEntry(folder.path)}>+ Add</button>
+      <button type="button" class="add" onclick={() => onNewEntry(folder.path)}>+ New entry</button>
     </div>
   {/each}
   {#if index.root.entries.length}

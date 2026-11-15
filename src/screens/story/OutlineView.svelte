@@ -761,7 +761,7 @@
         <button type="button" class="tool" onclick={() => ((naming = false), (newThread = ''))}>Cancel</button>
       </form>
     {:else}
-      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {plural(noun)}">+ Thread</button>
+      <button type="button" class="tool" onclick={() => (naming = true)} title="A plotline, a character's arc, or a timeline that runs alongside the {plural(noun)}">+ New thread</button>
     {/if}
     {#if source.structure}
       <select

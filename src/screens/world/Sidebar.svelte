@@ -245,7 +245,7 @@
           {folderLabel(child.name)}
           <span class="count">{child.entries.length || ''}</span>
         </button>
-        <div class="row-actions"><CategoryActions {fs} {index} folder={child} onMoved={onCategoryMoved} /></div>
+        <div class="row-actions"><button type="button" class="row-more" aria-label="What can be done with {folderLabel(child.name)}" aria-haspopup="menu" onclick={(e) => categoryMenu(e, child)}>⋯</button></div>
       </div>
       {#if isOpen(child)}
         {@render folderView(child, depth + 1)}
@@ -476,5 +476,19 @@
   .create.first {
     margin-top: 0;
     padding-top: 4px;
+  }
+  .row-more {
+    width: 26px;
+    height: 24px;
+    padding: 0;
+    font-size: calc(14px * var(--type));
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-radius: var(--round);
+  }
+  .row-more:hover {
+    color: var(--text);
+    background: var(--well, var(--surface));
   }
 </style>

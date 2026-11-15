@@ -199,7 +199,7 @@
         {:else}
           <p class="hint">No profiles yet.</p>
         {/each}
-        <button type="button" class="add" onclick={() => addProfile()}>+ Author profile</button>
+        <button type="button" class="add" onclick={() => addProfile()}>+ New author profile</button>
       {/if}
     {:else if tab === 'world'}
       {#if world}

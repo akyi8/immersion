@@ -125,8 +125,8 @@
       </span>
       <span class="spacer"></span>
       <!-- Outlined like every pane's buttons; amber fill is for a home page's main act (Mike, October 31). -->
-      <button type="button" class="tool" onclick={() => startMaking('event')}>+ Event</button>
-      <button type="button" class="tool" onclick={() => startMaking('era')}>+ Era</button>
+      <button type="button" class="tool" onclick={() => startMaking('event')}>+ New event</button>
+      <button type="button" class="tool" onclick={() => startMaking('era')}>+ New era</button>
       <button type="button" class="tool" onclick={flip} title="Turn the dates {across ? 'down the page' : 'across the page'}">Flip</button>
     </div>
     {#if problem && !making}<p class="problem" role="alert">{problem}</p>{/if}
@@ -134,8 +134,8 @@
 
   {#if W === 0}
     <p class="empty">
-      Nothing is dated yet. Add an event with <strong>+ Event</strong>, or give any entry a date with <strong>+ Date</strong> under its name. An
-      era is a stretch of years, such as 2045 to 2060, drawn as a band over the events inside it. Add one with <strong>+ Era</strong>.
+      Nothing is dated yet. Add an event with <strong>+ New event</strong>, or give any entry a date with <strong>+ Date</strong> under its name. An
+      era is a stretch of years, such as 2045 to 2060, drawn as a band over the events inside it. Add one with <strong>+ New era</strong>.
     </p>
   {:else}
     <div
