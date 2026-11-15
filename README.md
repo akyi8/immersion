@@ -18,7 +18,7 @@ The World module is the wiki. Every entry is a markdown file, and any name that 
 
 Each entry can carry a picture. The writer frames the picture by dragging and zooming it, and the picture file itself is never changed. People show their picture as a portrait, and places, factions, and other entries show theirs as a banner across the top of the entry, with the name over it. Any entry can switch between the two.
 
-The wiki has two views. Narrator view shows everything. Protagonist view hides passages marked as the narrator's secrets, so the wiki can be shown to players without giving anything away.
+The app has two views, chosen by one switch in the header that shows in every module. Narrator view shows everything. Protagonist view hides passages marked as the narrator's secrets, so the screen can be shown to players without giving anything away. A wiki entry opened beside a chapter, a board, a rule, or a session follows the same switch.
 
 ### Story
 
@@ -70,12 +70,13 @@ The Table module holds campaigns played at a real table, for the game master who
 - **A record of errors.** Immersion keeps the last sixty errors on this computer, including a letter key that changed nothing in a page. Settings, under This computer, shows the record and copies or clears it. It never leaves the computer on its own.
 - **Quiet while typing.** While you type, the page falls back in layers around the sentence being written. The rest of its paragraph dims a little, the other paragraphs dim a little more, the other open pages dim by more than half, and the header, the sidebar, and the page's buttons dim most. All of it returns when the pointer moves. Settings, under This computer, turns this off.
 - **Names in a game's text.** A game's rules, sections, and aspects link names as they are typed, the way a chapter does. The world's people and places are marked as names, and the game's own terms are set in small capitals in a second color. A name opens its wiki entry beside the page, and a term opens its rule, section, or aspect. A term links every time it is used, capitalized or not, in the singular or the plural, and a page never links its own name. The front matter and the back matter link nothing. The base engine's text links only the engine's terms, because every world shares it. The wiki and the stories link the world's names and leave game terms alone, since a game's terms are often ordinary words.
-- **A page's menu.** What can be done to a page, such as renaming, moving, or archiving it, is behind the ⋯ in the page's corner, beside its view button, full screen, and close. Every ⋯ and every right-click opens the same menu.
+- **A page's menu.** What can be done to a page, such as renaming, moving, or archiving it, is behind the ⋯ in the page's corner, beside the view button, full screen, and close. A right click on the page's row in a sidebar opens the same menu.
+- **Renaming.** A page is renamed by typing over its title: a wiki entry, a note, a manuscript, a session, a campaign, a rulebook, a handout, a board, a rule. Enter or leaving the title takes the new name, and Escape puts the old one back. Rename in a page's menu puts the cursor in the title. A renamed wiki entry keeps its old name as another name, so nothing that mentions it comes unlinked.
 - **Scroll bars.** Scroll bars are thin and have no track, and a bar's thumb shows only while the pointer is over the thing that scrolls.
 - **An entry's facts.** An entry's other names sit under its name, its date under those, and under both the small buttons that add a name or a date. The file's own header is never shown in the app, and nothing in it has to be edited by hand there. Other names written as a bold line in the text show in that row and are hidden from the text. A rule drawn straight under an entry's title, before any text, is not shown.
 - **Back and forward.** The header's arrows, Cmd with a bracket on a Mac, Alt with an arrow elsewhere, and a mouse's side buttons move through everything looked at.
 - **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
-- **Modules.** Settings show or hide each module in the header. World, Boards, and Story are on from the start, and Character, Play, Game, and Table wait until they are turned on.
+- **Modules.** Settings show or hide each module in the header, and the + after the last module in the header opens that list. World, Boards, and Story are on from the start, and Character, Play, Game, and Table wait until they are turned on. A click on the module already open closes its pages and shows its home.
 - **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.
 
 ## What a world looks like

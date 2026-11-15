@@ -28,7 +28,7 @@
   }
 </script>
 
-<Dialog title="World details" action="Save" ready={!!name.trim()} {busy} {problem} onSubmit={save} {onCancel}>
+<Dialog title="Edit details" action="Save" ready={!!name.trim()} {busy} {problem} onSubmit={save} {onCancel}>
   <label for="wd-name" class="label">Name</label>
   <!-- svelte-ignore a11y_autofocus -->
   <input id="wd-name" type="text" bind:value={name} autofocus autocomplete="off" />

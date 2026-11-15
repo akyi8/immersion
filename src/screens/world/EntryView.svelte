@@ -17,6 +17,9 @@
   import { saveNow } from '../../lib/saves';
   import { views } from '../../lib/view.svelte';
   import { pageActions, pictureActions } from '../../lib/pane.svelte';
+  import { retitle } from '../../lib/retitle';
+  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { renameEntry } from '../../lib/index/manage';
 
   let {
     index,
@@ -187,11 +190,26 @@
     return () => pictureActions.clear(id);
   });
 
+  // The title is typed over to rename the entry, in Narrator view.
+  async function renameTo(name: string): Promise<string | null> {
+    if (!onMoved) return null;
+    try {
+      const from = entry.id;
+      await saveNow(from);
+      onMoved(from, await renameEntry(fs, entry, name));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+  const titled = $derived({ id, name: entry.name, rename: view === 'narrator' && onMoved ? renameTo : null, problem: (text: string) => (pictureProblem = text) });
+
   // What can be done to the entry sits behind the ⋯ in the pane's corner.
   $effect(() => {
     if (view !== 'narrator' || !onMoved) return;
     pageActions.set(id, [
-      { label: 'Rename', run: () => void actions?.start('rename') },
+      // Renaming is typing over the title. A card has its name on the spine, so it asks in a small form.
+      { label: 'Rename', run: () => (card ? void actions?.start('rename') : titleFocus.request(id)) },
       { label: 'Other names', run: () => void actions?.start('names') },
       { label: 'Move to another category', run: () => void actions?.start('move') },
       'separator',
@@ -233,7 +251,7 @@
     {/if}
     {#if view === 'narrator'}
       <div class="adds">
-        {#if onMoved}<button type="button" class="add" onclick={() => actions?.start('names')}>+ Alias</button>{/if}
+        {#if onMoved}<button type="button" class="add" onclick={() => actions?.start('names')}>+ Other name</button>{/if}
         {#if !entry.when}<EntryDate {fs} {entry} editable />{/if}
       </div>
     {/if}
@@ -304,7 +322,8 @@
           <img src={fs.imageUrl(entry.imagePath!)} alt="" style={frameStyle(entry.bannerFrame)} />
           <div class="over">
             <div class="label">{folderLabel(entry.category)}</div>
-            <h1>{entry.name}</h1>
+            <!-- svelte-ignore a11y_missing_content -->
+            <h1 use:retitle={titled}></h1>
           </div>
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
@@ -325,7 +344,14 @@
         <!-- The picture is put away in this page's view. -->
       {:else if view === 'narrator'}
         <div class="picture" use:dropImage={setPicture}>
-          <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" frame={entry.portraitFrame} />
+          {#if entry.imagePath}
+            <Portrait url={fs.imageUrl(entry.imagePath)} name={entry.name} size="large" frame={entry.portraitFrame} />
+          {:else}
+            <!-- An empty portrait is the plainest place to add a picture, so a click on it chooses one. -->
+            <button type="button" class="empty-portrait" title="Add a picture" aria-label="Add a picture of {entry.name}" onclick={async () => setPicture(await pickImage())}>
+              <Portrait url={null} name={entry.name} size="large" frame={entry.portraitFrame} />
+            </button>
+          {/if}
           <span class="drop-hint" aria-hidden="true">Drop to set</span>
         </div>
       {:else}
@@ -334,7 +360,8 @@
       <!-- Like every pane: where it lives, its name, then one row of actions ending in ⋯ (Mike, October 31). -->
       <div class="title">
         <div class="label">{folderLabel(entry.category)}</div>
-        <h1>{entry.name}</h1>
+        <!-- svelte-ignore a11y_missing_content -->
+            <h1 use:retitle={titled}></h1>
         {@render details()}
       </div>
     </header>
@@ -683,5 +710,16 @@
   }
   .adds .add:hover {
     color: var(--text);
+  }
+  .empty-portrait {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--round-box);
+  }
+  .empty-portrait:hover {
+    filter: brightness(1.25);
   }
 </style>

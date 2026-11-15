@@ -60,7 +60,7 @@
   }
 </script>
 
-<Dialog title="Add a world" action="Add to the shelf" ready={!!name.trim()} {busy} {problem} onSubmit={add} {onCancel}>
+<Dialog title="Add a world" action="Add the world" ready={!!name.trim()} {busy} {problem} onSubmit={add} {onCancel}>
   <p class="hint">
     <code>{folderName}</code> has no <code>world.md</code> yet, so it is not a world on this computer. Immersion writes that
     one file from your answers and leaves everything else in the folder as it is.

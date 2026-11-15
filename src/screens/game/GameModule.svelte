@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { View } from '../../lib/render';
   import { onMount, setContext } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { gameScanner, isGameLink, GAME_LINK } from '../../lib/game/links';
@@ -51,6 +52,7 @@
    * its choices about the core ones, live in its game folder.
    */
   let {
+    view = 'narrator',
     fs,
     nav,
     index = null,
@@ -60,6 +62,8 @@
     gameDir,
     openEngine,
   }: {
+    /** Narrator or Protagonist, which a wiki entry opened here follows. */
+    view?: View;
     fs: WorldFs;
     nav: Navigator;
     /** The world's wiki, whose names the world's game text links. */
@@ -669,7 +673,7 @@
               {index}
               {fs}
               {id}
-              view="narrator"
+              {view}
               {next}
               fresh={false}
               onOpen={(target) => nav.open(target, i)}

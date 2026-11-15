@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { View } from '../../lib/render';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -23,13 +24,14 @@
    * planning and reading sit side by side, and World and Story stay as they were left.
    */
   let {
+    view = 'narrator',
     index,
     fs,
     nav,
     worldName,
     storiesDir,
     rebuild,
-  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; worldName: string; storiesDir: string; rebuild: () => Promise<void> } = $props();
+  }: { view?: View; index: WikiIndex; fs: WorldFs; nav: Navigator; worldName: string; storiesDir: string; rebuild: () => Promise<void> } = $props();
 
   const TIMELINE = '@timeline';
   const SERIES = '@series:';
@@ -157,7 +159,7 @@
               nav.replacePrefix(from, to);
             }} />
         {:else if index.get(id)}
-          <EntryView {index} {fs} {id} view="narrator" {next} fresh={false} onOpen={(target) => nav.open(target, i)} onWindow={() => toWindow(id)} />
+          <EntryView {index} {fs} {id} {view} {next} fresh={false} onOpen={(target) => nav.open(target, i)} onWindow={() => toWindow(id)} />
         {:else}
           <ManuscriptPane
             {fs}

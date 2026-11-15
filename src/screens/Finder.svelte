@@ -66,7 +66,7 @@
     { kind: 'Open', name: 'Vault', detail: 'Encrypted stories', run: go(() => nav.openIn('story', '@vault')) },
     { kind: 'Open', name: 'Settings', detail: 'You, this world, this computer', run: go(() => (ui.settings = 'you')) },
     { kind: 'Open', name: 'Theme', detail: "This world's colors and fonts", run: go(() => onTheme()) },
-    { kind: 'Open', name: 'World details', detail: 'Name and tagline', also: ['Edit details'], run: go(() => onDetails()) },
+    { kind: 'Open', name: 'Edit details', detail: "This world's name and tagline", also: ['World details'], run: go(() => onDetails()) },
     { kind: 'Open', name: 'Loading screen', detail: "This world's picture", run: go(() => onShowLoading()) },
     { kind: 'Do', name: 'Sync now', detail: 'Git', run: go(() => sync.retry()) },
   ];

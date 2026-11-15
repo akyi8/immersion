@@ -207,7 +207,7 @@
       { label: 'Theme', run: () => (theming = world), disabled: world.missing },
       { label: isArchived(world) ? 'Unarchive' : 'Archive', run: () => archive(world, !isArchived(world)), disabled: world.missing },
       'separator',
-      { label: 'Remove from the shelf', run: () => forget(world) },
+      { label: 'Remove from this page', run: () => forget(world) },
     ]);
   }
 </script>
@@ -271,7 +271,7 @@
             {#if !world.missing}
               <button type="button" onclick={() => archive(world, !isArchived(world))} title={isArchived(world) ? 'Moves the world back up with the active ones.' : 'Moves the world down to the archived ones. Nothing else about it changes.'}>{isArchived(world) ? 'Unarchive' : 'Archive'}</button>
             {/if}
-            <button type="button" onclick={() => forget(world)} title="Takes the world off this shelf. Its files stay where they are.">Remove</button>
+            <button type="button" onclick={() => forget(world)} title="Takes the world off the Worlds page on this computer. Its files stay where they are.">Remove from this page</button>
           </div>
         </div>
   {/snippet}

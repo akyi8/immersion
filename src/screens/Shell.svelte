@@ -176,8 +176,9 @@
       </button>
       <nav aria-label="Modules">
         {#each TABS as [module, label]}
-          <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => nav.show(module)}>{label}</button>
+          <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => (nav.current.module === module ? nav.panes.length && nav.setRow([]) : nav.show(module))}>{label}</button>
         {/each}
+        <button type="button" class="more-modules" aria-label="Show or hide modules" title="Show or hide modules, such as Game and Table" onclick={() => (ui.settings = 'you')}>+</button>
       </nav>
     </div>
     <div class="right">
@@ -187,8 +188,9 @@
       </button>
       <SyncStatus />
       <UpdateButton />
-      {#if nav.current.module === 'world' || nav.current.module === 'table'}
-        <div class="toggle" role="group" aria-label="Wiki view">
+      <!-- One switch in every module, meaning one thing (the interface's rule 7). -->
+      {#if !journal}
+        <div class="toggle" role="group" aria-label="View" title="Narrator shows everything. Protagonist puts plans and narrator-only text away, to show the screen to players.">
           <button type="button" class:on={view === 'narrator'} aria-pressed={view === 'narrator'} onclick={() => setView('narrator')}>Narrator</button>
           <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
         </div>
@@ -205,13 +207,13 @@
     {/if}
   {:else if nav.current.module === 'boards'}
     {#if index}
-      <BoardsModule {index} {fs} {nav} {worldName} {storiesDir} {rebuild} />
+      <BoardsModule {index} {fs} {nav} {view} {worldName} {storiesDir} {rebuild} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'story'}
     {#if index}
-      <StoryModule {index} {fs} {nav} {storiesDir} {rebuild} {journal} {daily} />
+      <StoryModule {index} {fs} {nav} {view} {storiesDir} {rebuild} {journal} {daily} />
     {:else}
       <div class="waiting">Reading the world…</div>
     {/if}
@@ -222,7 +224,7 @@
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'game'}
-    <GameModule {fs} {nav} {index} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} />
+    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
@@ -307,6 +309,14 @@
     border: 0;
     padding: 10px 14px;
     min-height: 40px;
+  }
+  nav .more-modules {
+    padding-inline: 10px;
+    opacity: 0.6;
+  }
+  nav .more-modules:hover {
+    opacity: 1;
+    color: var(--text);
   }
   nav button.on {
     color: var(--selected-fg);

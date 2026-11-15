@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { View } from '../../lib/render';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -32,6 +33,7 @@
    * as in the World module (Mike, October 24).
    */
   let {
+    view = 'narrator',
     index,
     fs,
     nav,
@@ -39,7 +41,7 @@
     rebuild,
     journal = false,
     daily = false,
-  }: { index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void>; journal?: boolean; daily?: boolean } = $props();
+  }: { view?: View; index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void>; journal?: boolean; daily?: boolean } = $props();
 
   // From Real World, the vault of any world on the Worlds page can be read (Mike, October 26).
   let otherWorlds = $state<{ path: string; name: string }[]>([]);
@@ -392,7 +394,7 @@
               {index}
               {fs}
               {id}
-              view="narrator"
+              {view}
               {next}
               fresh={freshEntry === id}
               onOpen={(target) => nav.open(target, i)}

@@ -151,9 +151,9 @@
   {/if}
 
   {#if index && row.some((p) => index!.get(p))}
-    <div class="view" role="group" aria-label="Wiki view">
-      <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => (view = 'protagonist')}>Protagonist</button>
+    <div class="view" role="group" aria-label="View">
       <button type="button" class:on={view === 'narrator'} aria-pressed={view === 'narrator'} onclick={() => (view = 'narrator')}>Narrator</button>
+      <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => (view = 'protagonist')}>Protagonist</button>
     </div>
   {/if}
 </div>

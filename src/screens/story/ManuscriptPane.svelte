@@ -8,6 +8,10 @@
   import OutlineView from './OutlineView.svelte';
   import PieceActions from './PieceActions.svelte';
   import { pageActions } from '../../lib/pane.svelte';
+  import { retitle } from '../../lib/retitle';
+  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { renamePiece } from '../../lib/story/manage';
+  import { saveAllUnder, saveNow } from '../../lib/saves';
   import OutlineAside from './OutlineAside.svelte';
   import TitlePage from './TitlePage.svelte';
   import { beats } from '../../lib/beats.svelte';
@@ -157,13 +161,35 @@
     return `${n.toLocaleString()} ${n === 1 ? 'word' : 'words'}`;
   }
 
+  // A note's or a manuscript's title is typed over to rename it. A chapter is renamed from the binder.
+  let renameProblem = $state('');
+  async function renameTo(name: string): Promise<string | null> {
+    if (!owner || !onMoved) return null;
+    try {
+      const path = owner.path;
+      await saveNow(path);
+      await saveAllUnder(path);
+      onMoved(path, await renamePiece(fs, path, name));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+  const titled = $derived({
+    id,
+    name: about?.title ?? '',
+    rename: about && onMoved && owner && (about.kind === 'note' || about.kind === 'book') ? renameTo : null,
+    problem: (text: string) => (renameProblem = text),
+  });
+
   // What can be done to a manuscript or a note sits behind the ⋯ in the pane's corner.
   // A chapter is renamed and moved from the binder, so it offers nothing here.
   let pieceActions: PieceActions | undefined = $state();
   $effect(() => {
     if (!about || !onMoved || !story || !owner || about.kind === 'chapter' || about.kind === 'matter') return;
     pageActions.set(id, [
-      { label: 'Rename', run: () => pieceActions?.start('rename') },
+      // Renaming is typing over the title. A title page shows no title of its own, so it asks in a small form.
+      { label: 'Rename', run: () => (about?.kind === 'book' && mode !== 'outline' ? pieceActions?.start('rename') : titleFocus.request(id)) },
       'separator',
       { label: 'Archive', run: () => pieceActions?.start('archive') },
     ]);
@@ -205,7 +231,11 @@
     {#if !drafting || mode === 'outline'}
       <header class:tight={mode === 'outline' && !!source}>
         <div class="label">{about.label}</div>
-        {#if about.kind !== 'book' || mode === 'outline'}<h1>{about.title}</h1>{/if}
+        {#if about.kind !== 'book' || mode === 'outline'}
+          <!-- svelte-ignore a11y_missing_content -->
+          <h1 use:retitle={titled}></h1>
+        {/if}
+        {#if renameProblem}<p class="problem" role="alert">{renameProblem}</p>{/if}
         {#if mode !== 'outline' || !source}
           <div class="row pane-actions">{@render lead()}<span class="spacer"></span>{@render tail()}</div>
         {/if}

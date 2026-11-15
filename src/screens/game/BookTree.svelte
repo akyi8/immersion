@@ -331,7 +331,9 @@
     border: 1px solid transparent;
     border-radius: var(--round);
     padding: 0;
-    opacity: 0;
+    /* Always there, quietly, and plain under the pointer: a control that only shows on
+       hover cannot be found (the interface's rules, November 15). */
+    opacity: 0.45;
   }
   .row:hover .plus,
   .plus:focus-visible {

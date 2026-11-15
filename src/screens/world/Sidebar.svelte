@@ -274,6 +274,10 @@
 
   {#if mode === 'working'}
     <div class="list">
+      {#if groups.length}
+        <!-- A new entry can always be started from here, whatever is open (the interface's rule 5). -->
+        <div class="create first"><button type="button" onclick={() => onNewEntry()}>+ New entry</button></div>
+      {/if}
       {#each groups as group}
         <div class="label group">{group.title}</div>
         {#each group.ids as id}
@@ -468,5 +472,9 @@
     border-radius: var(--round);
     padding: 8px 6px;
     min-height: 38px;
+  }
+  .create.first {
+    margin-top: 0;
+    padding-top: 4px;
   }
 </style>

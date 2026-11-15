@@ -473,3 +473,21 @@ html.typing .pane-actions {
   height: 100%;
   pointer-events: none;
 }
+
+/* A title that is renamed by typing over it (Mike, November 15). It looks like the
+   heading it is, and shows a faint edge only when the pointer or the cursor is on it. */
+.retitle {
+  outline: none;
+  cursor: text;
+  border-radius: 4px;
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow 150ms;
+}
+.retitle:hover {
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--text) 5%, transparent);
+  background: color-mix(in oklab, var(--text) 5%, transparent);
+}
+.retitle:focus {
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--text) 8%, transparent);
+  background: color-mix(in oklab, var(--text) 8%, transparent);
+}
