@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { titleFocus } from '../../lib/table/tray.svelte';
   import { onDestroy } from 'svelte';
   import type { Placed } from '../../lib/game/game';
   import type { Frame } from '../../lib/index/frame';
@@ -13,6 +14,7 @@
    * A rule of the world's own has the world's text alone.
    */
   let {
+    titleId = '',
     rule,
     worldPiece,
     inWorld,
@@ -28,6 +30,8 @@
     pieces = [],
     onSavePiece,
   }: {
+    /** The page's id, so Rename in its menu can put the cursor in the title. */
+    titleId?: string;
     rule: Placed;
     worldPiece: Placed | null;
     /** Whether the book open is the world's, which shows the world's text. */
@@ -74,12 +78,15 @@
     void world.flush();
     for (const x of savers.values()) void x.flush();
   });
+
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(titleId, titleInput));
 </script>
 
 <article class="rule">
   <GameBanner url={picture?.url ?? null} frame={picture?.frame ?? null} {place} {choices} {onFrame}>
     {#snippet title()}
-      <input class="title" type="text" bind:value={name} oninput={() => own.push(null)} aria-label="Rule name" autocomplete="off" />
+      <input class="title" type="text" bind:this={titleInput} bind:value={name} oninput={() => own.push(null)} aria-label="Rule name" autocomplete="off" />
     {/snippet}
   </GameBanner>
   <label class="tags">

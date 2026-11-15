@@ -18,12 +18,15 @@
     names,
     onAddRule,
     onAddSection,
+    onMenu,
   }: {
     tree: BookTree;
     worldName: string;
     /** The pane ids open now, which the tree marks. */
     open: string[];
     onOpen: (id: string) => void;
+    /** A right click on a rule or a section opens its menu. */
+    onMenu?: (e: MouseEvent, id: string) => void;
     onMoveRule: (rule: string, from: string, to: string, before: string | null) => void;
     onMoveSection: (section: string, from: string | null, to: string, before: string | null) => void;
     /** The name of an origin: the engine, the world, or an expansion. */
@@ -118,6 +121,7 @@
 {#snippet section(s: SectionNode, from: string | null, depth: number, movable = true)}
   {@const key = s.placed.key}
   <div
+    oncontextmenu={(e) => onMenu?.(e, `@sec:${key}`)}
     class="row folder {mark(key)}"
     class:on={isOpen(`@sec:${key}`)}
     style="--depth: {depth}"
@@ -148,6 +152,7 @@
       {:else}
         {@const rk = item.placed.key}
         <div
+          oncontextmenu={(e) => onMenu?.(e, `@rule:${rk}`)}
           class="row leaf {mark(rk)}"
           class:on={isOpen(`@rule:${rk}`)}
           style="--depth: {depth + 1}"

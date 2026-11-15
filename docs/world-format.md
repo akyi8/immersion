@@ -538,6 +538,10 @@ An expansion adds its own piece to a rule with an add-on in its own `elements/ad
 
 An element of the world's own can move into one of its expansions, or back, with Belongs to in its form. The app moves the file and its picture. The folder names `engine`, `world`, and `heading` cannot name an expansion.
 
+### Archived elements
+
+Archiving an element in the app moves its file from `elements/<kind>/` to `archive/elements/<kind>/` in the same game folder, with its picture, and removes it from every list that named it: a section's `items`, a division's `sections`, and a book's `front_matter`, `back_matter`, `divisions`, and `chapters`. The archived file's header gains `archived_from`, a list of where it stood, each with the element or book it was listed `in`, the `list` it was in, and the reference that came after it as `before`. The app does not read the `archive` folder. Moving a file back and adding its reference to a list restores it.
+
 ### Setting aside and reskinning
 
 A world records its choices about core elements on its own side. Its `game.md` lists the core elements it sets aside, each written as kind and id:

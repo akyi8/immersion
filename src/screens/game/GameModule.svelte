@@ -1,4 +1,9 @@
 <script lang="ts">
+  import Dialog from '../shelf/Dialog.svelte';
+  import { pageActions } from '../../lib/pane.svelte';
+  import { contextMenu, type MenuEntry } from '../../lib/contextMenu.svelte';
+  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { saveAll } from '../../lib/saves';
   import type { View } from '../../lib/render';
   import { onMount, setContext } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
@@ -363,6 +368,91 @@
     await src.fs.move(pathIn(src, path), target);
   }
 
+  /**
+   * Archives a rule, a section, or any other element (Mike, November 15). It leaves every
+   * list that named it, in sections, divisions, and the books, and its file moves into the
+   * game's `archive` folder with a note of where it stood, so it can be put back by hand.
+   * Nothing is deleted. A section's rules stay in the game, under every element by kind.
+   */
+  const canArchive = (p: Placed) => !!game && (bookOrigin === 'engine' ? p.origin === 'engine' : p.origin !== 'engine');
+  let archiving = $state<Placed | null>(null);
+  let archiveBusy = $state(false);
+  let archiveProblem = $state('');
+  async function archiveElement(p: Placed) {
+    if (!game) return;
+    archiveBusy = true;
+    archiveProblem = '';
+    try {
+      await saveAll();
+      const stood: { in: string; list: string; before: string | null }[] = [];
+      for (const other of game.elements) {
+        if (other === p) continue;
+        for (const field of ['items', 'sections']) {
+          const refs = list(other, field);
+          const at = refs.findIndex((r) => keyOf(r, other.origin) === p.key);
+          if (at < 0) continue;
+          stood.push({ in: other.key, list: field, before: refs[at + 1] ? keyOf(refs[at + 1], other.origin) : null });
+          await save(other, withList(other, field, refs.filter((_, i) => i !== at)));
+        }
+      }
+      // The books name sections and matter too.
+      for (const src of [game.engine, game.world]) {
+        if (!src) continue;
+        const file = pathIn(src, 'book.md');
+        if (!(await src.fs.exists(file))) continue;
+        const text = await src.fs.readText(file);
+        const { header } = splitHeader(text);
+        const changes: Record<string, unknown> = {};
+        for (const field of ['front_matter', 'back_matter', 'divisions', 'chapters']) {
+          const refs = Array.isArray(header[field]) ? (header[field] as unknown[]).map(String) : [];
+          const at = refs.findIndex((r) => keyOf(r, src.origin) === p.key);
+          if (at < 0) continue;
+          stood.push({ in: `${src.origin}:book`, list: field, before: refs[at + 1] ? keyOf(refs[at + 1], src.origin) : null });
+          const rest = refs.filter((_, i) => i !== at);
+          changes[field] = rest.length ? rest : undefined;
+        }
+        if (Object.keys(changes).length) await src.fs.writeText(file, withHeader(text, changes));
+      }
+      const src = sourceOf(game, p);
+      const file = pathIn(src, p.element.path);
+      await src.fs.writeText(file, withHeader(await src.fs.readText(file), { archived_from: stood.length ? stood : undefined }));
+      const free = async (path: string) => {
+        const dot = path.lastIndexOf('.');
+        let to = pathIn(src, `archive/${path}`);
+        for (let n = 2; await src.fs.exists(to); n++) to = pathIn(src, `archive/${path.slice(0, dot)}-${n}${path.slice(dot)}`);
+        return to;
+      };
+      await src.fs.move(file, await free(p.element.path));
+      if (p.image) await src.fs.move(pathIn(src, p.image), await free(p.image));
+      for (const id of [`${RULE}${p.key}`, `${SEC}${p.key}`, `${EL}${p.key}`]) if (nav.panes.includes(id)) nav.close(id);
+      archiving = null;
+      await load();
+    } catch (e) {
+      archiveProblem = e instanceof Error ? e.message : String(e);
+    } finally {
+      archiveBusy = false;
+    }
+  }
+
+  // A rule, a section, or an element offers its menu from the corner of its page and from a
+  // right click on its row: Rename, which puts the cursor in its title, and Archive.
+  function menuFor(id: string): MenuEntry[] {
+    const p = byKey.get(keyIn(id));
+    if (!p) return [];
+    const titled = id.startsWith(RULE) || id.startsWith(SEC);
+    return [
+      ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }, 'separator' as const] : []),
+      { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) },
+    ];
+  }
+  $effect(() => {
+    const ids = row.filter((id) => (id.startsWith(RULE) || id.startsWith(SEC) || id.startsWith(EL)) && byKey.get(keyIn(id)));
+    for (const id of ids) pageActions.set(id, menuFor(id));
+    return () => {
+      for (const id of ids) pageActions.clear(id);
+    };
+  });
+
   async function removePicture(owner: Placed) {
     if (!game || !owner.image) return;
     await archive(sourceOf(game, owner), owner.image);
@@ -615,7 +705,8 @@
             onMoveSection={(sec, f, t, b) => void moveSection(sec, f, t, b).catch((e) => (notice = String(e)))}
             names={originName}
             onAddRule={addRule}
-            onAddSection={addSection} />
+            onAddSection={addSection}
+            onMenu={(e, id) => contextMenu.show(e, menuFor(id))} />
         {/if}
         {#if game && (game.expansions.length || bookOrigin === 'world')}
           <h2 class="label">Expansions</h2>
@@ -715,6 +806,7 @@
           {:else if id.startsWith(SEC)}
             {@const s = places.sections.get(keyIn(id))!}
             <SectionPage
+              titleId={id}
               section={s}
               {inWorld}
               place="{places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section"
@@ -729,6 +821,7 @@
             {@const r = byKey.get(keyIn(id))!}
             {@const sec = places.ruleIn.get(r.key)}
             <RulePage
+              titleId={id}
               rule={r}
               worldPiece={game!.addOns.get(refOf(r.element)) ?? null}
               {inWorld}
@@ -827,6 +920,12 @@
     </main>
   {/if}
 </div>
+
+{#if archiving}
+  <Dialog title="Archive this {archiving.element.kind === 'chapter' ? 'section' : archiving.element.kind === 'module' ? 'rule' : archiving.element.kind}" action="Archive" ready busy={archiveBusy} problem={archiveProblem} onSubmit={() => archiving && archiveElement(archiving)} onCancel={() => (archiving = null)}>
+    <p class="hint">“{archiving.element.name}” leaves the book and moves to the game's archive folder, with a note of where it stood. The file is kept, so nothing is lost.</p>
+  </Dialog>
+{/if}
 
 <style>
   .game {

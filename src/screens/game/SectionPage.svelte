@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { titleFocus } from '../../lib/table/tray.svelte';
   import { onDestroy } from 'svelte';
   import type { SectionNode } from '../../lib/game/game';
   import type { Frame } from '../../lib/index/frame';
@@ -13,6 +14,7 @@
    * piece after each core rule. A rule's name opens it for writing.
    */
   let {
+    titleId = '',
     section,
     inWorld,
     place,
@@ -24,6 +26,8 @@
     onSave,
     onOpen,
   }: {
+    /** The page's id, so Rename in its menu can put the cursor in the title. */
+    titleId?: string;
     section: SectionNode;
     inWorld: boolean;
     place: string;
@@ -44,12 +48,15 @@
   const saver = new Saver(() => onSave({ name: name.trim() || section.placed.element.name, intro }));
   onDestroy(() => void saver.flush());
   const rules = $derived(section.items.filter((i) => i.type === 'rule').length);
+
+  let titleInput = $state<HTMLInputElement>();
+  $effect(() => titleFocus.serve(titleId, titleInput));
 </script>
 
 <article class="section">
   <GameBanner url={picture?.url ?? null} frame={picture?.frame ?? null} {place} {choices} {onFrame}>
     {#snippet title()}
-      <input class="title" type="text" bind:value={name} oninput={() => saver.push(null)} aria-label="Section name" autocomplete="off" />
+      <input class="title" type="text" bind:this={titleInput} bind:value={name} oninput={() => saver.push(null)} aria-label="Section name" autocomplete="off" />
     {/snippet}
   </GameBanner>
   <div class="status-row">
