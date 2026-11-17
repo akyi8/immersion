@@ -61,11 +61,11 @@
   {#if faceless.length}
     <p class="faceless">
       <button type="button" class="faceless-toggle" aria-expanded={showFaceless} onclick={() => (showFaceless = !showFaceless)}>
-        {faceless.length} {faceless.length === 1 ? 'person has' : 'people have'} no face yet
+        {faceless.length} {faceless.length === 1 ? 'person has' : 'people have'} no picture yet
       </button>
     </p>
     {#if showFaceless}
-      <p class="hint">Drop a picture on a name to give them a face.</p>
+      <p class="hint">Drop a picture on a name to add it.</p>
       <div class="chips">
         {#each faceless as e (e.id)}
           <button type="button" class="drop" use:dropImage={(image) => giveFace(e.id, image)} onclick={() => nav.open(e.id)}>{e.name}</button>

@@ -439,7 +439,7 @@
   function menuFor(id: string): MenuEntry[] {
     const p = byKey.get(keyIn(id));
     if (!p) return [];
-    const titled = id.startsWith(RULE) || id.startsWith(SEC);
+    const titled = id.startsWith(RULE) || id.startsWith(SEC) || id.startsWith(EL);
     return [
       ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }, 'separator' as const] : []),
       { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) },

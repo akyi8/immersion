@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { retitle } from '../../lib/retitle';
   import GameText from './GameText.svelte';
   import { onMount } from 'svelte';
   import { registerPanel } from '../../lib/saves';
@@ -131,7 +132,8 @@
       {#if placed.setAside}<span class="flag">Set aside in {worldName}</span>{/if}
       {#if placed.reskinnedBy}<span class="flag">Reskinned in {worldName}</span>{/if}
     </div>
-    <h1>{draft.name || 'Untitled'}</h1>
+    <!-- svelte-ignore a11y_missing_content -->
+    <h1 use:retitle={{ id: `@el:${placed.key}`, name: draft.name || 'Untitled', rename: async (name) => ((draft.name = name), changed(), null) }}></h1>
     <div class="row">
       <span class="meta">{draft.tags.join(', ')}</span>
       <span class="spacer"></span>
@@ -160,10 +162,6 @@
   {/if}
 
   <div class="form">
-    <label class="field">
-      <span class="label">Name</span>
-      <input type="text" bind:value={draft.name} oninput={changed} autocomplete="off" />
-    </label>
     {#if !reskin}
       <label class="field">
         <span class="label">Tags</span>

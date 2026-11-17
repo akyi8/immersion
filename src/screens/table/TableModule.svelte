@@ -353,7 +353,7 @@
       {#each campaigns as c (c.path)}
         <div class="head">
           <button type="button" class="item campaign" class:on={isOpen(c.card)} onclick={() => nav.open(c.card)} oncontextmenu={(e) => rowMenu(e, { kind: 'campaign', c })}>
-            <span>{c.name}</span><span class="n">{c.role === 'gm' ? 'Running' : 'Playing'}{c.system ? ` · ${c.system}` : ''}</span>
+            <span>{c.name}</span><span class="n">{c.role === 'gm' ? 'Narrator' : 'Player'}{c.system ? ` · ${c.system}` : ''}</span>
           </button>
           {@render more({ kind: 'campaign', c }, c.name)}
         </div>
@@ -481,7 +481,7 @@
         {#each campaigns as c (c.path)}
           {@const all = c.adventures.flatMap((a) => a.sessions)}
           <button type="button" class="card" onclick={() => (all.length ? openSession(c, all.at(-1)!) : nav.open(c.card))}>
-            <span class="kind">{c.role === 'gm' ? 'Running' : 'Playing'}{c.system ? ` · ${c.system}` : ''}</span>
+            <span class="kind">{c.role === 'gm' ? 'Narrator' : 'Player'}{c.system ? ` · ${c.system}` : ''}</span>
             <span class="name">{c.name}</span>
             <span class="n">{all.length ? `${all.length} ${all.length === 1 ? 'session' : 'sessions'} · last: ${all.at(-1)!.name}` : 'No sessions yet'}</span>
           </button>
@@ -513,8 +513,8 @@
     {#if making.kind === 'campaign'}
       <label for="tb-role" class="label">I am</label>
       <select id="tb-role" bind:value={role}>
-        <option value="player">A player in it</option>
-        <option value="gm">Running it</option>
+        <option value="player">A player</option>
+        <option value="gm">The narrator</option>
       </select>
       <label for="tb-game" class="label">The game</label>
       <select id="tb-game" bind:value={game}>
@@ -527,7 +527,7 @@
     {:else if making.kind === 'rename'}
       <p class="hint">The new name shows everywhere in the app. The files on disk keep the names they have.</p>
     {:else if making.kind === 'handout'}
-      <p class="hint">A page for words, such as a message from the game master pasted in from a chat. It is kept with {making.campaign.name}'s handouts.</p>
+      <p class="hint">A page for words, such as a message from the narrator pasted in from a chat. It is kept with {making.campaign.name}'s handouts.</p>
     {:else if making.kind === 'adventure'}
       <p class="hint">An adventure is one stretch of {making.campaign.name}: a story, a year, or whatever the table calls it. Its sessions go inside it.</p>
     {:else if making.kind === 'session'}

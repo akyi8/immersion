@@ -6,6 +6,7 @@
   import type { Navigator } from '../lib/nav.svelte';
   import { buildStoryIndex } from '../lib/story/index';
   import { readTable } from '../lib/table/index';
+  import { loadGame, type GameFs, type Source } from '../lib/game/game';
   import { find, type Findable } from '../lib/finder';
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
@@ -14,7 +15,7 @@
 
   /**
    * The quick finder (Mike, October 31). Typing finds any entry, manuscript, note,
-   * chapter, board, campaign, session, rulebook, or handout in the open world, and a few
+   * chapter, board, campaign, session, rulebook, handout, or game rule in the open world, and a few
    * actions. Enter opens what is chosen in the module it belongs to. A wiki entry opens
    * beside what is already open, in the module on screen, so looking someone up in the
    * middle of a session or a chapter never loses the place (Mike's design pass, November
@@ -25,6 +26,10 @@
     fs,
     nav,
     storiesDir,
+    worldName = '',
+    engineRel = '',
+    gameDir = 'game',
+    openEngine = async () => null,
     onClose,
     onShowShelf,
     onTheme,
@@ -35,6 +40,11 @@
     fs: WorldFs;
     nav: Navigator;
     storiesDir: string;
+    /** What the Game module needs to read the world's game, so its rules can be found. */
+    worldName?: string;
+    engineRel?: string;
+    gameDir?: string;
+    openEngine?: (rel: string | null) => Promise<GameFs | null>;
     onClose: () => void;
     onShowShelf: () => void;
     onTheme: () => void;
@@ -87,6 +97,7 @@
 
   let story = $state.raw<Findable[]>([]);
   let table = $state.raw<Findable[]>([]);
+  let gameItems = $state.raw<Findable[]>([]);
   onMount(() => {
     void tick().then(() => input?.focus());
     void buildStoryIndex(fs, storiesDir)
@@ -108,6 +119,28 @@
         story = out;
       })
       .catch(() => {});
+    if (shown('game')) {
+      // A game's rules, sections, and elements, read the way the Game module reads them.
+      void (async () => {
+        let engine: Source | null = null;
+        if (engineRel) {
+          const efs = await openEngine(engineRel).catch(() => null);
+          if (efs) engine = { origin: 'engine', name: 'Engine', fs: efs, dir: '' };
+        }
+        const loaded = await loadGame(engine, { origin: 'world', name: worldName, fs, dir: gameDir });
+        const out: Findable[] = [];
+        const SKIP = new Set(['add-on', 'division']);
+        for (const p of loaded.elements) {
+          const kind = p.element.kind;
+          if (SKIP.has(kind) || !p.element.name) continue;
+          const from = p.origin === 'engine' ? 'Core' : p.origin === 'world' ? worldName : p.origin;
+          if (kind === 'module') out.push({ kind: 'Rule', name: p.element.name, detail: from, run: go(() => nav.openIn('game', `@rule:${p.key}`)) });
+          else if (kind === 'chapter') out.push({ kind: 'Section', name: p.element.name, detail: from, run: go(() => nav.openIn('game', `@sec:${p.key}`)) });
+          else out.push({ kind: loaded.kinds.get(kind)?.name ?? kind, name: p.element.name, detail: from, run: go(() => nav.openIn('game', `@el:${p.key}`)) });
+        }
+        gameItems = out;
+      })().catch(() => {});
+    }
     if (shown('table')) {
       void readTable(fs)
         .then((campaigns) => {
@@ -126,7 +159,7 @@
     }
   });
 
-  const results = $derived(query.trim() ? find([...entries, ...story, ...table, ...actions], query) : actions);
+  const results = $derived(query.trim() ? find([...entries, ...story, ...table, ...gameItems, ...actions], query) : actions);
   $effect(() => {
     void results;
     chosen = 0;

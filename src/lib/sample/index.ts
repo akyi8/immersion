@@ -135,6 +135,20 @@ The night market on the east piers of Harrowgate, where Rook keeps his stall and
 ## Chapter 1
 
 Wren took the long way through the narrows, because the short way went past Rook's stall.
+
+## Chapter 2
+
+The letter was still dry when she reached the Salt Market.
+`,
+    'stories/the-long-fog/book.md': `# The Long Fog
+`,
+    'stories/the-long-fog/01-the-bell.md': `# The Bell
+
+The harbor bell rang twice, and nobody in Harrowgate looked up.
+`,
+    'stories/the-long-fog/02-low-water.md': `# Low Water
+
+Tomas Reyes counted his favors by lamplight.
 `,
   });
 }

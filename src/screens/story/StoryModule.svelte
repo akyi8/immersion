@@ -225,6 +225,71 @@
     }
   }
 
+  /**
+   * Archives a chapter (Mike, November 17). A chapter that is its own file moves into the
+   * stories' archive folder. A chapter inside a manuscript kept as one file is cut out of
+   * that file, from its heading to the next chapter's, and saved as a file of its own in
+   * the archive. Nothing is deleted, and the archived text can be pasted back.
+   */
+  let archivingChapter = $state<{ m: Manuscript; s: Section } | null>(null);
+  async function archiveChapter() {
+    if (!archivingChapter || !story) return;
+    busy = true;
+    problem = '';
+    try {
+      const { m, s } = archivingChapter;
+      for (const p of m.kind === 'file' ? [m.path] : m.sections.map((x) => x.path)) await saveNow(p);
+      const book = slugify(m.title) || 'manuscript';
+      const free = async (stem: string) => {
+        let to = `${story!.root}/archive/${stem}.md`;
+        for (let n = 2; await fs.exists(to); n++) to = `${story!.root}/archive/${stem}-${n}.md`;
+        return to;
+      };
+      if (m.kind === 'folder') {
+        const name = s.path.slice(s.path.lastIndexOf('/') + 1).replace(/\.md$/i, '');
+        await fs.move(s.path, await free(`${book}/${name}`));
+        if (nav.panes.includes(s.path)) nav.close(s.path);
+      } else {
+        const { cards, i } = await cardOf(m, s);
+        const text = await fs.readText(m.path);
+        const from = cards[i].offset ?? 0;
+        const to = cards[i + 1]?.offset ?? text.length;
+        await fs.writeText(await free(`${book}/${slugify(s.title) || 'chapter'}`), text.slice(from, to).trimEnd() + '\n');
+        await fs.writeText(m.path, (text.slice(0, from) + text.slice(to)).replace(/\n{3,}$/, '\n'));
+      }
+      archivingChapter = null;
+      await refresh();
+    } catch (e) {
+      problem = String(e);
+    } finally {
+      busy = false;
+    }
+  }
+
+  /** The chapter a page stands for, when the page is a chapter's own file. */
+  function chapterAt(id: string): { m: Manuscript; s: Section } | null {
+    for (const m of story?.manuscripts ?? []) {
+      if (m.kind !== 'folder') continue;
+      const s = m.sections.find((x) => x.path === id);
+      if (s) return { m, s };
+    }
+    return null;
+  }
+  /** Renames a chapter from its own page, where its title is typed over. */
+  async function retitleChapter(id: string, title: string): Promise<string | null> {
+    const at = chapterAt(id);
+    if (!at) return null;
+    try {
+      await saveNow(at.s.path);
+      const { source, i } = await cardOf(at.m, at.s);
+      await source.rename(i, title.replace(/\s+/g, ' ').trim());
+      await refresh();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+
   let renaming = $state<{ m: Manuscript; s: Section } | null>(null);
   let chapterName = $state('');
   async function renameChapter() {
@@ -363,6 +428,10 @@
         chapterName = s.title;
         problem = '';
       }}
+      onArchiveChapter={(m, s) => {
+        archivingChapter = { m, s };
+        problem = '';
+      }}
       onMoved={followed}
       onNew={(kind, place) => {
         creating = { kind, place };
@@ -423,6 +492,8 @@
               onWindow={() => toWindow(id)}
               onSeries={(name) => nav.openIn('boards', SERIES + name)}
               onMakeManuscript={startMaking}
+              onChapterRename={chapterAt(id) ? (title) => retitleChapter(id, title) : undefined}
+              onChapterArchive={chapterAt(id) ? () => ((archivingChapter = chapterAt(id)), (problem = '')) : undefined}
               {defaults}
               onDefaults={readDefaults} />
           {/if}
@@ -483,6 +554,13 @@
   </Dialog>
 {/if}
 
+{#if archivingChapter}
+  <Dialog title="Archive this {archivingChapter.m.partWord.toLowerCase()}" action="Archive" ready {busy} {problem} onSubmit={archiveChapter} onCancel={() => (archivingChapter = null)}>
+    <p class="hint">
+      “{archivingChapter.s.title}” leaves {archivingChapter.m.title} and moves to the stories' archive folder{archivingChapter.m.kind === 'file' ? ', as a file of its own holding the text from its heading to the next' : ''}. Nothing is deleted, so it can be put back.
+    </p>
+  </Dialog>
+{/if}
 {#if creating}
   <Dialog
     title={NEW_TITLES[creating.kind]}

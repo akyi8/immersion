@@ -253,16 +253,19 @@
     {/each}
     {#each folder.entries as id}
       {@const e = index.get(id)!}
-      <button
-        type="button"
-        class="item"
-        class:current={id === current}
-        class:selected={selected.includes(id)}
-        class:dragging={drag?.ids.includes(id)}
-        style:padding-left="{32 + depth * 14}px"
-        onpointerdown={(event) => pressEntry(event, id)}
-        onclick={(event) => clickEntry(event, id)}
-        oncontextmenu={(event) => entryMenu(event, id)}>{e.name}</button>
+      <div class="entry-row">
+        <button
+          type="button"
+          class="item"
+          class:current={id === current}
+          class:selected={selected.includes(id)}
+          class:dragging={drag?.ids.includes(id)}
+          style:padding-left="{32 + depth * 14}px"
+          onpointerdown={(event) => pressEntry(event, id)}
+          onclick={(event) => clickEntry(event, id)}
+          oncontextmenu={(event) => entryMenu(event, id)}>{e.name}</button>
+        <div class="row-actions"><button type="button" class="row-more" aria-label="What can be done with {e.name}" aria-haspopup="menu" onclick={(event) => entryMenu(event, id)}>⋯</button></div>
+      </div>
     {/each}
   {/snippet}
 
@@ -283,9 +286,12 @@
         {#each group.ids as id}
           {@const e = index.get(id)}
           {#if e}
-            <button type="button" class="item" onclick={() => nav.open(id)} oncontextmenu={(event) => entryMenu(event, id)}>
-              <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
-            </button>
+            <div class="entry-row">
+              <button type="button" class="item" onclick={() => nav.open(id)} oncontextmenu={(event) => entryMenu(event, id)}>
+                <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
+              </button>
+              <div class="row-actions over"><button type="button" class="row-more" aria-label="What can be done with {e.name}" aria-haspopup="menu" onclick={(event) => entryMenu(event, id)}>⋯</button></div>
+            </div>
           {/if}
         {/each}
       {:else}
@@ -382,6 +388,19 @@
     right: 8px;
     opacity: 0;
   }
+  .entry-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .entry-row > .item {
+    flex: 1;
+    min-width: 0;
+  }
+  .row-actions.over .row-more {
+    background: var(--surface);
+  }
+  .entry-row:hover .row-actions,
   .folder-row:hover .row-actions,
   .row-actions:focus-within {
     opacity: 1;

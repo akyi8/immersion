@@ -15,6 +15,7 @@
     "core:window:allow-destroy",
     "core:window:allow-set-title",
     "dialog:allow-open",
+    "opener:allow-open-url",
     "updater:default",
     "process:allow-restart"
   ]

@@ -231,7 +231,7 @@
 </div>
 
 {#if finding && index}
-  <Finder {index} {fs} {nav} {storiesDir} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
+  <Finder {index} {fs} {nav} {storiesDir} {worldName} {engineRel} {gameDir} {openEngine} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
 {/if}
 
 <style>

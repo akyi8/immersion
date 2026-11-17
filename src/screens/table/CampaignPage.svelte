@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { WorldFs } from '../../lib/fs/types';
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
+  import { inDesktopApp } from '../../lib/runtime';
   import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
@@ -42,6 +43,18 @@
     linkUrl = '';
   }
 
+  /** Opens a link in the computer's browser. Only web addresses are opened. */
+  async function openLink(url: string) {
+    problem = '';
+    const address = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    try {
+      if (inDesktopApp) await (await import('@tauri-apps/plugin-opener')).openUrl(address);
+      else window.open(address, '_blank', 'noopener');
+    } catch (e) {
+      problem = `That link could not be opened. ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+
   let copied = $state('');
   async function copy(url: string) {
     try {
@@ -69,8 +82,8 @@
   <div class="fields">
     <label for="cp-role" class="label">I am</label>
     <select id="cp-role" value={campaign.role} onchange={(e) => change({ role: e.currentTarget.value })}>
-      <option value="player">A player in it</option>
-      <option value="gm">Running it</option>
+      <option value="player">A player</option>
+      <option value="gm">The narrator</option>
     </select>
     <p class="hint">{campaign.role === 'gm' ? 'Each session has a plan beside its log. Plans show only in narrator view.' : 'Each session is its log. A player has no plans to keep.'}</p>
 
@@ -89,7 +102,7 @@
   <ul>
     {#each campaign.links as link, i (link.url + i)}
       <li>
-        <span class="link-name">{link.name}</span>
+        <button type="button" class="open" title="Open in your browser" onclick={() => openLink(link.url)}>{link.name} ↗</button>
         <span class="url">{link.url}</span>
         <button type="button" onclick={() => copy(link.url)}>{copied === link.url ? 'Copied' : 'Copy'}</button>
         <button type="button" aria-label="Remove {link.name}" onclick={() => saveLinks(campaign.links.filter((_, n) => n !== i))}>Remove</button>
@@ -170,8 +183,10 @@
     padding: 8px 0;
     border-bottom: 1px solid var(--line);
   }
-  .link-name {
+  .open {
     color: var(--text);
+    font-family: inherit;
+    font-size: calc(15px * var(--type));
   }
   .url {
     flex: 1 1 200px;

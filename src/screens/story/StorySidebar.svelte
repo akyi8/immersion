@@ -28,6 +28,7 @@
     onWindow,
     onMoveChapter,
     onRenameChapter,
+    onArchiveChapter,
     onMoved,
     onMakeManuscript,
     onSeries,
@@ -50,6 +51,7 @@
     /** Moves a chapter one place earlier (-1) or later (1) in its manuscript. */
     onMoveChapter: (m: Manuscript, s: Section, by: -1 | 1) => void;
     onRenameChapter: (m: Manuscript, s: Section) => void;
+    onArchiveChapter: (m: Manuscript, s: Section) => void;
     /** Called after a piece moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
     /** Starts making a note into a manuscript. */
@@ -188,7 +190,7 @@
       { label: 'Open in a new window', run: () => onWindow(m.kind === 'file' ? m.path : (m.book ?? m.sections[0]?.path ?? m.path)) },
     ];
     if (m.kind === 'folder') {
-      items.push({ label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) }, { label: `+ ${m.partWord}`, run: () => onAddChapter(m) });
+      items.push({ label: unfolded(m) ? 'Fold' : 'Unfold', run: () => fold(m, !unfolded(m)) }, { label: `New ${m.partWord.toLowerCase()}`, run: () => onAddChapter(m) });
       if (m.series) items.push({ label: 'Open the series board', run: () => onSeries(m.series!) });
     } else items.push({ label: 'Make it a manuscript…', run: () => onMakeManuscript(m) });
     items.push('separator');
@@ -214,7 +216,9 @@
       items.push('separator');
       if (at > 0) items.push({ label: 'Move earlier', run: () => onMoveChapter(m, s, -1) });
       if (at < list.length - 1) items.push({ label: 'Move later', run: () => onMoveChapter(m, s, 1) });
-      items.push({ label: `Rename ${m.partWord.toLowerCase()}`, run: () => onRenameChapter(m, s) });
+      items.push({ label: 'Rename', run: () => onRenameChapter(m, s) });
+      items.push('separator');
+      items.push({ label: 'Archive', run: () => onArchiveChapter(m, s) });
     }
     contextMenu.show(event, items, where);
   }
@@ -284,7 +288,7 @@
           <span>{s.title}</span>
         </button>
       {/each}
-      <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ {m.partWord}</button>
+      <button type="button" class="section new-chapter" onclick={() => onAddChapter(m)}>+ New {m.partWord.toLowerCase()}</button>
     </div>
   {/if}
 {/snippet}

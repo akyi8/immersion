@@ -1348,6 +1348,8 @@ pub fn run() {
             }
         })
         .plugin(tauri_plugin_dialog::init())
+        // Opens a web link, such as a campaign's shared spreadsheet, in the system's browser.
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         // The main window opens maximized the first time, and after that where and how

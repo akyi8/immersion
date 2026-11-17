@@ -38,6 +38,8 @@
     onCursor,
     onMoveTo,
     onOpenPiece,
+    onChapterRename,
+    onChapterArchive,
     onMakeEntry,
     onMoved,
     onWindow,
@@ -61,6 +63,9 @@
     /** Opens a piece of writing, at a chapter when `offset` is given. */
     onOpenPiece: (path: string, offset: number | null, title?: string) => void;
     /** Starts a wiki entry for a name selected in the writing. */
+    /** Renames the chapter this page stands for. Returns a problem to show, or null. */
+    onChapterRename?: (title: string) => Promise<string | null>;
+    onChapterArchive?: () => void;
     onMakeEntry?: (name: string) => void;
     /** Called after the piece is renamed or archived (null). */
     onMoved?: (from: string, to: string | null) => void;
@@ -178,15 +183,20 @@
   const titled = $derived({
     id,
     name: about?.title ?? '',
-    rename: about && onMoved && owner && (about.kind === 'note' || about.kind === 'book') ? renameTo : null,
+    rename: about && onMoved && owner && (about.kind === 'note' || about.kind === 'book') ? renameTo : about?.kind === 'chapter' && onChapterRename ? onChapterRename : null,
     problem: (text: string) => (renameProblem = text),
   });
 
   // What can be done to a manuscript or a note sits behind the ⋯ in the pane's corner.
-  // A chapter is renamed and moved from the binder, so it offers nothing here.
   let pieceActions: PieceActions | undefined = $state();
   $effect(() => {
-    if (!about || !onMoved || !story || !owner || about.kind === 'chapter' || about.kind === 'matter') return;
+    if (!about || !onMoved || !story || !owner || about.kind === 'matter') return;
+    if (about.kind === 'chapter') {
+      // A chapter that is its own page is renamed by typing over its title, and archived from here.
+      if (!onChapterRename || !onChapterArchive) return;
+      pageActions.set(id, [{ label: 'Rename', run: () => titleFocus.request(id) }, 'separator', { label: 'Archive', run: onChapterArchive }]);
+      return () => pageActions.clear(id);
+    }
     pageActions.set(id, [
       // Renaming is typing over the title. A title page shows no title of its own, so it asks in a small form.
       { label: 'Rename', run: () => (about?.kind === 'book' && mode !== 'outline' ? pieceActions?.start('rename') : titleFocus.request(id)) },
