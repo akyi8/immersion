@@ -1,0 +1,43 @@
+import { untrack } from 'svelte';
+
+/**
+ * The Radiance layout's room (Mike, November 17). Every open page is a card on its own
+ * ground, and one picture belongs to the room, down its right edge in a margin of its own.
+ * The picture is the world's. While a page that has a picture of its own is the one in
+ * use, the room shows that page's picture instead. A page's picture shows at the level
+ * of the room and never on the card.
+ */
+class Room {
+  /** Whether the Radiance layout is on. */
+  on = $state(false);
+  /** The page in use: the last one clicked or typed in. */
+  focus = $state<string | null>(null);
+
+  // The pictures are kept outside the reactive state, with a counter that says when they
+  // changed, because a page sets its own from an effect.
+  private pictures = new Map<string, string>();
+  private changed = $state(0);
+
+  /** A page says what its picture is, or that it has none. */
+  offer(id: string, url: string | null) {
+    if (url) this.pictures.set(id, url);
+    else this.pictures.delete(id);
+    this.changed = untrack(() => this.changed) + 1;
+  }
+
+  withdraw(id: string) {
+    if (this.pictures.delete(id)) this.changed = untrack(() => this.changed) + 1;
+  }
+
+  /** The picture of the page in use among those open, when it has one. */
+  pictureFor(open: string[]): string | null {
+    void this.changed;
+    const id = this.focus && open.includes(this.focus) ? this.focus : (open.at(-1) ?? null);
+    return (id && this.pictures.get(id)) || null;
+  }
+
+  /** The open pages in the module on screen, which the app's shell reports. */
+  open = $state<string[]>([]);
+}
+
+export const room = new Room();

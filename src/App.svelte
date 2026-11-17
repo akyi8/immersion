@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
+  import { room } from './lib/room.svelte';
   import { watchForTrouble } from './lib/trouble';
   import { onMount } from 'svelte';
   import { inDesktopApp } from './lib/runtime';
@@ -53,13 +55,15 @@
   // The writer's layout, the same on every world (Mike, October 27). In Soft, the open
   // world's picture can glow through the desk.
   $effect(() => {
-    document.documentElement.dataset.layout = account.look.layout;
+    // Radiance is Soft with a picture that belongs to the room, so it wears Soft's rules.
+    document.documentElement.dataset.layout = account.look.layout === 'radiance' ? 'soft' : account.look.layout;
+    room.on = account.look.layout === 'radiance';
     const face = BOARD_FONTS.find(([id]) => id === account.look.boardFont)?.[2];
     if (face) document.documentElement.style.setProperty('--board-font', face);
     else document.documentElement.style.removeProperty('--board-font');
   });
   const backdrop = $derived(
-    account.look.layout === 'soft' && account.look.backdrop && fs && world && (phase === 'loading' || phase === 'inside')
+    account.look.layout !== 'classic' && account.look.backdrop && fs && world && (phase === 'loading' || phase === 'inside')
       ? world.imagePath
         ? fs.imageUrl(world.imagePath)
         : world.journal
@@ -67,6 +71,14 @@
           : null
       : null,
   );
+
+  // The room's picture, in the Radiance layout: the page in use, or else the world's.
+  const roomPicture = $derived(
+    room.on && fs && world && phase === 'inside' ? (room.pictureFor(room.open) ?? (world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null)) : null,
+  );
+  $effect(() => {
+    document.documentElement.dataset.room = roomPicture ? 'radiance' : '';
+  });
 
   async function enter(source: WorldFs) {
     try {
@@ -260,6 +272,13 @@
   });
 </script>
 
+{#if roomPicture}
+  <div class="room-picture" aria-hidden="true">
+    {#key roomPicture}
+      <img src={roomPicture} alt="" transition:fade={{ duration: 900 }} />
+    {/key}
+  </div>
+{/if}
 {#if backdrop}
   <div class="backdrop-glass" style:background-image={`url("${backdrop}")`} aria-hidden="true"></div>
 {/if}

@@ -8,6 +8,7 @@
   import { pageActions, pictureActions } from '../lib/pane.svelte';
   import { contextMenu } from '../lib/contextMenu.svelte';
   import PaneScope from './PaneScope.svelte';
+  import { room } from '../lib/room.svelte';
 
   /**
    * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
@@ -67,6 +68,16 @@
   const SPINE = 44;
 
   const panes = $derived(ids);
+  // The Radiance room shows the picture of the page in use, so it is told which pages are open.
+  let wereOpen: string[] = [];
+  $effect(() => {
+    // A page just opened is the page in use.
+    const fresh = ids.find((id) => !wereOpen.includes(id));
+    if (fresh && wereOpen.length) room.focus = fresh;
+    wereOpen = [...ids];
+    room.open = ids;
+    return () => (room.open = []);
+  });
 
   let strip: HTMLDivElement | undefined = $state();
   let spined = $state<boolean[]>([]);
@@ -174,6 +185,8 @@
         class:alone={full === id}
         class:hidden={!!full && full !== id}
         style:left="{full ? 0 : i * SPINE}px"
+        onpointerdown={() => (room.focus = id)}
+        onfocusin={() => (room.focus = id)}
         aria-label={name}>
         <div class="spine" aria-hidden={!spined[i]}>
           <button type="button" class="spine-title" tabindex={spined[i] ? 0 : -1} onclick={() => show(i)}>

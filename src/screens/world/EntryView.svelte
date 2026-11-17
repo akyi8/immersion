@@ -18,6 +18,7 @@
   import { views } from '../../lib/view.svelte';
   import { pageActions, pictureActions } from '../../lib/pane.svelte';
   import { retitle } from '../../lib/retitle';
+  import { room } from '../../lib/room.svelte';
   import { titleFocus } from '../../lib/table/tray.svelte';
   import { renameEntry } from '../../lib/index/manage';
 
@@ -83,8 +84,14 @@
   const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category, index.pictures));
   // The page's own view can put the picture away, for reading with nothing but text.
   const picture = $derived(views.of(id).picture);
-  const pictured = $derived(picture !== 'hide');
-  const banner = $derived(!!entry.imagePath && shape === 'banner' && picture === 'show');
+  // In the Radiance layout a page's picture belongs to the room and never shows on the page.
+  const pictured = $derived(picture !== 'hide' && !room.on);
+  const banner = $derived(!!entry.imagePath && shape === 'banner' && picture === 'show' && !room.on);
+  $effect(() => {
+    const mine = id;
+    room.offer(mine, entry.imagePath && picture !== 'hide' ? fs.imageUrl(entry.imagePath) : null);
+    return () => room.withdraw(mine);
+  });
 
   // Behind the page (Mike, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's

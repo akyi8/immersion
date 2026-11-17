@@ -40,9 +40,10 @@
     ['computer', 'This computer'],
   ];
   const tab = $derived(ui.settings ?? 'you');
-  const LAYOUTS: ['classic' | 'soft', string, string][] = [
+  const LAYOUTS: ['classic' | 'soft' | 'radiance', string, string][] = [
     ['classic', 'Classic', 'Ruled with fine lines, every edge drawn.'],
     ['soft', 'Soft', 'Space instead of lines, rounded paper on a desk, and things that settle gently into place.'],
+    ['radiance', 'Radiance', "Soft, with a picture that belongs to the room, down its right edge: the world's, or the picture of the page you are in."],
   ];
   const info = $derived(account.info);
   let problem = $state('');
@@ -136,7 +137,7 @@
           </button>
         {/each}
       </div>
-      {#if account.look.layout === 'soft'}
+      {#if account.look.layout !== 'classic'}
         <label class="check">
           <input type="checkbox" checked={account.look.backdrop} onchange={(e) => run(() => account.saveLook({ ...account.look, backdrop: (e.currentTarget as HTMLInputElement).checked }))} />
           The world's picture behind the desk

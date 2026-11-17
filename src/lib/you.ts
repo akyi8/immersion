@@ -18,9 +18,11 @@ export interface Profile {
  * The writer's layout (Mike, October 27), which is theirs on every world rather than a
  * world's. Classic is the app as it began, ruled with lines. Soft trades the lines for
  * space, rounds the corners, sets the type a step smaller, and lets things settle into
- * place, and its desk can show the open world's picture through frosted glass.
+ * place, and its desk can show the open world's picture through frosted glass. Radiance
+ * (Mike, November 17) is Soft with a picture that belongs to the room, down its right
+ * edge: the world's, or that of the page in use.
  */
-export type Layout = 'classic' | 'soft';
+export type Layout = 'classic' | 'soft' | 'radiance';
 
 export interface Look {
   layout: Layout;
@@ -78,7 +80,7 @@ const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 export function readLook(header: Record<string, unknown>): Look {
   return {
-    layout: header.layout === 'soft' ? 'soft' : 'classic',
+    layout: header.layout === 'soft' || header.layout === 'radiance' ? header.layout : 'classic',
     backdrop: header.backdrop !== false,
     autoEnter: header.enter !== 'wait',
     boardFont: header.board_font === 'cabin' || header.board_font === 'plex' ? header.board_font : 'theme',
