@@ -16,6 +16,7 @@
   import { MODULES } from '../lib/you';
   import GameModule from './game/GameModule.svelte';
   import TableModule from './table/TableModule.svelte';
+  import Wheel from './Wheel.svelte';
   import type { GameFs } from '../lib/game/game';
 
   let {
@@ -58,6 +59,9 @@
 
   // The quick finder (Mike, October 31), from its button or Ctrl or Cmd and K anywhere.
   let finding = $state(false);
+  // The wheel (Mike, November 17): every setting and option in one radial menu, from Ctrl or
+  // Cmd with P, or a click of the mouse's wheel, which opens it under the pointer.
+  let wheel = $state<{ at: { x: number; y: number } | null } | null>(null);
   const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
 
   function worldMenu(e: MouseEvent) {
@@ -131,6 +135,11 @@
         finding = !finding;
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        wheel = wheel ? null : { at: null };
+        return;
+      }
       // On a Mac, Option with an arrow moves the cursor by a word, so there Back and
       // Forward are Cmd with a bracket alone. Elsewhere Alt with an arrow is the custom.
       const back = (!mac && e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
@@ -147,9 +156,22 @@
       if (e.button === 3) nav.back();
       if (e.button === 4) nav.forward();
     };
+    // A press of the mouse's wheel would start the system's own scrolling, so it is taken here.
+    const onMiddleDown = (e: MouseEvent) => {
+      if (e.button === 1) e.preventDefault();
+    };
+    const onMiddle = (e: MouseEvent) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      wheel = wheel ? null : { at: { x: e.clientX, y: e.clientY } };
+    };
+    window.addEventListener('mousedown', onMiddleDown);
+    window.addEventListener('auxclick', onMiddle);
     window.addEventListener('keydown', onKey);
     window.addEventListener('mouseup', onMouse);
     return () => {
+      window.removeEventListener('mousedown', onMiddleDown);
+      window.removeEventListener('auxclick', onMiddle);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mouseup', onMouse);
     };
@@ -229,6 +251,20 @@
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
 </div>
+
+{#if wheel}
+  <Wheel
+    {nav}
+    {view}
+    {setView}
+    at={wheel.at}
+    onClose={() => (wheel = null)}
+    onFind={() => (finding = true)}
+    {onTheme}
+    {onDetails}
+    {onShowLoading}
+    {onShowShelf} />
+{/if}
 
 {#if finding && index}
   <Finder {index} {fs} {nav} {storiesDir} {worldName} {engineRel} {gameDir} {openEngine} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
