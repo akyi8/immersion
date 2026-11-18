@@ -520,33 +520,43 @@ html.typing .pane-actions {
 }
 
 /* The Radiance layout (Mike, November 17). One picture belongs to the room and stands down
-   its right edge, in a margin the pages keep clear of, clear at the edge and fading toward
-   them. It is the world's picture, or that of the page in use. */
+   its right edge. It is whole at the edge and fades toward the pages into their own ground,
+   black on the dark side and white on the light. The pages reach under its faded half, so
+   their text runs onto the picture and the room gives up only half the picture's width.
+   It is the world's picture, or that of the page in use. */
 :root {
   --room-strip: 0px;
+  --room-picture: clamp(220px, 27vw, 520px);
   /* A page's title is 60 when the page stands alone and 40 when it shares the row with another (Mike, November 17). */
   --title-size: 60px;
 }
 :root[data-room='radiance'] {
-  --room-strip: clamp(170px, 21vw, 400px);
+  --room-strip: calc(var(--room-picture) * 0.5);
 }
 .room-picture {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: calc(clamp(170px, 21vw, 400px) * 1.3);
-  z-index: 0;
+  width: var(--room-picture);
+  /* Above the pages and below the header. It only ever lightens what is under it, so a
+     dark page shows through as the picture's own black and light text stays as bright. */
+  z-index: 2;
+  mix-blend-mode: screen;
   pointer-events: none;
   overflow: hidden;
   /* The same fade as a card's own picture, turned to face the pages: it thins out toward
-     them in steps, softens at the window's edge, and eases in from the top. */
-  --room-side: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%, black 88%, transparent 100%);
+     them in steps and eases in from the top. */
+  --room-side: linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%);
   --room-top: linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.5) 14%, black 30%);
   -webkit-mask-image: var(--room-side), var(--room-top);
   -webkit-mask-composite: source-in;
   mask-image: var(--room-side), var(--room-top);
   mask-composite: intersect;
+}
+:root[data-mode='light'] .room-picture {
+  /* On the light side it only ever darkens, so the page is the picture's white and dark text stays dark. */
+  mix-blend-mode: multiply;
 }
 .room-picture img {
   position: absolute;
@@ -562,7 +572,7 @@ html.typing .pane-actions {
 }
 :root[data-room='radiance'] .shell > header {
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 @media (max-width: 1100px) {
   :root[data-room='radiance'] {
