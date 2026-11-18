@@ -590,7 +590,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: calc(60px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     letter-spacing: 0.02em;
     line-height: 1;
   }

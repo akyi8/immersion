@@ -5,19 +5,17 @@
   import { ui } from '../lib/ui.svelte';
   import { account } from '../lib/account.svelte';
   import { MODULES } from '../lib/you';
-  import { mode } from '../lib/mode.svelte';
-  import { zoom } from '../lib/zoom.svelte';
-  import { quiet, views } from '../lib/view.svelte';
-  import { tumbling } from '../lib/table/tray.svelte';
+  import { views } from '../lib/view.svelte';
   import { pageActions, pictureActions } from '../lib/pane.svelte';
   import { room } from '../lib/room.svelte';
   import { sync } from '../lib/sync.svelte';
   import { portal } from '../lib/portal';
 
   /**
-   * The wheel (Mike, November 17): every setting and option in one radial menu, in rings.
-   * The first ring holds the groups: this page, this module, this world, you, and this
-   * computer. A number key or a click chooses a part of the ring, which either does
+   * The wheel (Mike, November 17): what can be done here, in one radial menu, in rings.
+   * The first ring holds this page, this module, this world, a sync, and the way to
+   * Settings. Settings themselves live on the Settings page, which is where they are read
+   * and compared. A number key or a click chooses a part of the ring, which either does
    * something or opens the next ring. Escape steps back a ring, and closes the wheel from
    * the first. Ctrl or Cmd with P opens it in the middle of the window, and a click of the
    * mouse's wheel opens it under the pointer.
@@ -123,61 +121,7 @@
       { label: 'Theme', run: done(onTheme) },
       { label: 'Edit details', run: done(onDetails) },
       { label: 'Loading screen', run: done(onShowLoading) },
-      { label: 'Pictures and more', run: done(() => (ui.settings = 'world')) },
       { label: 'All worlds', run: done(onShowShelf) },
-    ];
-  }
-
-  function you(): Part[] {
-    const look = account.look;
-    const save = (change: Partial<typeof look>) => void account.saveLook({ ...look, ...change });
-    return [
-      {
-        label: 'Layout',
-        ring: () =>
-          (['classic', 'soft', 'radiance'] as const).map((layout) => ({ label: layout[0].toUpperCase() + layout.slice(1), on: account.look.layout === layout, stay: true, run: () => save({ layout }) })),
-      },
-      { label: "The world's picture behind the desk", on: look.backdrop, disabled: look.layout === 'classic', stay: true, run: () => save({ backdrop: !look.backdrop }) },
-      { label: 'Enter a world without waiting', on: look.autoEnter, stay: true, run: () => save({ autoEnter: !look.autoEnter }) },
-      {
-        label: 'Modules',
-        ring: () =>
-          MODULES.map(([m, label]) => ({
-            label,
-            on: account.look.modules.includes(m),
-            stay: true,
-            run: () => {
-              const now = account.look.modules;
-              const next = now.includes(m) ? now.filter((x) => x !== m) : MODULES.map(([x]) => x).filter((x) => x === m || now.includes(x));
-              if (next.length) void account.saveLook({ ...account.look, modules: next });
-            },
-          })),
-      },
-      { label: 'Author profiles and more', run: done(() => (ui.settings = 'you')) },
-    ];
-  }
-
-  function thisComputer(): Part[] {
-    return [
-      {
-        label: 'Light or dark',
-        ring: () => [
-          { label: 'Dark', on: mode.choice === 'dark', stay: true, run: () => mode.set('dark') },
-          { label: 'Light', on: mode.choice === 'light', stay: true, run: () => mode.set('light') },
-          { label: 'Match this computer', on: mode.choice === 'system', stay: true, run: () => mode.set('system') },
-        ],
-      },
-      {
-        label: 'Size',
-        ring: () => [
-          { label: 'Smaller', stay: true, run: () => zoom.step(-1) },
-          { label: 'Larger', stay: true, run: () => zoom.step(1) },
-        ],
-      },
-      { label: 'Dim everything but my sentence', on: quiet.on, stay: true, run: () => quiet.set(!quiet.on) },
-      { label: 'Tumble the dice', on: tumbling.on, stay: true, run: () => tumbling.set(!tumbling.on) },
-      { label: 'Sync now', run: done(() => sync.retry()) },
-      { label: 'Library and more', run: done(() => (ui.settings = 'computer')) },
     ];
   }
 
@@ -185,8 +129,8 @@
     { label: 'This page', disabled: !page, ring: thisPage },
     { label: 'This module', ring: thisModule },
     { label: 'This world', ring: thisWorld },
-    { label: 'You', ring: you },
-    { label: 'This computer', ring: thisComputer },
+    { label: 'Sync now', run: done(() => sync.retry()) },
+    { label: 'Settings', run: done(() => (ui.settings = 'look')) },
   ];
 
   // The rings chosen so far, as the place of each choice in its ring.

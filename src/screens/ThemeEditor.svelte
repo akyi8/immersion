@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Choice from './Pick.svelte';
   import { splitHeader, withHeader } from '../lib/world';
   import { contrast, HEADING_FONTS, isHex, NIGHT, palette, PROSE_FONTS, themeFrom, themeHeader, type FontChoice, type Mode, type SideOverrides, type ThemeSpec } from '../lib/theme';
   import { mode } from '../lib/mode.svelte';
@@ -129,10 +130,7 @@
   <h2>Theme</h2>
   <p class="for">for {worldName}</p>
 
-  <div class="choice" role="radiogroup" aria-label="Theme">
-    <button type="button" role="radio" aria-checked={!own} class:on={!own} onclick={() => (own = false)}>Night and Ink and Paper</button>
-    <button type="button" role="radio" aria-checked={own} class:on={own} onclick={() => (own = true)}>Its own theme</button>
-  </div>
+  <Choice fill label="Theme" value={own} onpick={(v) => (own = v)} options={[[false, 'Night and Ink and Paper'], [true, 'Its own theme']] as const} />
 
   {#if own}
     <h3 class="label">Colors</h3>
@@ -155,10 +153,7 @@
   {/if}
 
   <h3 class="label">{own ? 'Each side' : 'Sides'}</h3>
-  <div class="choice" role="radiogroup" aria-label="Side">
-    <button type="button" role="radio" aria-checked={side === 'dark'} class:on={side === 'dark'} onclick={() => (side = 'dark')}>Dark side</button>
-    <button type="button" role="radio" aria-checked={side === 'light'} class:on={side === 'light'} onclick={() => (side = 'light')}>Light side</button>
-  </div>
+  <Choice fill label="Side" value={side} onpick={(v) => (side = v)} options={[['dark', 'Dark side'], ['light', 'Light side']] as const} />
 
   {#if own && side === 'dark'}
     <label class="check"><input type="checkbox" bind:checked={pickBackground} /> Choose the background myself</label>
@@ -274,25 +269,6 @@
     margin: 18px 0 2px;
     font-size: calc(11px * var(--type));
     font-weight: 400;
-  }
-  .choice {
-    display: flex;
-    gap: 4px;
-  }
-  .choice button {
-    flex: 1;
-    font-size: calc(13px * var(--type));
-    color: var(--muted);
-    background: var(--well);
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    padding: 8px 4px;
-    min-height: 38px;
-  }
-  .choice button.on {
-    color: var(--structure-soft);
-    background: var(--structure-deep);
-    border-color: var(--structure);
   }
   .color {
     display: grid;

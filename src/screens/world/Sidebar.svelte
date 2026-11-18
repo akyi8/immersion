@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pick from '../Pick.svelte';
   import { tick } from 'svelte';
   import type { WikiIndex, Folder } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
@@ -269,10 +270,8 @@
     {/each}
   {/snippet}
 
-  <div class="modes" role="group" aria-label="Sidebar view">
-    {#each MODES as [m, label]}
-      <button type="button" class:on={mode === m} aria-pressed={mode === m} onclick={() => setMode(m)}>{label}</button>
-    {/each}
+  <div class="modes">
+    <Pick options={MODES} value={mode} onpick={setMode} label="Sidebar view" fill />
   </div>
 
   {#if mode === 'working'}
@@ -347,21 +346,6 @@
     background: var(--veil);
     backdrop-filter: var(--frost);
     z-index: 1;
-  }
-  .modes button {
-    flex: 1;
-    font-size: calc(13px * var(--type));
-    color: var(--muted);
-    background: var(--well);
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    padding: 8px 4px;
-    min-height: 38px;
-  }
-  .modes button.on {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
-    border-color: var(--selected-border);
   }
   .list {
     display: flex;

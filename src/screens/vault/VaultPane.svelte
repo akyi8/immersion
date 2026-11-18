@@ -191,7 +191,7 @@
 
   {#if !account.info?.path}
     <p class="lead">Your vault lives in your library, so every computer you write on has it.</p>
-    <button type="button" class="primary" onclick={() => (ui.settings = 'computer')}>Choose a library</button>
+    <button type="button" class="primary" onclick={() => (ui.settings = 'files')}>Choose a library</button>
   {:else if !vault.ready}
     <form
       class="gate"
@@ -413,7 +413,7 @@
     box-sizing: border-box;
     margin: 0 0 14px;
     font-family: var(--font-display);
-    font-size: calc(48px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     letter-spacing: 0.02em;
     line-height: 1.1;
     color: var(--title);

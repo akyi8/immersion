@@ -128,7 +128,7 @@
     {#if !account.profiles.length && who !== 'hand'}
       <p class="hint">
         An author profile holds a pen name and a copyright holder, for every book and game you write.
-        <button type="button" class="link" onclick={() => (ui.settings = 'you')}>Make one in Settings</button>
+        <button type="button" class="link" onclick={() => (ui.settings = 'work')}>Make one in Settings</button>
       </p>
     {/if}
 

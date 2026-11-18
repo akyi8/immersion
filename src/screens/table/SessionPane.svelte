@@ -182,7 +182,7 @@
   }
   .name {
     font-family: var(--font-display);
-    font-size: calc(40px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     line-height: 1.1;
     letter-spacing: 0.02em;
     color: var(--title);

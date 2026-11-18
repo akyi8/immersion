@@ -129,7 +129,7 @@
   }
   .name {
     font-family: var(--font-display);
-    font-size: calc(44px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     line-height: 1.1;
     color: var(--title);
     background: none;

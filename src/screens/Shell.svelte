@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pick from './Pick.svelte';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../lib/index/wiki';
   import type { WorldFs } from '../lib/fs/types';
@@ -74,7 +75,7 @@
         { label: 'Show the loading screen', run: onShowLoading },
         { label: 'Edit details', run: onDetails },
         { label: 'Theme', run: onTheme },
-        { label: 'Settings', run: () => (ui.settings = 'world') },
+        { label: 'Settings', run: () => (ui.settings = 'look') },
       ],
       { x: r.left, y: r.bottom + 4 },
     );
@@ -200,7 +201,7 @@
         {#each TABS as [module, label]}
           <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => (nav.current.module === module ? nav.panes.length && nav.setRow([]) : nav.show(module))}>{label}</button>
         {/each}
-        <button type="button" class="more-modules" aria-label="Show or hide modules" title="Show or hide modules, such as Game and Table" onclick={() => (ui.settings = 'you')}>+</button>
+        <button type="button" class="more-modules" aria-label="Show or hide modules" title="Show or hide modules, such as Game and Table" onclick={() => (ui.settings = 'modules')}>+</button>
       </nav>
     </div>
     <div class="right">
@@ -212,10 +213,14 @@
       <UpdateButton />
       <!-- One switch in every module, meaning one thing (the interface's rule 7). -->
       {#if !journal}
-        <div class="toggle" role="group" aria-label="View" title="Narrator shows everything. Protagonist puts plans and narrator-only text away, to show the screen to players.">
-          <button type="button" class:on={view === 'narrator'} aria-pressed={view === 'narrator'} onclick={() => setView('narrator')}>Narrator</button>
-          <button type="button" class:on={view === 'protagonist'} aria-pressed={view === 'protagonist'} onclick={() => setView('protagonist')}>Protagonist</button>
-        </div>
+        <Pick
+          label="View"
+          value={view}
+          onpick={setView}
+          options={[
+            ['narrator', 'Narrator', 'Narrator shows everything.'],
+            ['protagonist', 'Protagonist', 'Protagonist puts plans and narrator-only text away, to show the screen to players.'],
+          ]} />
       {/if}
     </div>
   </header>
@@ -358,23 +363,6 @@
     color: var(--selected-fg);
     background: var(--selected-bg);
     font-weight: 700;
-  }
-  .toggle {
-    display: flex;
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-  }
-  .toggle button {
-    font-size: calc(13px * var(--type));
-    color: var(--muted);
-    background: none;
-    border: 0;
-    padding: 9px 12px;
-    min-height: 40px;
-  }
-  .toggle button.on {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
   }
   .waiting {
     flex: 1;

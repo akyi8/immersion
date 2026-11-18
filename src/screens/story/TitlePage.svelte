@@ -212,7 +212,7 @@
         {#if !hasLibrary}
           <p class="hint">
             Author profiles live in your library, so every computer has them.
-            <button type="button" class="link" onclick={() => (ui.settings = 'computer')}>Choose a library</button>
+            <button type="button" class="link" onclick={() => (ui.settings = 'files')}>Choose a library</button>
           </p>
         {/if}
       </div>

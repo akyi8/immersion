@@ -203,6 +203,8 @@ function lightPalette(spec: ThemeSpec): Record<string, string> {
   const structure = isHex(own.base) ? base : inked({ l: clamp(base.l, 0.35, 0.55), c: base.c, h: base.h }, bg, 4.6);
   const text = isHex(own.text) ? own.text : hex(inked({ l: 0.24, c: Math.min(high.c, 0.08) * 0.2, h: high.h }, bg, 12));
   const soft = hex(inked({ l: 0.4, c: tint * 0.45, h: base.h }, bg, 7));
+  // Running text that steps back is a grey leaning toward the text's own hue, so the base color marks structure only.
+  const quiet = hex(inked({ l: 0.42, c: Math.min(high.c, 0.08) * 0.2, h: high.h }, bg, 7));
   const deep = { l: clamp(bgSeed.l - 0.07, 0.6, 0.93), c: tint * 0.3, h: base.h };
 
   return {
@@ -211,7 +213,7 @@ function lightPalette(spec: ThemeSpec): Record<string, string> {
     '--surface': at(0.025, bgSeed.c * 0.5),
     '--surface-alt': at(0.012),
     '--text': text,
-    '--text-soft': soft,
+    '--text-soft': quiet,
     '--muted': hex(inked({ l: 0.5, c: tint * 0.1, h: base.h }, bg, 4.6)),
     '--rule': hex(deep),
     '--rule-strong': hex({ ...deep, l: deep.l - 0.12, c: tint * 0.4 }),
@@ -238,6 +240,7 @@ function darkPalette(spec: ThemeSpec): Record<string, string> {
   const accent = readable({ l: clamp(high.l, 0.72, 0.9), c: high.c, h: high.h }, bg, 6);
   const text = isHex(spec.text) ? spec.text : hex(readable({ l: 0.93, c: Math.min(high.c, 0.08) * 0.15, h: high.h }, bg, 12));
   const soft = hex(readable({ l: 0.82, c: tint * 0.4, h: base.h }, bg, 9));
+  const quiet = hex(readable({ l: 0.77, c: Math.min(high.c, 0.08) * 0.12, h: high.h }, bg, 7));
   const deep = { l: clamp(bgSeed.l + 0.12, 0.2, 0.4), c: tint * 0.45, h: base.h };
 
   return {
@@ -246,7 +249,7 @@ function darkPalette(spec: ThemeSpec): Record<string, string> {
     '--surface': at(0.04),
     '--surface-alt': at(0.02),
     '--text': text,
-    '--text-soft': soft,
+    '--text-soft': quiet,
     '--muted': hex(readable({ l: 0.64, c: tint * 0.08, h: base.h }, bg, 4.5)),
     '--rule': hex(deep),
     '--rule-strong': hex({ ...deep, l: deep.l + 0.1, c: tint * 0.5 }),

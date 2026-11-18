@@ -590,8 +590,8 @@
     color: var(--text);
     background: none;
     border: 0;
-    padding: 6px 18px;
-    min-height: 32px;
+    padding: 4px 18px;
+    min-height: 28px;
     min-width: 0;
   }
   .item > span:first-child {
@@ -687,7 +687,7 @@
     margin: 0 0 12px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: calc(60px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     letter-spacing: 0.02em;
   }
   .home p {

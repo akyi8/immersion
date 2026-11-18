@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pick from './Pick.svelte';
   import { tick, type Snippet } from 'svelte';
   import type { Navigator } from '../lib/nav.svelte';
   import { ui } from '../lib/ui.svelte';
@@ -173,7 +174,7 @@
   onmousedown={outsideView} />
 
 <div class="strip sheet" class:full={!!full} bind:this={strip} onscroll={measure} style:--pane-width="{width}px">
-  <div class="row">
+  <div class="row" class:many={panes.length > 1 && !full}>
     {#each panes as id, i (id)}
       {@const name = label(id)}
       {@const look = views.of(id)}
@@ -240,21 +241,14 @@
           {#if viewing === id}
             <div class="view-menu" role="group" aria-label="How {name} is shown">
               <div class="label">Text</div>
-              <div class="pair">
-                <button type="button" aria-pressed={look.text === 'small'} onclick={() => views.set(id, { text: 'small' })}>Smaller</button>
-                <button type="button" aria-pressed={look.text === 'normal'} onclick={() => views.set(id, { text: 'normal' })}>Usual</button>
-              </div>
+              <Pick fill label="Text size" value={look.text} onpick={(text) => views.set(id, { text })} options={[['small', 'Smaller'], ['normal', 'Usual']] as const} />
               <div class="rule" role="separator"></div>
               {#if offers.length}
                 {@const choices = offers.filter((o) => o.pressed !== undefined)}
                 {@const actions = offers.filter((o) => o.pressed === undefined)}
                 <div class="label">Picture</div>
                 {#if choices.length}
-                  <div class="pair">
-                    {#each choices as choice (choice.label)}
-                      <button type="button" aria-pressed={choice.pressed} onclick={choice.run}>{choice.label}</button>
-                    {/each}
-                  </div>
+                  <Pick fill label="Picture" value={choices.find((c) => c.pressed)?.label ?? null} onpick={(l) => choices.find((c) => c.label === l)?.run()} options={choices.map((c) => [c.label, c.label] as const)} />
                 {/if}
                 {#if actions.length}
                   <div class="offers">
@@ -286,6 +280,10 @@
     display: flex;
     flex: 1 0 auto;
     min-height: 100%;
+  }
+  /* Pages that share the row carry the smaller of the two title sizes. */
+  .row.many {
+    --title-size: 40px;
   }
   .pane {
     position: sticky;
@@ -346,18 +344,6 @@
   .view-menu .label:first-child {
     margin-top: 0;
   }
-  .view-menu .pair {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-  }
-  .view-menu .pair button {
-    padding: 6px 0;
-    font-size: calc(13px * var(--type));
-    color: var(--text-soft);
-    background: none;
-    border: 1px solid var(--edge);
-  }
   .view-menu .rule {
     height: 1px;
     margin: 8px 0 2px;
@@ -380,11 +366,6 @@
   .view-menu .offers button:hover {
     color: var(--text);
     background: var(--well, var(--bg));
-  }
-  .view-menu .pair button[aria-pressed='true'] {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
-    border-color: var(--selected-border);
   }
   .view-menu .hint {
     margin: 8px 0 0;

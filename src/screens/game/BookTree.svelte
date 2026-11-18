@@ -252,7 +252,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    min-height: 30px;
+    min-height: 28px;
     padding: 0 10px 0 calc(8px + var(--depth) * 16px);
     position: relative;
   }
@@ -298,7 +298,7 @@
     color: var(--text);
     background: none;
     border: 0;
-    padding: 5px 2px;
+    padding: 4px 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

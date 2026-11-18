@@ -7,14 +7,16 @@
   import { BOARD_FONTS, MODULES, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
   import { zoom } from '../lib/zoom.svelte';
   import { quiet } from '../lib/view.svelte';
-  import ModeToggle from './ModeToggle.svelte';
+  import Pick from './Pick.svelte';
+  import { mode } from '../lib/mode.svelte';
   import { sync } from '../lib/sync.svelte';
 
   /**
-   * Settings (Mike, October 26), at three levels. You holds what follows the writer to
-   * every computer, kept in the library's `immersion.md`. This world holds what the
-   * open world's `world.md` says. This computer holds what only this machine needs to
-   * know: where the library is, whether it syncs, and light or dark.
+   * Settings, as one page (Mike, November 17). The groups name what a setting is for:
+   * how the app looks, how the desk behaves, which modules show, and where files live.
+   * Where a choice applies is a small tag beside its name. All worlds is kept in the
+   * library's `immersion.md`, This world in the open world's `world.md`, and This
+   * computer on this machine alone. Every setting is changed where it sits.
    */
   let {
     world = null,
@@ -34,17 +36,84 @@
     onDaily?: (on: boolean) => Promise<void>;
   } = $props();
 
-  const TABS: ['you' | 'world' | 'computer', string][] = [
-    ['you', 'You'],
-    ['world', 'This world'],
-    ['computer', 'This computer'],
+  // The record of errors kept on this computer, read when Settings opens.
+  let log = $state(troubles());
+  type Group = 'look' | 'work' | 'modules' | 'files';
+  const GROUPS: [Group, string, string][] = [
+    ['look', 'Look', 'How the app appears.'],
+    ['work', 'Writing and play', 'How the desk behaves while you work.'],
+    ['modules', 'Modules', 'Which parts of the app you see, and how a world opens.'],
+    ['files', 'Files', 'Where your worlds live and how they are kept safe.'],
   ];
-  const tab = $derived(ui.settings ?? 'you');
+  const group = $derived<Group>(ui.settings ?? 'look');
   const LAYOUTS: ['classic' | 'soft' | 'radiance', string, string][] = [
     ['classic', 'Classic', 'Ruled with fine lines, every edge drawn.'],
     ['soft', 'Soft', 'Space instead of lines, rounded paper on a desk, and things that settle gently into place.'],
     ['radiance', 'Radiance', "Soft, with a picture that belongs to the room, down its right edge: the world's, or the picture of the page you are in."],
   ];
+  const SHAPES: ['category' | 'portrait' | 'banner' | 'behind', string][] = [
+    ['category', 'By category'],
+    ['portrait', 'Portrait'],
+    ['banner', 'Banner'],
+    ['behind', 'Behind'],
+  ];
+
+  /**
+   * One setting: a short name, one sentence, and where the choice applies. `wide` puts its
+   * control under the words, for the few that need the room.
+   */
+  type Where = 'This world' | 'All worlds' | 'This computer';
+  type Row = { id: string; group: Group; name: string; tell: string; where: Where; wide?: boolean };
+
+  const rows = $derived.by(() => {
+    const layout = account.look.layout;
+    const list: (Row | false | null | undefined)[] = [
+      { id: 'mode', group: 'look', name: 'Light or dark', tell: 'Whether the app is light or dark.', where: 'This computer' },
+      { id: 'layout', group: 'look', name: 'Layout', tell: LAYOUTS.find(([id]) => id === layout)?.[2] ?? '', where: 'All worlds' },
+      world && { id: 'theme', group: 'look', name: 'Colors and fonts', tell: `The theme of ${world.name}, on both its dark and its light side.`, where: 'This world' },
+      layout !== 'classic' && { id: 'backdrop', group: 'look', name: 'Desk picture', tell: "The world's picture behind the desk, seen through frosted glass, so only its colors come through.", where: 'All worlds' },
+      { id: 'size', group: 'look', name: 'Size', tell: 'Everything grows or shrinks together. Ctrl or Cmd with plus, minus, and zero do the same anywhere.', where: 'This computer' },
+      world && pictures && {
+        id: 'shape',
+        group: 'look',
+        name: 'Picture shape',
+        tell:
+          pictures.shape === null
+            ? 'How every entry shows its picture. By category, people show a portrait and everything else shows a banner.'
+            : pictures.shape === 'behind'
+              ? 'How every entry shows its picture. Behind sets each page like a card, with its name up the spine over the picture.'
+              : `How every entry shows its picture. Every entry shows a ${pictures.shape}.`,
+        where: 'This world',
+        wide: true,
+      },
+      { id: 'board-font', group: 'look', name: 'Board lettering', tell: 'The lettering on board cards. A condensed face fits more of an outline on each card.', where: 'All worlds' },
+      { id: 'quiet', group: 'work', name: 'Quiet typing', tell: 'While you type, everything steps back in layers around the sentence you are writing. It all returns when the pointer moves.', where: 'This computer' },
+      world && journal && { id: 'daily', group: 'work', name: 'Daily pages', tell: 'Keeps a page for each day and adds a Today button to the journal. Days you skip simply do not exist, and nothing reminds you.', where: 'This world' },
+      { id: 'dice', group: 'work', name: 'Tumbling dice', tell: "Dice rolled in the Table module are thrown across the screen in the world's color. With this off, a roll shows its numbers at once.", where: 'This computer' },
+      { id: 'profiles', group: 'work', name: 'Author profiles', tell: 'The name and copyright holder a title page shows. Changing a profile changes every book that uses it.', where: 'All worlds', wide: true },
+      { id: 'modules', group: 'modules', name: 'Modules shown', tell: 'The modules along the top. Turn off the ones you do not use.', where: 'All worlds', wide: true },
+      { id: 'enter', group: 'modules', name: 'Enter on its own', tell: "A world's picture holds for a breath and then the world opens. With this off, it waits for your click.", where: 'All worlds' },
+      { id: 'library', group: 'files', name: 'Library folder', tell: 'The folder that holds your worlds and your author profiles. Every computer that uses the same folder shows the same worlds.', where: 'This computer', wide: true },
+      world && { id: 'folder', group: 'files', name: 'World folder', tell: `Where ${world.name} is kept.`, where: 'This world', wide: true },
+      !!info?.path && {
+        id: 'sync',
+        group: 'files',
+        name: 'Sync',
+        tell: info.isGit
+          ? "Pulls when a world opens and every ten minutes, and commits and pushes a few minutes after you stop typing and when you close the world. It only ever commits the world's own folder and your immersion.md."
+          : 'This library is not a Git repository, so it syncs however its folder does, such as through Dropbox.',
+        where: 'This computer',
+        wide: !!world,
+      },
+      { id: 'trouble', group: 'files', name: 'Trouble record', tell: `A short record of errors, such as a key that changed nothing. It stays on this computer unless you copy it. ${log.length ? `It holds ${log.length} ${log.length === 1 ? 'note' : 'notes'}.` : 'It is empty.'}`, where: 'This computer', wide: log.length > 0 },
+    ];
+    return list.filter((r): r is Row => !!r);
+  });
+
+  let find = $state('');
+  const need = $derived(find.trim().toLowerCase());
+  const shown = $derived(need ? rows.filter((r) => `${r.name} ${r.tell} ${r.where}`.toLowerCase().includes(need)) : rows.filter((r) => r.group === group));
+  const heading = $derived(GROUPS.find(([id]) => id === group)!);
   const info = $derived(account.info);
   let problem = $state('');
   let busy = $state(false);
@@ -90,8 +159,6 @@
     });
   }
 
-  // The record of errors kept on this computer, read when Settings opens.
-  let log = $state(troubles());
   let copied = $state(false);
   async function copyLog() {
     try {
@@ -105,227 +172,174 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && !removing && (e.preventDefault(), (ui.settings = null))} />
 
+{#snippet flip(on: boolean, set: (on: boolean) => void, name: string, disabled = false)}
+  <button type="button" class="switch" role="switch" aria-checked={on} aria-label={name} {disabled} onclick={() => set(!on)}></button>
+{/snippet}
+
+{#snippet control(id: string)}
+  {#if id === 'mode'}
+    <Pick label="Light or dark" value={mode.choice} onpick={(v) => mode.set(v)} options={[['dark', 'Dark'], ['light', 'Light'], ['system', 'Match computer']] as const} />
+  {:else if id === 'layout'}
+    <Pick label="Layout" value={account.look.layout} onpick={(layout) => run(() => account.saveLook({ ...account.look, layout }))} options={LAYOUTS} />
+  {:else if id === 'theme'}
+    <button type="button" onclick={() => ((ui.settings = null), onTheme?.())}>Change…</button>
+  {:else if id === 'backdrop'}
+    {@render flip(account.look.backdrop, (backdrop) => run(() => account.saveLook({ ...account.look, backdrop })), 'Desk picture')}
+  {:else if id === 'size'}
+    <div class="line zoom">
+      <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>
+      <span class="zoom-level">{Math.round(zoom.level * 100)}%</span>
+      <button type="button" aria-label="Larger" onclick={() => zoom.step(1)}>+</button>
+      <button type="button" class="quiet" onclick={() => zoom.set(1)} disabled={zoom.level === 1}>Reset</button>
+    </div>
+  {:else if id === 'shape' && pictures}
+    <Pick label="How pictures show" value={(pictures.shape ?? 'category') as (typeof SHAPES)[number][0]} disabled={busy} onpick={(v) => run(() => pictures!.set(v === 'category' ? null : v))} options={SHAPES} />
+    {#if pictures.own > 0}
+      <p class="hint">
+        {pictures.own} {pictures.own === 1 ? 'entry has' : 'entries have'} a choice of {pictures.own === 1 ? 'its' : 'their'} own, made from the page's view menu, and {pictures.own === 1 ? 'keeps' : 'keep'} it.
+      </p>
+      {#if following}
+        <div class="line">
+          <button type="button" disabled={busy} onclick={() => run(async () => { await pictures!.follow(); following = false; })}>Yes, change {pictures.own} {pictures.own === 1 ? 'entry' : 'entries'}</button>
+          <button type="button" class="quiet" onclick={() => (following = false)}>Cancel</button>
+        </div>
+      {:else}
+        <button type="button" onclick={() => (following = true)}>Make {pictures.own === 1 ? 'it' : 'them all'} follow the world</button>
+      {/if}
+    {/if}
+  {:else if id === 'board-font'}
+    <select class="board-font" aria-label="Board lettering" value={account.look.boardFont} style:font-family={BOARD_FONTS.find(([f]) => f === account.look.boardFont)?.[2] || null} onchange={(e) => run(() => account.saveLook({ ...account.look, boardFont: (e.currentTarget as HTMLSelectElement).value as BoardFont }))}>
+      {#each BOARD_FONTS as [f, name, face]}<option value={f} style:font-family={face || null}>{name}</option>{/each}
+    </select>
+  {:else if id === 'quiet'}
+    {@render flip(quiet.on, (on) => quiet.set(on), 'Quiet typing')}
+  {:else if id === 'daily' && journal}
+    {@render flip(journal.daily, (on) => run(async () => onDaily?.(on)), 'Daily pages')}
+  {:else if id === 'dice'}
+    {@render flip(tumbling.on, (on) => tumbling.set(on), 'Tumbling dice')}
+  {:else if id === 'profiles'}
+    {#if !info?.path}
+      <p class="hint">Author profiles live in your library, so every computer has them. Choose your library first.</p>
+      <button type="button" class="primary" onclick={() => ((find = ''), (ui.settings = 'files'))}>Choose a library</button>
+    {:else}
+      {#if offered}
+        <div class="offer">
+          <p>{offered.name} names <strong>{offered.author}</strong>{offered.copyright ? `, © ${offered.copyright}` : ''} as its author. Make it a profile?</p>
+          <button type="button" class="primary" disabled={busy} onclick={() => addProfile(offered.author, offered.copyright)}>Make it a profile</button>
+        </div>
+      {/if}
+      {#each editing as p, i (p.id)}
+        <div class="profile">
+          <div class="fields">
+            <label class="label" for="author-{p.id}">Author</label>
+            <input id="author-{p.id}" type="text" bind:value={editing[i].author} onblur={saveAll} autocomplete="off" placeholder="The name on the cover" />
+            <label class="label" for="copyright-{p.id}">Copyright holder</label>
+            <input id="copyright-{p.id}" type="text" bind:value={editing[i].copyright} onblur={saveAll} autocomplete="off" placeholder="Often your legal name" />
+          </div>
+          <button type="button" class="quiet" onclick={() => (removing = p)}>Delete</button>
+        </div>
+      {:else}
+        <p class="hint">No profiles yet.</p>
+      {/each}
+      <button type="button" class="add" onclick={() => addProfile()}>+ New author profile</button>
+    {/if}
+  {:else if id === 'modules'}
+    <div class="modules">
+      {#each MODULES as [m, name, about]}
+        {@const on = account.look.modules.includes(m)}
+        <div class="module">
+          <span><strong>{name}</strong> <span class="about">{about}</span></span>
+          {@render flip(
+            on,
+            (want) => {
+              const modules = MODULES.map(([x]) => x).filter((x) => (x === m ? want : account.look.modules.includes(x)));
+              run(() => account.saveLook({ ...account.look, modules }));
+            },
+            name,
+            on && account.look.modules.length === 1,
+          )}
+        </div>
+      {/each}
+    </div>
+  {:else if id === 'enter'}
+    {@render flip(account.look.autoEnter, (autoEnter) => run(() => account.saveLook({ ...account.look, autoEnter })), 'Enter on its own')}
+  {:else if id === 'library'}
+    {#if info?.path}
+      <p class="path">{info.path}</p>
+      <button type="button" onclick={chooseLibrary} disabled={busy}>Choose another folder…</button>
+    {:else}
+      <button type="button" class="primary" onclick={chooseLibrary} disabled={busy}>Choose a folder…</button>
+    {/if}
+  {:else if id === 'folder' && world}
+    <p class="path">{world.path}</p>
+  {:else if id === 'sync' && info}
+    {#if info.isGit}
+      <div class="line">
+        {@render flip(
+          info.gitSync,
+          (on) =>
+            run(async () => {
+              await account.library?.setGitSync(on);
+              await account.refresh();
+              sync.retry();
+            }),
+          'Sync with Git on its own',
+        )}
+        {#if world && sync.state !== 'idle' && sync.state !== 'not-git'}
+          <span class="state" class:problem={sync.state === 'problem'}>
+            {#if sync.state === 'syncing'}Syncing now.
+            {:else if sync.state === 'synced'}Synced{sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}.
+            {:else if sync.state === 'off'}Syncing is off on this computer.
+            {:else}{sync.message}{/if}
+          </span>
+          {#if info.gitSync}<button type="button" onclick={() => sync.now()} disabled={sync.state === 'syncing'}>Sync now</button>{/if}
+        {/if}
+      </div>
+    {/if}
+  {:else if id === 'trouble'}
+    {#if log.length}
+      <div class="line">
+        <button type="button" onclick={copyLog}>{copied ? 'Copied' : 'Copy the record'}</button>
+        <button type="button" onclick={() => (clearTroubles(), (log = []))}>Clear it</button>
+      </div>
+      <textarea class="trouble" readonly rows="6" aria-label="The record of errors">{troubleText()}</textarea>
+    {/if}
+  {/if}
+{/snippet}
+
 <div class="backdrop" role="presentation" onclick={() => (ui.settings = null)} use:portal></div>
-<section class="settings" aria-label="Settings" use:portal>
-  <header>
+<div class="settings" role="dialog" aria-label="Settings" use:portal>
+  <nav aria-label="Settings groups">
     <h2>Settings</h2>
+    <input class="find" type="search" placeholder="Find a setting" aria-label="Find a setting" bind:value={find} autocomplete="off" />
+    {#each GROUPS as [id, name]}
+      <button type="button" class:on={!need && group === id} aria-current={!need && group === id ? 'page' : undefined} onclick={() => ((find = ''), (ui.settings = id))}>{name}</button>
+    {/each}
+  </nav>
+  <div class="body">
     <button type="button" class="close" aria-label="Close settings" onclick={() => (ui.settings = null)}>
       <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" /></svg>
     </button>
-  </header>
-  <div class="tabs" role="tablist" aria-label="Settings">
-    {#each TABS as [id, label]}
-      <button type="button" role="tab" aria-selected={tab === id} class:on={tab === id} onclick={() => (ui.settings = id)}>{label}</button>
+    <h3>{need ? 'Found' : heading[1]}</h3>
+    <p class="lead">{need ? (shown.length ? 'From every group.' : 'No setting has those words.') : heading[2]}</p>
+    {#each shown as r (r.id)}
+      <div class="row" class:wide={r.wide}>
+        <div class="say">
+          <div class="name">{r.name}<span class="tag">{r.where}</span></div>
+          <p class="hint">{r.tell}</p>
+        </div>
+        <div class="control">{@render control(r.id)}</div>
+      </div>
     {/each}
-  </div>
-
-  <div class="body" role="tabpanel">
-    {#if tab === 'you'}
-      <p class="lead">What follows you to every computer, kept in <code>immersion.md</code> in your library.</p>
-      <h3 class="label">Layout</h3>
-      <div class="layouts" role="radiogroup" aria-label="Layout">
-        {#each LAYOUTS as [id, name, about]}
-          <button
-            type="button"
-            role="radio"
-            aria-checked={account.look.layout === id}
-            class="layout {id}"
-            class:on={account.look.layout === id}
-            onclick={() => run(() => account.saveLook({ ...account.look, layout: id }))}>
-            <span class="layout-name">{name}</span>
-            <span class="layout-about">{about}</span>
-          </button>
-        {/each}
-      </div>
-      {#if account.look.layout !== 'classic'}
-        <label class="check">
-          <input type="checkbox" checked={account.look.backdrop} onchange={(e) => run(() => account.saveLook({ ...account.look, backdrop: (e.currentTarget as HTMLInputElement).checked }))} />
-          The world's picture behind the desk
-        </label>
-        <p class="hint">Seen through frosted glass, so only its colors come through.</p>
-      {/if}
-      <h3 class="label">Modules</h3>
-      <p class="hint">The modules shown along the top. World, Boards, and Story are on from the start.</p>
-      <div class="modules">
-        {#each MODULES as [id, name, about]}
-          {@const on = account.look.modules.includes(id)}
-          <label class="check module">
-            <input
-              type="checkbox"
-              checked={on}
-              disabled={on && account.look.modules.length === 1}
-              onchange={(e) => {
-                const want = (e.currentTarget as HTMLInputElement).checked;
-                const modules = MODULES.map(([m]) => m).filter((m) => (m === id ? want : account.look.modules.includes(m)));
-                run(() => account.saveLook({ ...account.look, modules }));
-              }} />
-            <span><strong>{name}</strong> <span class="about">{about}</span></span>
-          </label>
-        {/each}
-      </div>
-      <h3 class="label">Arriving</h3>
-      <label class="check">
-        <input type="checkbox" checked={account.look.autoEnter} onchange={(e) => run(() => account.saveLook({ ...account.look, autoEnter: (e.currentTarget as HTMLInputElement).checked }))} />
-        Enter a world on its own after a moment
-      </label>
-      <p class="hint">Its picture holds for a breath first. A click on the picture keeps it for as long as you like.</p>
-      <h3 class="label">Text on boards</h3>
-      <select class="board-font" value={account.look.boardFont} onchange={(e) => run(() => account.saveLook({ ...account.look, boardFont: (e.currentTarget as HTMLSelectElement).value as BoardFont }))}>
-        {#each BOARD_FONTS as [id, name, face]}<option value={id} style:font-family={face || null}>{name}</option>{/each}
-      </select>
-      <p class="hint" style:font-family={BOARD_FONTS.find(([id]) => id === account.look.boardFont)?.[2] || null}>A condensed face fits more of an outline on each card. The fog came in off the water before she reached the end of the pier.</p>
-      {#if !info?.path}
-        <h3 class="label">Author profiles</h3>
-        <p>Author profiles live in your library, so every computer has them. Choose your library first.</p>
-        <button type="button" class="primary" onclick={() => (ui.settings = 'computer')}>Choose a library</button>
-      {:else}
-        <h3 class="label">Author profiles</h3>
-        <p class="hint">A title page links to a profile, so changing a profile here changes every book that uses it.</p>
-        {#if offered}
-          <div class="offer">
-            <p>{offered.name} names <strong>{offered.author}</strong>{offered.copyright ? `, © ${offered.copyright}` : ''} as its author. Make it a profile?</p>
-            <button type="button" class="primary" disabled={busy} onclick={() => addProfile(offered.author, offered.copyright)}>Make it a profile</button>
-          </div>
-        {/if}
-        {#each editing as p, i (p.id)}
-          <div class="profile">
-            <div class="fields">
-              <label class="label" for="author-{p.id}">Author</label>
-              <input id="author-{p.id}" type="text" bind:value={editing[i].author} onblur={saveAll} autocomplete="off" placeholder="The name on the cover" />
-              <label class="label" for="copyright-{p.id}">Copyright holder</label>
-              <input id="copyright-{p.id}" type="text" bind:value={editing[i].copyright} onblur={saveAll} autocomplete="off" placeholder="Often your legal name" />
-            </div>
-            <button type="button" class="quiet" onclick={() => (removing = p)}>Delete</button>
-          </div>
-        {:else}
-          <p class="hint">No profiles yet.</p>
-        {/each}
-        <button type="button" class="add" onclick={() => addProfile()}>+ New author profile</button>
-      {/if}
-    {:else if tab === 'world'}
-      {#if world}
-        <p class="lead">What <strong>{world.name}</strong> says about itself, kept in its <code>world.md</code>.</p>
-        <h3 class="label">Theme</h3>
-        <p class="hint">Its colors and fonts, on both the dark and the light side.</p>
-        <button type="button" onclick={() => ((ui.settings = null), onTheme?.())}>Change the theme…</button>
-        {#if pictures}
-          <h3 class="label">Pictures</h3>
-          <p class="hint">How every entry in {world.name} shows its picture. One change here changes them all.</p>
-          <div class="row shapes" role="group" aria-label="How pictures show">
-            {#each [[null, 'By category'], ['portrait', 'Portrait'], ['banner', 'Banner'], ['behind', 'Behind']] as [value, label] (label)}
-              <button type="button" class:on={pictures.shape === value} aria-pressed={pictures.shape === value} disabled={busy} onclick={() => run(() => pictures!.set(value as 'portrait' | 'banner' | 'behind' | null))}>{label}</button>
-            {/each}
-          </div>
-          <p class="hint">
-            {#if pictures.shape === null}By category, people show a portrait and everything else shows a banner.
-            {:else if pictures.shape === 'behind'}Behind sets each page like a card, with its name up the spine over the picture.
-            {:else}Every entry shows its picture as a {pictures.shape}.{/if}
-          </p>
-          {#if pictures.own > 0}
-            <p class="hint">
-              {pictures.own} {pictures.own === 1 ? 'entry has' : 'entries have'} a choice of {pictures.own === 1 ? 'its' : 'their'} own, made from the page's view menu, and {pictures.own === 1 ? 'keeps' : 'keep'} it.
-            </p>
-            {#if following}
-              <div class="row">
-                <button type="button" disabled={busy} onclick={() => run(async () => { await pictures!.follow(); following = false; })}>Yes, change {pictures.own} {pictures.own === 1 ? 'entry' : 'entries'}</button>
-                <button type="button" class="quiet" onclick={() => (following = false)}>Cancel</button>
-              </div>
-            {:else}
-              <button type="button" onclick={() => (following = true)}>Make {pictures.own === 1 ? 'it' : 'them all'} follow the world</button>
-            {/if}
-          {/if}
-        {/if}
-        {#if journal}
-          <h3 class="label">Daily pages</h3>
-          <label class="check">
-            <input type="checkbox" checked={journal.daily} onchange={(e) => run(async () => onDaily?.((e.currentTarget as HTMLInputElement).checked))} />
-            Keep a page for each day
-          </label>
-          <p class="hint">Adds a Today button to the journal. Days you skip simply do not exist, and nothing reminds you.</p>
-        {/if}
-        <h3 class="label">Folder</h3>
-        <p class="path">{world.path}</p>
-      {:else}
-        <p class="lead">Open a world to change its settings.</p>
-      {/if}
-    {:else}
-      <p class="lead">What only this computer needs to know.</p>
-      <h3 class="label">Library</h3>
-      {#if info?.path}
-        <p class="path">{info.path}</p>
-        <div class="row">
-          <button type="button" onclick={chooseLibrary} disabled={busy}>Choose another folder…</button>
-        </div>
-      {:else}
-        <p class="hint">The folder that holds your worlds and your author profiles. Every computer that uses the same folder shows the same worlds.</p>
-        <button type="button" class="primary" onclick={chooseLibrary} disabled={busy}>Choose a folder…</button>
-      {/if}
-      {#if info?.path}
-        <h3 class="label">Sync</h3>
-        {#if info.isGit}
-          <label class="check">
-            <input
-              type="checkbox"
-              checked={info.gitSync}
-              onchange={(e) =>
-                run(async () => {
-                  await account.library?.setGitSync((e.currentTarget as HTMLInputElement).checked);
-                  await account.refresh();
-                  sync.retry();
-                })} />
-            Sync with Git on its own
-          </label>
-          <p class="hint">Pulls when a world opens and every ten minutes, and commits and pushes a few minutes after you stop typing and when you close the world. It only ever commits the world's own folder and your <code>immersion.md</code>.</p>
-          {#if world && sync.state !== 'idle' && sync.state !== 'not-git'}
-            <div class="status {sync.state}">
-              <p>
-                {#if sync.state === 'syncing'}Syncing now.
-                {:else if sync.state === 'synced'}Synced{sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}.
-                {:else if sync.state === 'off'}Syncing is off on this computer.
-                {:else}{sync.message}{/if}
-              </p>
-              {#if info.gitSync}<button type="button" onclick={() => sync.now()} disabled={sync.state === 'syncing'}>Sync now</button>{/if}
-            </div>
-          {/if}
-        {:else}
-          <p class="hint">This library is not a Git repository, so it syncs however its folder does, such as through Dropbox.</p>
-        {/if}
-      {/if}
-      <h3 class="label">Light or dark</h3>
-      <ModeToggle />
-      <h3 class="label">While typing</h3>
-      <label class="check"><input type="checkbox" checked={quiet.on} onchange={(e) => quiet.set(e.currentTarget.checked)} /> Dim everything but the sentence I am writing</label>
-      <p class="hint">While you type, everything steps back in layers around the sentence you are writing: its paragraph a little, the rest of the page a little more, then the other open pages, then the header and the sidebar. It all returns when the pointer moves.</p>
-      <h3 class="label">Dice</h3>
-      <label class="check"><input type="checkbox" checked={tumbling.on} onchange={(e) => tumbling.set(e.currentTarget.checked)} /> Tumble the dice across the screen</label>
-      <p class="hint">Dice rolled in the Table module are thrown in the world's own color and land where they fall. With this off, a roll shows its numbers at once.</p>
-      <h3 class="label">When something goes wrong</h3>
-      <p class="hint">Immersion keeps a short record of errors on this computer, such as a key that changed nothing. It stays here unless you copy it. {log.length ? `It holds ${log.length} ${log.length === 1 ? 'note' : 'notes'}.` : 'It is empty.'}</p>
-      {#if log.length}
-        <div class="row">
-          <button type="button" onclick={copyLog}>{copied ? 'Copied' : 'Copy the record'}</button>
-          <button type="button" onclick={() => (clearTroubles(), (log = []))}>Clear it</button>
-        </div>
-        <textarea class="trouble" readonly rows="6" aria-label="The record of errors">{troubleText()}</textarea>
-      {/if}
-      <h3 class="label">Size</h3>
-      <div class="row zoom">
-        <button type="button" aria-label="Smaller" onclick={() => zoom.step(-1)}>−</button>
-        <span class="zoom-level">{Math.round(zoom.level * 100)}%</span>
-        <button type="button" aria-label="Larger" onclick={() => zoom.step(1)}>+</button>
-        <button type="button" class="quiet" onclick={() => zoom.set(1)} disabled={zoom.level === 1}>Reset</button>
-      </div>
-      <p class="hint">Everything grows or shrinks together. Ctrl or Cmd with plus, minus, and zero do the same anywhere.</p>
-    {/if}
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </div>
-</section>
+</div>
 
 {#if removing}
   <div class="backdrop top" role="presentation" onclick={() => (removing = null)} use:portal></div>
   <div class="confirm" role="alertdialog" aria-label="Delete profile" use:portal>
     <p>Delete <strong>{profileLabel(removing)}</strong>? Books linked to it will show no author until you choose another profile for them.</p>
-    <div class="row">
+    <div class="line">
       <button type="button" onclick={() => (removing = null)}>Keep it</button>
       <button
         type="button"
@@ -343,7 +357,6 @@
 <style>
   .trouble {
     width: 100%;
-    margin-top: 8px;
     box-sizing: border-box;
     font: 12px/1.4 ui-monospace, monospace;
     color: var(--text-soft);
@@ -359,33 +372,78 @@
   .backdrop.top {
     z-index: 22;
   }
+  /* One page: the groups down the left, the chosen group's settings on the right. */
   .settings {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(520px, 100vw);
-    display: flex;
-    flex-direction: column;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(920px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 48px));
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
     background: var(--surface);
-    border-left: 1px solid var(--edge);
+    border: 1px solid var(--edge);
+    border-radius: var(--round-box, var(--round));
+    overflow: hidden;
     z-index: 21;
   }
-  header {
+  nav {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 22px 26px 8px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 22px 12px;
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
   }
   h2 {
-    margin: 0;
+    margin: 0 8px 12px;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: calc(38px * var(--type));
+    font-size: calc(30px * var(--type));
     letter-spacing: 0.02em;
     color: var(--title);
   }
+  .find {
+    margin: 0 0 10px;
+    font: inherit;
+    font-size: calc(14px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 7px 10px;
+    min-width: 0;
+  }
+  nav button {
+    text-align: left;
+    min-height: 28px;
+    padding: 4px 10px;
+    color: var(--text);
+    background: none;
+    border-color: transparent;
+  }
+  nav button.on {
+    color: var(--selected-fg);
+    background: var(--selected-bg);
+  }
+  .body {
+    position: relative;
+    overflow-y: auto;
+    padding: 24px 30px 40px;
+    min-width: 0;
+  }
+  h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: calc(24px * var(--type));
+    color: var(--title);
+  }
   .close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
     width: 36px;
     height: 36px;
     display: grid;
@@ -393,50 +451,60 @@
     color: var(--muted);
     background: none;
     border: 0;
-  }
-  .tabs {
-    display: flex;
-    gap: 4px;
-    padding: 8px 26px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .tabs button {
-    font-size: calc(14px * var(--type));
-    color: var(--muted);
-    background: none;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    padding: 10px 12px;
-  }
-  .tabs button.on {
-    color: var(--selected-fg);
-    border-bottom-color: var(--selected-border);
-  }
-  .body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px 26px 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .body > * {
-    max-width: 100%;
+    padding: 0;
   }
   .lead {
-    margin: 0 0 8px;
-    color: var(--text-soft);
+    margin: 2px 0 10px;
+    color: var(--muted);
   }
-  h3.label {
-    margin: 18px 0 0;
-    font-size: calc(11px * var(--type));
+  /* A setting: its words on the left and its control on the right, or under them when it needs the room. */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+  }
+  .say {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .name {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .tag {
+    margin-left: 10px;
+    font-family: var(--font-label);
+    font-size: calc(10.5px * var(--type));
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 100%;
+  }
+  .row.wide .say,
+  .row.wide .control {
+    flex: 1 1 100%;
+  }
+  .row.wide .control {
+    align-items: flex-start;
   }
   .hint {
-    margin: 0;
+    margin: 2px 0 0;
     font-size: calc(13px * var(--type));
     line-height: 1.5;
     color: var(--muted);
+    max-width: 62ch;
   }
   .path {
     margin: 0;
@@ -447,8 +515,8 @@
   }
   button {
     font-size: calc(14px * var(--type));
-    padding: 8px 14px;
-    min-height: 38px;
+    padding: 6px 14px;
+    min-height: 34px;
     color: var(--text);
     background: var(--well);
     border: 1px solid var(--edge);
@@ -456,6 +524,40 @@
   }
   button:hover {
     border-color: var(--hover-edge);
+  }
+  /* On or off. The knob slides to the right and the track fills when it is on. */
+  .switch {
+    position: relative;
+    flex: none;
+    width: 42px;
+    min-height: 0;
+    height: 24px;
+    padding: 0;
+    background: color-mix(in oklab, var(--text) 12%, transparent);
+    border: 1px solid var(--edge);
+    border-radius: 999px !important;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: left 0.12s;
+  }
+  .switch[aria-checked='true'] {
+    background: var(--structure);
+    border-color: var(--structure);
+  }
+  .switch[aria-checked='true']::after {
+    left: 20px;
+    background: var(--bg);
+  }
+  .switch:disabled {
+    opacity: 0.5;
   }
   .primary {
     font-weight: 700;
@@ -481,8 +583,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 10px 0 14px;
-    border-bottom: 1px solid var(--line);
+    padding: 4px 0 12px;
   }
   .fields {
     flex: 1;
@@ -512,76 +613,34 @@
   .offer p {
     margin: 0 0 10px;
   }
-  .status {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 12px;
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    background: var(--bg);
-  }
-  .status p {
-    margin: 0 0 8px;
+  .state {
     font-size: calc(13px * var(--type));
-    line-height: 1.5;
     color: var(--text-soft);
     white-space: pre-wrap;
   }
-  .status.problem {
-    border-color: var(--danger);
-  }
-  .layouts {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .layout {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    text-align: left;
-    padding: 12px 14px 14px;
-  }
-  .layout.on {
-    background: var(--selected-bg);
-    border-color: var(--selected-border);
-  }
-  .layout-name {
-    font-weight: 700;
-  }
-  .layout.on .layout-name {
-    color: var(--selected-fg);
-  }
-  .layout-about {
-    font-size: calc(12.5px * var(--type));
-    line-height: 1.45;
-    color: var(--muted);
-  }
-  .layout.soft {
-    border-radius: 14px;
-  }
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .state.problem {
+    color: var(--danger);
   }
   .modules {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 4px;
   }
-  .check.module {
-    align-items: baseline;
+  .module {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 0;
   }
-  .check.module .about {
+  .module .about {
     color: var(--muted);
     font-size: calc(13px * var(--type));
   }
-  .row {
+  .line {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
   }
   .problem {
@@ -603,18 +662,11 @@
     margin: 0 0 14px;
     line-height: 1.5;
   }
-  code {
-    font-family: var(--font-label);
-    font-size: 0.9em;
-  }
-  .zoom {
-    align-items: center;
-  }
   .zoom button {
-    min-width: 40px;
+    min-width: 36px;
   }
   .zoom-level {
-    min-width: 52px;
+    min-width: 48px;
     text-align: center;
     font-family: var(--font-label);
     font-size: calc(13px * var(--type));
@@ -626,15 +678,41 @@
     background: var(--field);
     border: 1px solid var(--edge);
     border-radius: var(--round);
-    padding: 8px 10px;
+    padding: 7px 10px;
   }
-  .shapes {
-    flex-wrap: wrap;
-    gap: 6px;
+  @media (max-width: 700px) {
+    .settings {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    nav {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 14px 52px 10px 14px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    h2 {
+      margin: 0 8px 0 4px;
+      font-size: calc(22px * var(--type));
+    }
+    .find {
+      flex: 1 1 140px;
+      margin: 0;
+    }
+    .body {
+      padding: 16px 16px 32px;
+    }
+    .close {
+      position: fixed;
+      top: 8px;
+      right: 8px;
+    }
   }
-  .shapes button.on {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
-    border-color: var(--selected-border);
+  @media (prefers-reduced-motion: reduce) {
+    .switch::after {
+      transition: none;
+    }
   }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pick from '../Pick.svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Campaign } from '../../lib/table/index';
   import { chance, diceIn, parseRoll, roll, rollLine, saidRoll, thrown, troubleLine, troubleRoll } from '../../lib/table/dice';
@@ -189,8 +190,7 @@
 
 <section class="tray" class:open={!!tab} aria-label="Dice and cards">
   <div class="tabs">
-    <button type="button" aria-pressed={tab === 'dice'} onclick={() => show('dice')}>Dice</button>
-    <button type="button" aria-pressed={tab === 'cards'} onclick={() => show('cards')}>Cards</button>
+    <Pick small label="Dice or cards" value={tab} onpick={(v) => v && show(v)} options={[['dice', 'Dice', 'Click again to put the tray away'], ['cards', 'Cards', 'Click again to put the tray away']] as const} />
   </div>
   {#if tab === 'dice'}
     <div class="dice">
@@ -307,16 +307,6 @@
   }
   button:disabled {
     opacity: 0.55;
-  }
-  .tabs button {
-    border-color: transparent;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-size: calc(11px * var(--type));
-  }
-  .tabs button[aria-pressed='true'] {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
   }
   .line input[type='text'] {
     flex: 1;

@@ -113,7 +113,7 @@
     background: none;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: calc(36px * var(--type));
+    font-size: calc(var(--title-size) * var(--type));
     line-height: 1.1;
     color: var(--title);
   }

@@ -507,8 +507,8 @@
     min-width: 0;
     font-size: calc(15px * var(--type));
     font-weight: 700;
-    padding: 8px 18px 8px 4px;
-    min-height: 36px;
+    padding: 4px 18px 4px 4px;
+    min-height: 28px;
   }
   .manuscript-row.current .manuscript {
     color: var(--selected-fg);
@@ -547,8 +547,8 @@
   }
   .section {
     font-size: calc(14px * var(--type));
-    padding: 5px 18px 5px 38px;
-    min-height: 30px;
+    padding: 4px 18px 4px 38px;
+    min-height: 28px;
     color: var(--text-soft);
   }
   .section.depth-3 {

@@ -74,7 +74,7 @@
     { kind: 'Go to', name: 'Table', detail: 'Campaigns and sessions', run: go(() => nav.show('table')) },
     { kind: 'Go to', name: 'All worlds', detail: 'The Worlds page', run: go(() => onShowShelf()) },
     { kind: 'Open', name: 'Vault', detail: 'Encrypted stories', run: go(() => nav.openIn('story', '@vault')) },
-    { kind: 'Open', name: 'Settings', detail: 'You, this world, this computer', run: go(() => (ui.settings = 'you')) },
+    { kind: 'Open', name: 'Settings', detail: 'Look, writing and play, modules, files', run: go(() => (ui.settings = 'look')) },
     { kind: 'Open', name: 'Theme', detail: "This world's colors and fonts", run: go(() => onTheme()) },
     { kind: 'Open', name: 'Edit details', detail: "This world's name and tagline", also: ['World details'], run: go(() => onDetails()) },
     { kind: 'Open', name: 'Loading screen', detail: "This world's picture", run: go(() => onShowLoading()) },

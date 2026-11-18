@@ -16,4 +16,4 @@
   {tone}
   note={NOTES[sync.state] ?? ''}
   onSync={() => sync.retry()}
-  onDetails={() => (ui.settings = 'computer')} />
+  onDetails={() => (ui.settings = 'files')} />
