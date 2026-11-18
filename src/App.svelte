@@ -14,7 +14,8 @@
   import ContextMenu from './screens/ContextMenu.svelte';
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
-  import ThemeEditor from './screens/ThemeEditor.svelte';
+  import { frameStyle, writeFrame } from './lib/index/frame';
+  import type { RoomPicture } from './lib/room.svelte';
   import Reader from './screens/Reader.svelte';
   import { readerPage, setWindowWorld } from './lib/windows';
   import { account } from './lib/account.svelte';
@@ -73,8 +74,9 @@
   );
 
   // The room's picture, in the Radiance layout: the page in use, or else the world's.
-  const roomPicture = $derived(
-    room.on && fs && world && phase === 'inside' ? (room.pictureFor(room.open) ?? (world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null)) : null,
+  const worldPicture = $derived(fs && world ? (world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null) : null);
+  const roomPicture = $derived<RoomPicture | null>(
+    room.on && fs && world && phase === 'inside' ? (room.pictureFor(room.open) ?? (worldPicture ? { url: worldPicture, frame: world.roomFrame } : null)) : null,
   );
   $effect(() => {
     document.documentElement.dataset.room = roomPicture ? 'radiance' : '';
@@ -179,9 +181,11 @@
     const path = openPath;
     if (!source || !w || phase === 'shelf') {
       settingsWorld = null;
+      settingsWorldMd = null;
       return;
     }
     source.readText('world.md').then((text) => {
+      settingsWorldMd = text;
       const { header } = splitHeader(text);
       const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
       settingsWorld = { name: w.name, path, author: str(header.author), copyright: str(header.copyright) };
@@ -195,16 +199,9 @@
     detailsFor = (await library.list()).find((w) => w.path === openPath) ?? null;
   }
 
-  // The theme panel for the open world, with the text of its world.md.
-  let themeFor = $state<string | null>(null);
-  async function editTheme() {
-    if (!fs) return;
-    themeFor = await fs.readText('world.md');
-  }
-  function closeTheme() {
-    themeFor = null;
-    previewTheme = undefined;
-  }
+  // The open world's theme is a group of Settings (Mike, November 18).
+  const editTheme = () => (ui.settings = 'theme');
+  let settingsWorldMd = $state<string | null>(null);
 
   // The app opens straight into the world used last, and otherwise shows the shelf.
   // A reading window shows one page of the world the main window has open.
@@ -274,8 +271,8 @@
 
 {#if roomPicture}
   <div class="room-picture" aria-hidden="true">
-    {#key roomPicture}
-      <img src={roomPicture} alt="" transition:fade={{ duration: 900 }} />
+    {#key roomPicture.url}
+      <img src={roomPicture.url} alt="" style={frameStyle(roomPicture.frame)} transition:fade={{ duration: 900 }} />
     {/key}
   </div>
 {/if}
@@ -315,18 +312,6 @@
         world = await loadWorld(fs!);
       }} />
   {/if}
-  {#if themeFor !== null}
-    <ThemeEditor
-      worldMd={themeFor}
-      worldName={world.name}
-      onPreview={(spec, side) => (previewTheme = { spec, side })}
-      onSave={async (text) => {
-        await fs!.writeText('world.md', text);
-        world = await loadWorld(fs!);
-        closeTheme();
-      }}
-      onCancel={closeTheme} />
-  {/if}
   {#if phase === 'loading'}
     <div class="overlay">
       <Loading
@@ -362,7 +347,31 @@
       await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { daily: on ? true : undefined }));
       world = await loadWorld(fs);
     }}
-    onTheme={editTheme} />
+    theme={phase === 'shelf' || !fs || !world || settingsWorldMd === null
+      ? null
+      : {
+          worldMd: settingsWorldMd,
+          preview: (spec, side) => (previewTheme = { spec, side }),
+          done: () => (previewTheme = undefined),
+          save: async (text) => {
+            await fs!.writeText('world.md', text);
+            settingsWorldMd = text;
+            world = await loadWorld(fs!);
+            previewTheme = undefined;
+          },
+        }}
+    roomPicture={phase === 'shelf' || !fs || !world || !worldPicture
+      ? null
+      : {
+          url: worldPicture,
+          frame: world.roomFrame,
+          set: async (frame) => {
+            const text = withHeader(await fs!.readText('world.md'), { room_frame: writeFrame(frame) });
+            await fs!.writeText('world.md', text);
+            settingsWorldMd = text;
+            world = await loadWorld(fs!);
+          },
+        }} />
 {/if}
 
 <ContextMenu />

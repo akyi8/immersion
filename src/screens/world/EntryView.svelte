@@ -89,7 +89,7 @@
   const banner = $derived(!!entry.imagePath && shape === 'banner' && picture === 'show' && !room.on);
   $effect(() => {
     const mine = id;
-    room.offer(mine, entry.imagePath && picture !== 'hide' ? fs.imageUrl(entry.imagePath) : null);
+    room.offer(mine, entry.imagePath && picture !== 'hide' ? fs.imageUrl(entry.imagePath) : null, entry.behindFrame ?? null);
     return () => room.withdraw(mine);
   });
 

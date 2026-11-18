@@ -17,6 +17,7 @@
     onPreview,
     onSave,
     onCancel,
+    embedded = false,
   }: {
     worldMd: string;
     worldName: string;
@@ -25,6 +26,8 @@
     /** Saves the new text of `world.md`. */
     onSave: (text: string) => Promise<void>;
     onCancel: () => void;
+    /** Set inside the Settings page, as its Theme group, and not as a panel of its own. */
+    embedded?: boolean;
   } = $props();
 
   // svelte-ignore state_referenced_locally
@@ -88,6 +91,13 @@
 
   $effect(() => onPreview(spec, side));
 
+  // What is saved, to tell whether there is anything to save or to put back.
+  let saved = $state<string | null>(null);
+  $effect(() => {
+    if (saved === null) saved = JSON.stringify(spec);
+  });
+  const changed = $derived(saved !== null && JSON.stringify(spec) !== saved);
+
   const colors = $derived(palette(spec ?? NIGHT, side));
   const warning = $derived.by(() => {
     if (!spec) return '';
@@ -114,6 +124,7 @@
     problem = '';
     try {
       await onSave(withHeader(worldMd, { theme: spec ? themeHeader(spec) : undefined }));
+      saved = JSON.stringify(spec);
     } catch (e) {
       problem = String(e);
     } finally {
@@ -124,11 +135,13 @@
   const groups = (list: FontChoice[]) => (['Sans', 'Serif', 'Mono', 'Display'] as const).map((k) => [k, list.filter((f) => f.kind === k)] as const).filter(([, fonts]) => fonts.length);
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), onCancel())} />
+<svelte:window onkeydown={(e) => !embedded && e.key === 'Escape' && (e.preventDefault(), onCancel())} />
 
-<aside class="panel" aria-label="Theme for {worldName}">
-  <h2>Theme</h2>
-  <p class="for">for {worldName}</p>
+<svelte:element this={embedded ? 'div' : 'aside'} class="panel" class:embedded aria-label="Theme for {worldName}">
+  {#if !embedded}
+    <h2>Theme</h2>
+    <p class="for">for {worldName}</p>
+  {/if}
 
   <Choice fill label="Theme" value={own} onpick={(v) => (own = v)} options={[[false, 'Night and Ink and Paper'], [true, 'Its own theme']] as const} />
 
@@ -229,10 +242,15 @@
 
   {#if problem}<p class="warning" role="alert">{problem}</p>{/if}
   <div class="actions">
-    <button type="button" class="cancel" onclick={onCancel}>Cancel</button>
-    <button type="button" class="save" disabled={busy} onclick={save}>Save</button>
+    {#if embedded}
+      <button type="button" class="cancel" disabled={!changed} onclick={onCancel}>Put it back</button>
+      <button type="button" class="save" disabled={busy || !changed} onclick={save}>{changed ? 'Save the theme' : 'Saved'}</button>
+    {:else}
+      <button type="button" class="cancel" onclick={onCancel}>Cancel</button>
+      <button type="button" class="save" disabled={busy} onclick={save}>Save</button>
+    {/if}
   </div>
-</aside>
+</svelte:element>
 
 <style>
   .panel {
@@ -251,6 +269,16 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+  .panel.embedded {
+    position: static;
+    width: auto;
+    overflow: visible;
+    z-index: auto;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 6px 0 0;
   }
   h2 {
     margin: 0;

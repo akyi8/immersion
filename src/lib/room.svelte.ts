@@ -1,11 +1,19 @@
 import { untrack } from 'svelte';
+import type { Frame } from './index/frame';
+
+/** A picture the room can show, with how it is framed there. */
+export interface RoomPicture {
+  url: string;
+  frame: Frame | null;
+}
 
 /**
  * The Radiance layout's room (Mike, November 17). Every open page is a card on its own
  * ground, and one picture belongs to the room, down its right edge in a margin of its own.
  * The picture is the world's. While a page that has a picture of its own is the one in
  * use, the room shows that page's picture instead. A page's picture shows at the level
- * of the room and never on the card.
+ * of the room and never on the card. The room frames a page's picture the way the page
+ * frames it behind itself, since both are the same tall shape (Mike, November 18).
  */
 class Room {
   /** Whether the Radiance layout is on. */
@@ -15,12 +23,12 @@ class Room {
 
   // The pictures are kept outside the reactive state, with a counter that says when they
   // changed, because a page sets its own from an effect.
-  private pictures = new Map<string, string>();
+  private pictures = new Map<string, RoomPicture>();
   private changed = $state(0);
 
   /** A page says what its picture is, or that it has none. */
-  offer(id: string, url: string | null) {
-    if (url) this.pictures.set(id, url);
+  offer(id: string, url: string | null, frame: Frame | null = null) {
+    if (url) this.pictures.set(id, { url, frame });
     else this.pictures.delete(id);
     this.changed = untrack(() => this.changed) + 1;
   }
@@ -30,7 +38,7 @@ class Room {
   }
 
   /** The picture of the page in use among those open, when it has one. */
-  pictureFor(open: string[]): string | null {
+  pictureFor(open: string[]): RoomPicture | null {
     void this.changed;
     const id = this.focus && open.includes(this.focus) ? this.focus : (open.at(-1) ?? null);
     return (id && this.pictures.get(id)) || null;

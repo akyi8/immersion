@@ -8,6 +8,10 @@
   import { zoom } from '../lib/zoom.svelte';
   import { quiet } from '../lib/view.svelte';
   import Pick from './Pick.svelte';
+  import ThemeEditor from './ThemeEditor.svelte';
+  import FramePicture from './world/FramePicture.svelte';
+  import type { Frame } from '../lib/index/frame';
+  import type { Mode, ThemeSpec } from '../lib/theme';
   import { mode } from '../lib/mode.svelte';
   import { sync } from '../lib/sync.svelte';
 
@@ -23,14 +27,17 @@
     pictures = null,
     journal = null,
     onDaily,
-    onTheme,
+    theme = null,
+    roomPicture = null,
   }: {
     /** The open world, with the author details its `world.md` names, if any. */
     world?: { name: string; path: string; author: string; copyright: string } | null;
     /** How the open world shows its pictures, how many entries choose for themselves, and the ways to change both. */
     pictures?: { shape: 'portrait' | 'banner' | 'behind' | null; own: number; set: (shape: 'portrait' | 'banner' | 'behind' | null) => Promise<void>; follow: () => Promise<void> } | null;
-    /** Opens the open world's theme panel. */
-    onTheme?: () => void;
+    /** The open world's theme: the text of its `world.md`, and how to try a theme on the app and save it. */
+    theme?: { worldMd: string; preview: (spec: ThemeSpec | null, side: Mode) => void; done: () => void; save: (text: string) => Promise<void> } | null;
+    /** The open world's own picture as the Radiance room shows it, and how to frame it. */
+    roomPicture?: { url: string; frame: Frame | null; set: (frame: Frame) => Promise<void> } | null;
     /** For Real World: whether it keeps a page for each day. */
     journal?: { daily: boolean } | null;
     onDaily?: (on: boolean) => Promise<void>;
@@ -38,9 +45,10 @@
 
   // The record of errors kept on this computer, read when Settings opens.
   let log = $state(troubles());
-  type Group = 'look' | 'work' | 'modules' | 'files';
+  type Group = 'look' | 'theme' | 'work' | 'modules' | 'files';
   const GROUPS: [Group, string, string][] = [
     ['look', 'Look', 'How the app appears.'],
+    ['theme', 'Theme', "This world's colors and fonts. The pages beside this one show them as you choose."],
     ['work', 'Writing and play', 'How the desk behaves while you work.'],
     ['modules', 'Modules', 'Which parts of the app you see, and how a world opens.'],
     ['files', 'Files', 'Where your worlds live and how they are kept safe.'],
@@ -65,12 +73,30 @@
   type Where = 'This world' | 'All worlds' | 'This computer';
   type Row = { id: string; group: Group; name: string; tell: string; where: Where; wide?: boolean };
 
+  let find = $state('');
+  const need = $derived(find.trim().toLowerCase());
+
+  // The Theme group is the theme editor itself. While it is open the page stands to one
+  // side and the ground behind it clears, so the world's pages show the theme being chosen.
+  const theming = $derived(!need && group === 'theme');
+  let themeTurn = $state(0);
+  $effect(() => {
+    if (!theming) return;
+    const done = theme?.done;
+    return () => done?.();
+  });
+
+  let framing = $state(false);
+  let framingBusy = $state(false);
+  let framingProblem = $state('');
+
   const rows = $derived.by(() => {
     const layout = account.look.layout;
     const list: (Row | false | null | undefined)[] = [
       { id: 'mode', group: 'look', name: 'Light or dark', tell: 'Whether the app is light or dark.', where: 'This computer' },
       { id: 'layout', group: 'look', name: 'Layout', tell: LAYOUTS.find(([id]) => id === layout)?.[2] ?? '', where: 'All worlds' },
-      world && { id: 'theme', group: 'look', name: 'Colors and fonts', tell: `The theme of ${world.name}, on both its dark and its light side.`, where: 'This world' },
+      layout === 'radiance' && world && roomPicture && { id: 'room', group: 'look', name: 'Room picture', tell: `How the picture of ${world.name} is framed down the right edge of the room. A page's own picture uses the framing it has for Behind.`, where: 'This world' },
+      !!need && world && { id: 'theme', group: 'look', name: 'Theme', tell: `The colors and fonts of ${world.name}, on both its dark and its light side.`, where: 'This world' },
       layout !== 'classic' && { id: 'backdrop', group: 'look', name: 'Desk picture', tell: "The world's picture behind the desk, seen through frosted glass, so only its colors come through.", where: 'All worlds' },
       { id: 'size', group: 'look', name: 'Size', tell: 'Everything grows or shrinks together. Ctrl or Cmd with plus, minus, and zero do the same anywhere.', where: 'This computer' },
       world && pictures && {
@@ -110,8 +136,6 @@
     return list.filter((r): r is Row => !!r);
   });
 
-  let find = $state('');
-  const need = $derived(find.trim().toLowerCase());
   const shown = $derived(need ? rows.filter((r) => `${r.name} ${r.tell} ${r.where}`.toLowerCase().includes(need)) : rows.filter((r) => r.group === group));
   const heading = $derived(GROUPS.find(([id]) => id === group)!);
   const info = $derived(account.info);
@@ -170,7 +194,7 @@
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !removing && (e.preventDefault(), (ui.settings = null))} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && !removing && !framing && (e.preventDefault(), (ui.settings = null))} />
 
 {#snippet flip(on: boolean, set: (on: boolean) => void, name: string, disabled = false)}
   <button type="button" class="switch" role="switch" aria-checked={on} aria-label={name} {disabled} onclick={() => set(!on)}></button>
@@ -182,7 +206,9 @@
   {:else if id === 'layout'}
     <Pick label="Layout" value={account.look.layout} onpick={(layout) => run(() => account.saveLook({ ...account.look, layout }))} options={LAYOUTS} />
   {:else if id === 'theme'}
-    <button type="button" onclick={() => ((ui.settings = null), onTheme?.())}>Change…</button>
+    <button type="button" onclick={() => ((find = ''), (ui.settings = 'theme'))}>Open</button>
+  {:else if id === 'room'}
+    <button type="button" onclick={() => ((framingProblem = ''), (framing = true))}>Frame…</button>
   {:else if id === 'backdrop'}
     {@render flip(account.look.backdrop, (backdrop) => run(() => account.saveLook({ ...account.look, backdrop })), 'Desk picture')}
   {:else if id === 'size'}
@@ -307,8 +333,8 @@
   {/if}
 {/snippet}
 
-<div class="backdrop" role="presentation" onclick={() => (ui.settings = null)} use:portal></div>
-<div class="settings" role="dialog" aria-label="Settings" use:portal>
+<div class="backdrop" class:clear={theming} role="presentation" onclick={() => (ui.settings = null)} use:portal></div>
+<div class="settings" class:beside={theming} role="dialog" aria-label="Settings" use:portal>
   <nav aria-label="Settings groups">
     <h2>Settings</h2>
     <input class="find" type="search" placeholder="Find a setting" aria-label="Find a setting" bind:value={find} autocomplete="off" />
@@ -322,7 +348,14 @@
     </button>
     <h3>{need ? 'Found' : heading[1]}</h3>
     <p class="lead">{need ? (shown.length ? 'From every group.' : 'No setting has those words.') : heading[2]}</p>
-    {#each shown as r (r.id)}
+    {#if theming && theme && world}
+      {#key themeTurn}
+        <ThemeEditor embedded worldMd={theme.worldMd} worldName={world.name} onPreview={theme.preview} onSave={theme.save} onCancel={() => (theme.done(), themeTurn++)} />
+      {/key}
+    {:else if theming}
+      <p class="hint">Open a world to change its theme.</p>
+    {/if}
+    {#each theming ? [] : shown as r (r.id)}
       <div class="row" class:wide={r.wide}>
         <div class="say">
           <div class="name">{r.name}<span class="tag">{r.where}</span></div>
@@ -334,6 +367,31 @@
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </div>
 </div>
+
+{#if framing && roomPicture}
+  <FramePicture
+    roomOnly
+    url={roomPicture.url}
+    category=""
+    shape="behind"
+    portrait={null}
+    banner={null}
+    behind={roomPicture.frame}
+    busy={framingBusy}
+    problem={framingProblem}
+    onSave={async (result) => {
+      framingBusy = true;
+      try {
+        await roomPicture!.set(result.behind);
+        framing = false;
+      } catch (e) {
+        framingProblem = e instanceof Error ? e.message : String(e);
+      } finally {
+        framingBusy = false;
+      }
+    }}
+    onCancel={() => (framing = false)} />
+{/if}
 
 {#if removing}
   <div class="backdrop top" role="presentation" onclick={() => (removing = null)} use:portal></div>
@@ -369,6 +427,9 @@
     background: var(--scrim);
     z-index: 20;
   }
+  .backdrop.clear {
+    background: none;
+  }
   .backdrop.top {
     z-index: 22;
   }
@@ -387,6 +448,15 @@
     border-radius: var(--round-box, var(--round));
     overflow: hidden;
     z-index: 21;
+  }
+  /* Beside the pages, so they show a theme while it is chosen. */
+  .settings.beside {
+    left: auto;
+    right: 16px;
+    transform: translateY(-50%);
+    width: min(640px, calc(100vw - 32px));
+    grid-template-columns: 170px minmax(0, 1fr);
+    box-shadow: var(--lift, 0 12px 40px var(--shadow));
   }
   nav {
     display: flex;

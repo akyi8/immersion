@@ -1,5 +1,5 @@
 import { Document, parse, parseDocument, stringify } from 'yaml';
-import { readShape, type Shape } from './index/frame.ts';
+import { readFrame, readShape, type Frame, type Shape } from './index/frame.ts';
 import type { WorldFs } from './fs/types';
 import { themeFrom, type ThemeSpec } from './theme.ts';
 
@@ -23,6 +23,8 @@ export interface World {
   gameDir: string;
   /** How every entry's picture shows unless the entry says otherwise, or null to let the category decide. */
   pictures: Shape | null;
+  /** How the world's own picture is framed in the Radiance layout's room, or null for centered. */
+  roomFrame: Frame | null;
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -60,6 +62,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     engine: text(header.engine, ''),
     gameDir: text(header.game, 'game'),
     pictures: readShape(header.pictures),
+    roomFrame: readFrame(header.room_frame),
   };
 }
 

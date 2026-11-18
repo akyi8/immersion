@@ -47,6 +47,9 @@ export const BEHIND_RATIO = 10 / 17;
 const SIDE = 'linear-gradient(to left, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%, black 88%, transparent 100%)';
 const TOP = 'linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.5) 14%, black 30%)';
 export const BEHIND_FADE = `-webkit-mask-image: ${SIDE}; mask-image: ${SIDE};`;
+/** The same fade turned to face the pages, for the picture down the right edge of the Radiance room. */
+const ROOM_SIDE = 'linear-gradient(to right, transparent 0%, rgb(0 0 0 / 0.07) 22%, rgb(0 0 0 / 0.26) 42%, rgb(0 0 0 / 0.62) 56%, black 68%)';
+export const ROOM_FADE = `-webkit-mask-image: ${ROOM_SIDE}; mask-image: ${ROOM_SIDE};`;
 export const BEHIND_TOP = `-webkit-mask-image: ${TOP}; mask-image: ${TOP};`;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));

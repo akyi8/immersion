@@ -1,6 +1,6 @@
 <script lang="ts">
   import Dialog from '../shelf/Dialog.svelte';
-  import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, BEHIND_TOP, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
+  import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, BEHIND_TOP, ROOM_FADE, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
 
   /**
    * Framing an entry's picture (Mike, November 1). The picture is dragged inside a fixed
@@ -19,6 +19,7 @@
     busy,
     problem,
     bannerOnly = false,
+    roomOnly = false,
     onSave,
     onCancel,
   }: {
@@ -36,6 +37,8 @@
     problem: string;
     /** Frames the banner alone, for a page that never shows a portrait, such as a rule in a game's book. */
     bannerOnly?: boolean;
+    /** Frames the tall shape alone, for the picture that belongs to the Radiance room. Opened from Settings, so it stands above them. */
+    roomOnly?: boolean;
     onSave: (result: { shape: Shape | null; portrait: Frame; banner: Frame; behind: Frame }) => void;
     onCancel: () => void;
   } = $props();
@@ -109,7 +112,7 @@
       onkeydown={(e) => key(which, e)}>
       <!-- Behind the page, the picture fades as it does on the page, over the page's color. -->
       <div class="fade" style={which === 'behind' ? BEHIND_TOP : ''}>
-      <div class="fade" style={which === 'behind' ? BEHIND_FADE : ''}>
+      <div class="fade" style={which === 'behind' ? (roomOnly ? ROOM_FADE : BEHIND_FADE) : ''}>
       <img
         src={url}
         alt=""
@@ -133,8 +136,8 @@
   </div>
 {/snippet}
 
-<Dialog title="Frame the picture" action="Save" ready={true} {busy} {problem} onSubmit={save} {onCancel} wide>
-  {#if !bannerOnly}<div class="shows">
+<Dialog title="Frame the picture" action="Save" ready={true} {busy} {problem} onSubmit={save} {onCancel} wide={!roomOnly} above={roomOnly}>
+  {#if !bannerOnly && !roomOnly}<div class="shows">
     <span class="label">Shows as</span>
     <div class="seg" role="group" aria-label="Shows as">
       <button type="button" class:on={shape === 'banner'} aria-pressed={shape === 'banner'} onclick={() => (shape = 'banner')}>Banner</button>
@@ -147,9 +150,13 @@
     </span>
   </div>{/if}
   <p class="hint">Drag the picture to move it, and zoom with the slider or the scroll wheel.</p>
-  <div class="frames" class:three={!bannerOnly}>
-    {@render framer('banner', 'Banner', '')}
-    {#if !bannerOnly}
+  <div class="frames" class:three={!bannerOnly && !roomOnly} class:room={roomOnly}>
+    {#if roomOnly}
+      {@render framer('behind', 'In the room', 'as it fades')}
+    {:else}
+      {@render framer('banner', 'Banner', '')}
+    {/if}
+    {#if !bannerOnly && !roomOnly}
       {@render framer('behind', 'Behind', 'as it fades')}
       {@render framer('portrait', 'Portrait', 'its face')}
     {/if}
@@ -196,6 +203,12 @@
   .framer {
     min-width: 0;
     flex: 1;
+  }
+  .frames.room {
+    justify-content: center;
+  }
+  .frames.room .framer {
+    flex: 0 1 240px;
   }
   .frames.three .framer.banner {
     flex: 2.286;

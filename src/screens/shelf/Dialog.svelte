@@ -14,6 +14,7 @@
     onCancel,
     children,
     wide = false,
+    above = false,
   }: {
     title: string;
     action: string;
@@ -25,6 +26,8 @@
     children: Snippet;
     /** A wider dialog, for work that needs room, such as framing a picture. */
     wide?: boolean;
+    /** Stands above the Settings page, for a dialog opened from it. */
+    above?: boolean;
   } = $props();
 
   function submit(event: SubmitEvent) {
@@ -35,8 +38,8 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), onCancel())} />
 
-<div class="backdrop" role="presentation" onclick={onCancel} use:portal></div>
-<form use:portal class="dialog" class:wide aria-label={title} onsubmit={submit}>
+<div class="backdrop" class:above role="presentation" onclick={onCancel} use:portal></div>
+<form use:portal class="dialog" class:wide class:above aria-label={title} onsubmit={submit}>
   <h2>{title}</h2>
   {@render children()}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -70,6 +73,12 @@
     flex-direction: column;
     gap: 8px;
     z-index: 21;
+  }
+  .backdrop.above {
+    z-index: 26;
+  }
+  .dialog.above {
+    z-index: 27;
   }
   .dialog.wide {
     width: min(760px, calc(100vw - 32px));
