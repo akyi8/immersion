@@ -521,8 +521,9 @@ html.typing .pane-actions {
 
 /* The Radiance layout (Mike, November 17). One picture belongs to the room and stands down
    its right edge. It is whole at the edge and fades toward the pages into their own ground,
-   black on the dark side and white on the light. The pages reach under its faded half, so
-   their text runs onto the picture and the room gives up only half the picture's width.
+   black on the dark side and white on the light. The paper runs all the way under it, so
+   the picture has no edge of the work area drawn down it, and the last page keeps its text
+   out of the picture's whole half, so the room gives up only half the picture's width.
    It is the world's picture, or that of the page in use. */
 :root {
   --room-strip: 0px;
@@ -536,8 +537,10 @@ html.typing .pane-actions {
 .room-picture {
   position: fixed;
   top: 0;
-  right: 0;
-  bottom: 0;
+  /* It lies within the paper, whose margins and corner these are. */
+  right: 14px;
+  bottom: 14px;
+  border-bottom-right-radius: 18px;
   width: var(--room-picture);
   /* Above the pages and below the header. It only ever lightens what is under it, so a
      dark page shows through as the picture's own black and light text stays as bright. */
@@ -566,9 +569,19 @@ html.typing .pane-actions {
   object-fit: cover;
 }
 :root[data-room='radiance'] .shell > :not(header) {
-  margin-right: var(--room-strip);
   position: relative;
   z-index: 1;
+}
+/* What is read stays clear of the picture's whole half: the last page in the row, or a home page. */
+:root[data-room='radiance'] .sheet .pane.last > .body {
+  padding-right: calc(40px + var(--room-strip));
+}
+/* The page's corner buttons and its view menu stay out of it too, where they can always be read. */
+:root[data-room='radiance'] .sheet .pane.last > .body > :is(.tools, .view-menu) {
+  right: calc(14px + var(--room-strip));
+}
+:root[data-room='radiance'] main.sheet {
+  padding-right: calc(48px + var(--room-strip));
 }
 :root[data-room='radiance'] .shell > header {
   position: relative;
