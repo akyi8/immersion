@@ -17,7 +17,6 @@
   import { MODULES } from '../lib/you';
   import GameModule from './game/GameModule.svelte';
   import TableModule from './table/TableModule.svelte';
-  import Wheel from './Wheel.svelte';
   import type { GameFs } from '../lib/game/game';
 
   let {
@@ -60,9 +59,6 @@
 
   // The quick finder (Mike, October 31), from its button or Ctrl or Cmd and K anywhere.
   let finding = $state(false);
-  // The wheel (Mike, November 17): every setting and option in one radial menu, from Ctrl or
-  // Cmd with P, or a click of the mouse's wheel, which opens it under the pointer.
-  let wheel = $state<{ at: { x: number; y: number } | null } | null>(null);
   const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
 
   function worldMenu(e: MouseEvent) {
@@ -136,11 +132,6 @@
         finding = !finding;
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
-        e.preventDefault();
-        wheel = wheel ? null : { at: null };
-        return;
-      }
       // On a Mac, Option with an arrow moves the cursor by a word, so there Back and
       // Forward are Cmd with a bracket alone. Elsewhere Alt with an arrow is the custom.
       const back = (!mac && e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
@@ -157,22 +148,9 @@
       if (e.button === 3) nav.back();
       if (e.button === 4) nav.forward();
     };
-    // A press of the mouse's wheel would start the system's own scrolling, so it is taken here.
-    const onMiddleDown = (e: MouseEvent) => {
-      if (e.button === 1) e.preventDefault();
-    };
-    const onMiddle = (e: MouseEvent) => {
-      if (e.button !== 1) return;
-      e.preventDefault();
-      wheel = wheel ? null : { at: { x: e.clientX, y: e.clientY } };
-    };
-    window.addEventListener('mousedown', onMiddleDown);
-    window.addEventListener('auxclick', onMiddle);
     window.addEventListener('keydown', onKey);
     window.addEventListener('mouseup', onMouse);
     return () => {
-      window.removeEventListener('mousedown', onMiddleDown);
-      window.removeEventListener('auxclick', onMiddle);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mouseup', onMouse);
     };
@@ -222,6 +200,10 @@
             ['protagonist', 'Protagonist', 'Protagonist puts plans and narrator-only text away, to show the screen to players.'],
           ]} />
       {/if}
+      <!-- Settings have a place of their own in the corner, where a cog is looked for (Mike, November 19). -->
+      <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'look')}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.97 6.46 L14.90 6.82 L14.90 9.18 L12.97 9.54 L12.60 10.43 L13.72 12.04 L12.04 13.72 L10.43 12.60 L9.54 12.97 L9.18 14.90 L6.82 14.90 L6.46 12.97 L5.57 12.60 L3.96 13.72 L2.28 12.04 L3.40 10.43 L3.03 9.54 L1.10 9.18 L1.10 6.82 L3.03 6.46 L3.40 5.57 L2.28 3.96 L3.96 2.28 L5.57 3.40 L6.46 3.03 L6.82 1.10 L9.18 1.10 L9.54 3.03 L10.43 3.40 L12.04 2.28 L13.72 3.96 L12.60 5.57 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+      </button>
     </div>
   </header>
   {/if}
@@ -257,19 +239,6 @@
   {/if}
 </div>
 
-{#if wheel}
-  <Wheel
-    {nav}
-    {view}
-    {setView}
-    at={wheel.at}
-    onClose={() => (wheel = null)}
-    onFind={() => (finding = true)}
-    {onTheme}
-    {onDetails}
-    {onShowLoading}
-    {onShowShelf} />
-{/if}
 
 {#if finding && index}
   <Finder {index} {fs} {nav} {storiesDir} {worldName} {engineRel} {gameDir} {openEngine} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
@@ -372,6 +341,21 @@
     color: var(--muted);
     padding: 0 24px;
     text-align: center;
+  }
+  .gear {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: var(--muted);
+    background: var(--well);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+  }
+  .gear:hover {
+    color: var(--text);
   }
   .find {
     display: flex;

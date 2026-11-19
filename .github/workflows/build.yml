@@ -38,22 +38,6 @@ jobs:
       - run: npm test
       - run: npm run check
 
-  # The Rust side's tests, which cover Git sync and the paths the app may write to. They
-  # report without holding a build back, until they have been seen to pass here.
-  rust-tests:
-    runs-on: macos-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-          key: tests
-      # The Rust build expects the screens' folder to exist, and the tests do not need what is in it.
-      - run: mkdir -p dist
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
-
   # Creates a draft release first, so both platform builds add their files to one release.
   release:
     needs: test

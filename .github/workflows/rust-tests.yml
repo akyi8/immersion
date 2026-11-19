@@ -1,0 +1,31 @@
+# The Rust side's tests, which cover Git sync and the paths the app may write to.
+#
+# They run on their own, apart from the build, so that a test run GitHub cancels for want
+# of a machine never marks a release as failed. They report without holding a build back.
+name: Rust tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/rust-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: immersion-rust-tests
+  cancel-in-progress: true
+
+jobs:
+  rust-tests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: tests
+      # The Rust build expects the screens' folder to exist, and the tests do not need what is in it.
+      - run: mkdir -p dist
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
