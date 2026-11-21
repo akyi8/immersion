@@ -1,3 +1,4 @@
+import { spelling } from './spelling';
 import { EditorSelection, EditorState, Prec, RangeSetBuilder, StateEffect, StateField, type Extension } from '@codemirror/state';
 import {
   Decoration,
@@ -349,6 +350,7 @@ export function createEditor(options: {
         options.toolbar ? selectionToolbar(options.toolbar) : [],
         highlightActiveLine(),
         sentenceFocus,
+        spelling,
         EditorView.exceptionSink.of((e) => noteTrouble('editor', e)),
         deadKeys,
         EditorView.updateListener.of((u) => {

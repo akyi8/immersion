@@ -37,6 +37,8 @@ function support(): Plugin {
 
 // Tauri expects a fixed dev port and serves the built files from dist/.
 export default defineConfig({
+  // The spelling dictionary loads in pieces inside its worker, which needs a module worker.
+  worker: { format: 'es' },
   plugins: [svelte(), support()],
   clearScreen: false,
   server: { port: 1420, strictPort: true },

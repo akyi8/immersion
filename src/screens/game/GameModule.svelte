@@ -6,6 +6,7 @@
   import { saveAll } from '../../lib/saves';
   import type { View } from '../../lib/render';
   import { onMount, setContext, tick } from 'svelte';
+  import { spell } from '../../lib/spell';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { gameScanner, isGameLink, GAME_LINK } from '../../lib/game/links';
   import { GAME_LINKS, type GameLinks } from './links';
@@ -266,6 +267,8 @@
   // Game text links the game's terms and, in a world's book, the world's names (Mike,
   // November 10). A term opens its rule, section, or aspect here, and a name opens its
   // wiki entry in the World module.
+  // A game's own names are never misspelled: its aspects, keywords, rules, and sections.
+  $effect(() => spell.allow('game', (game?.elements ?? []).map((p) => p.element.name)));
   const linkScanner = $derived(
     gameScanner(
       (game?.elements ?? []).map((p) => ({ key: p.key, name: p.element.name, kind: p.element.kind, origin: p.origin })),

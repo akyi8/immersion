@@ -25,6 +25,8 @@ export interface World {
   pictures: Shape | null;
   /** How the world's own picture is framed in the Radiance layout's room, or null for centered. */
   roomFrame: Frame | null;
+  /** Which English the world is spelled in. American unless its `world.md` says `spelling: british`. */
+  spelling: 'american' | 'british';
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -63,6 +65,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     gameDir: text(header.game, 'game'),
     pictures: readShape(header.pictures),
     roomFrame: readFrame(header.room_frame),
+    spelling: header.spelling === 'british' ? 'british' : 'american',
   };
 }
 

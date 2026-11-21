@@ -403,6 +403,18 @@ html.typing .pane:not(:focus-within) > .body {
   opacity: 0.25;
   transition: opacity 900ms ease;
 }
+/* The names and terms marked in the text being typed in go plain while the typing lasts
+   (Mike, November 21), and take their color back with the pointer. Their shape stays, so
+   no line of the text moves. */
+.cm-mention,
+.cm-term,
+.cm-md-link {
+  transition: color 600ms ease, background-color 600ms ease;
+}
+html.typing .pane:focus-within .cm-focused :is(.cm-mention, .cm-term, .cm-md-link) {
+  color: inherit;
+  background-color: transparent;
+}
 /* A picture is the brightest thing on a page, so it steps back furthest: the page's own,
    and the one that belongs to the Radiance room. */
 .pane img,

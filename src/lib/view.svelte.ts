@@ -1,3 +1,4 @@
+import { spell } from './spell';
 import { ui } from './ui.svelte';
 
 /**
@@ -131,3 +132,13 @@ class Quiet {
 }
 
 export const quiet = new Quiet();
+
+/** Whether misspelled words are set a little greyer (Mike, November 21). Each computer chooses. */
+class SpellingChoice {
+  on = $state(spell.on);
+  set(on: boolean) {
+    this.on = on;
+    spell.setOn(on);
+  }
+}
+export const spellingChoice = new SpellingChoice();

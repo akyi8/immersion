@@ -1,5 +1,5 @@
 import type { Library, LibraryInfo } from './library/types';
-import { DEFAULT_LOOK, moduleList, readYou, withLook, withProfiles, type Look, type Profile } from './you.ts';
+import { withWords, DEFAULT_LOOK, moduleList, readYou, withLook, withProfiles, type Look, type Profile } from './you.ts';
 import { splitHeader, withHeader } from './world.ts';
 import type { KeyParams } from './vault/crypto.ts';
 
@@ -23,6 +23,16 @@ function localLook(): Look {
   return { ...DEFAULT_LOOK };
 }
 
+const WORDS_KEY = 'immersion.dictionary';
+function localWords(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(WORDS_KEY) ?? '[]');
+    return Array.isArray(list) ? list.filter((w): w is string => typeof w === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * The library and what it holds for the writer (Mike, October 26), shared by the
  * screens that need it: the Worlds page, Settings, and the title page. The app hands it
@@ -32,6 +42,8 @@ class Account {
   library = $state.raw<Library | null>(null);
   info = $state.raw<LibraryInfo | null>(null);
   profiles = $state.raw<Profile[]>([]);
+  /** The writer's own spelling dictionary, which follows them to every computer. */
+  words = $state.raw<string[]>([]);
   /** The vault's key settings from `immersion.md`, or null before a passphrase is chosen. */
   vaultParams = $state.raw<KeyParams | null>(null);
   /** The writer's layout. Without a library it is kept by this computer alone. */
@@ -50,6 +62,7 @@ class Account {
     this.info = await this.library.info();
     this.source = this.info.path ? await this.library.readYou() : null;
     this.profiles = readYou(this.source).profiles;
+    this.words = this.info.path ? readYou(this.source).words : localWords();
     this.vaultParams = vaultParamsFrom(this.source);
     this.look = this.info.path ? readYou(this.source).look : localLook();
   }
@@ -101,6 +114,25 @@ class Account {
     await this.library.writeYou(text);
     this.source = text;
     this.profiles = readYou(text).profiles;
+  }
+
+  /** Adds a word to the writer's spelling dictionary, in `immersion.md`, or on this computer when there is no library. */
+  async addWord(word: string) {
+    const w = word.trim().toLowerCase();
+    if (!w || this.words.includes(w)) return;
+    this.words = [...this.words, w];
+    if (!this.library || !this.info?.path) {
+      try {
+        localStorage.setItem(WORDS_KEY, JSON.stringify(this.words));
+      } catch {
+        // Kept until the app closes.
+      }
+      return;
+    }
+    const text = withWords(await this.fresh(), [...readYou(await this.fresh()).words, w]);
+    await this.library.writeYou(text);
+    this.source = text;
+    this.words = readYou(text).words;
   }
 
   profile(id: string | null | undefined): Profile | null {

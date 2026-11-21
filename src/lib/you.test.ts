@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_LOOK, newProfileId, profileLabel, readYou, withLook, withProfiles } from './you.ts';
+import { DEFAULT_LOOK, newProfileId, profileLabel, readYou, withLook, withProfiles, withWords } from './you.ts';
 
 test('author profiles round-trip through immersion.md', () => {
-  assert.deepEqual(readYou(null), { profiles: [], look: DEFAULT_LOOK });
+  assert.deepEqual(readYou(null), { profiles: [], look: DEFAULT_LOOK, words: [] });
   const first = withProfiles(null, [{ id: 'mara-vell', author: 'Mara Vell', copyright: 'Ada Lane' }]);
   assert.match(first, /profiles:\n {2}- id: mara-vell\n {4}author: Mara Vell\n {4}copyright: Ada Lane/);
   assert.match(first, /# Immersion/);
@@ -38,4 +38,12 @@ test('modules keep header order, drop unknown names, and never leave the header 
   const text = withLook(null, { ...DEFAULT_LOOK, modules: ['story', 'game', 'world'] });
   assert.deepEqual(readYou(text).look.modules, ['world', 'story', 'game']);
   assert.deepEqual(readYou(withProfiles(null, []).replace('# Immersion', '---\nmodules: [nonsense]\n---\n# Immersion')).look.modules, ['world', 'boards', 'story']);
+});
+
+test("the writer's spelling dictionary is kept in immersion.md beside everything else", () => {
+  const start = withProfiles(null, [{ id: 'mara-vell', author: 'Mara Vell', copyright: '' }]);
+  const text = withWords(start, ['Harrowgate', 'saltwise', 'harrowgate']);
+  assert.deepEqual(readYou(text).words, ['harrowgate', 'saltwise']);
+  assert.equal(readYou(text).profiles[0].id, 'mara-vell');
+  assert.doesNotMatch(withWords(text, []), /dictionary:/);
 });

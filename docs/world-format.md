@@ -116,6 +116,8 @@ An entry in People shows its picture as a portrait beside its name. An entry in 
 
 A world can set how all its pictures show at once, with `pictures: behind`, `pictures: banner`, or `pictures: portrait` in its `world.md`. An entry's own `picture:` still wins over the world's choice, and with neither the category decides. The app sets the world's choice in Settings, under Look, where it can also take every entry's own choice away so that all of them follow the world.
 
+A world is spelled in American English unless its `world.md` says `spelling: british`. The app writes that line from a right click on a misspelled word. The words a writer adds to their own dictionary are kept in the library's `immersion.md`, as `dictionary:`, a list of words in lowercase, and apply in every world.
+
 In the Radiance layout one picture stands down the right edge of the window. For the world's own picture, `room_frame: 60 50 1.2` in `world.md` frames it there: the point kept in view across and down, from 0 to 100, and the zoom, from 1 to 4. A missing `room_frame` is centered at zoom 1. The app writes it from Settings, under Look. A page's own picture is framed in the room by that entry's `behind_frame:`.
 
 A third value, `picture: behind`, lays the picture behind the page. The page is then set like a card: the entry's name runs up its left edge with its category above it, its first sentence is set at the top right, and the picture stands as a tall strip down the page's left side, behind the name, fading toward the text. `behind_frame:` frames the picture for that shape, in the same form as the other two frames. All three are chosen in the app where the picture is framed.

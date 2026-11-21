@@ -6,7 +6,7 @@
   import { account } from '../lib/account.svelte';
   import { BOARD_FONTS, MODULES, newProfileId, profileLabel, type BoardFont, type Profile } from '../lib/you';
   import { zoom } from '../lib/zoom.svelte';
-  import { quiet } from '../lib/view.svelte';
+  import { quiet, spellingChoice } from '../lib/view.svelte';
   import Pick from './Pick.svelte';
   import ThemeEditor from './ThemeEditor.svelte';
   import FramePicture from './world/FramePicture.svelte';
@@ -114,6 +114,7 @@
       },
       { id: 'board-font', group: 'look', name: 'Board lettering', tell: 'The lettering on board cards. A condensed face fits more of an outline on each card.', where: 'All worlds' },
       { id: 'quiet', group: 'work', name: 'Quiet typing', tell: 'While you type, everything steps back in layers around the sentence you are writing. It all returns when the pointer moves.', where: 'This computer' },
+      { id: 'spelling', group: 'work', name: 'Spelling', tell: `A misspelled word is set a little greyer, and a right click on it offers what it might have been. Your world's names are never marked. You have added ${account.words.length} ${account.words.length === 1 ? 'word' : 'words'} of your own.`, where: 'This computer' },
       world && journal && { id: 'daily', group: 'work', name: 'Daily pages', tell: 'Keeps a page for each day and adds a Today button to the journal. Days you skip simply do not exist, and nothing reminds you.', where: 'This world' },
       { id: 'dice', group: 'work', name: 'Tumbling dice', tell: "Dice rolled in the Table module are thrown across the screen in the world's color. With this off, a roll shows its numbers at once.", where: 'This computer' },
       { id: 'profiles', group: 'work', name: 'Author profiles', tell: 'The name and copyright holder a title page shows. Changing a profile changes every book that uses it.', where: 'All worlds', wide: true },
@@ -239,6 +240,8 @@
     </select>
   {:else if id === 'quiet'}
     {@render flip(quiet.on, (on) => quiet.set(on), 'Quiet typing')}
+  {:else if id === 'spelling'}
+    {@render flip(spellingChoice.on, (on) => spellingChoice.set(on), 'Spelling')}
   {:else if id === 'daily' && journal}
     {@render flip(journal.daily, (on) => run(async () => onDaily?.(on)), 'Daily pages')}
   {:else if id === 'dice'}

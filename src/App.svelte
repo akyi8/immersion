@@ -14,6 +14,7 @@
   import ContextMenu from './screens/ContextMenu.svelte';
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
+  import { spell } from './lib/spell';
   import { frameStyle, writeFrame } from './lib/index/frame';
   import type { RoomPicture } from './lib/room.svelte';
   import Reader from './screens/Reader.svelte';
@@ -72,6 +73,22 @@
           : null
       : null,
   );
+
+  // Spelling (Mike, November 21): the writer's own words and the world's names are never
+  // misspelled, and the open world says which English it is written in.
+  $effect(() => spell.allow('mine', account.words));
+  $effect(() => spell.allow('world', index ? [...index.entries.values()].flatMap((e) => [e.name, ...e.aliases]) : []));
+  $effect(() => {
+    const inside = !!world && !!fs && (phase === 'loading' || phase === 'inside');
+    spell.setLanguage(inside ? world!.spelling : 'american');
+    spell.onLanguage = inside
+      ? async (language) => {
+          await fs!.writeText('world.md', withHeader(await fs!.readText('world.md'), { spelling: language === 'british' ? 'british' : undefined }));
+          world = await loadWorld(fs!);
+        }
+      : null;
+  });
+  spell.onAdd = (word) => void account.addWord(word);
 
   // The room's picture, in the Radiance layout: the page in use, or else the world's.
   const worldPicture = $derived(fs && world ? (world.imagePath ? fs.imageUrl(world.imagePath) : world.journal ? realWorld : null) : null);

@@ -74,6 +74,8 @@ const sameModules = (a: ModuleId[], b: ModuleId[]) => a.length === b.length && a
 export interface You {
   profiles: Profile[];
   look: Look;
+  /** Words the writer added to the spelling dictionary, in lowercase. */
+  words: string[];
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
@@ -89,7 +91,7 @@ export function readLook(header: Record<string, unknown>): Look {
 }
 
 export function readYou(source: string | null): You {
-  if (!source) return { profiles: [], look: { ...DEFAULT_LOOK } };
+  if (!source) return { profiles: [], look: { ...DEFAULT_LOOK }, words: [] };
   const { header } = splitHeader(source);
   const list = Array.isArray(header.profiles) ? header.profiles : [];
   const profiles: Profile[] = [];
@@ -100,7 +102,8 @@ export function readYou(source: string | null): You {
     const id = text(r.id) || slugify(author);
     if (id && !profiles.some((x) => x.id === id)) profiles.push({ id, author, copyright: text(r.copyright) });
   }
-  return { profiles, look: readLook(header) };
+  const words = Array.isArray(header.dictionary) ? header.dictionary.filter((w): w is string => typeof w === 'string' && w.trim() !== '').map((w) => w.trim().toLowerCase()) : [];
+  return { profiles, look: readLook(header), words: [...new Set(words)] };
 }
 
 /** The new text of `immersion.md` with this layout, keeping anything else in it. */
@@ -131,4 +134,10 @@ export function newProfileId(author: string, taken: Profile[]): string {
 /** How a profile reads in a list: the author, with the copyright holder when it differs. */
 export function profileLabel(p: Profile): string {
   return p.copyright && p.copyright !== p.author ? `${p.author} (© ${p.copyright})` : p.author || 'Unnamed profile';
+}
+
+/** The new text of `immersion.md` with these words in the writer's spelling dictionary, keeping anything else in it. */
+export function withWords(source: string | null, words: string[]): string {
+  const list = [...new Set(words.map((w) => w.trim().toLowerCase()).filter(Boolean))].sort();
+  return withHeader(source ?? withProfiles(null, []), { dictionary: list.length ? list : undefined });
 }
