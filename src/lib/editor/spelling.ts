@@ -109,7 +109,13 @@ export const spelling = [
     eventHandlers: {
       contextmenu(event, view) {
         const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-        const word = pos === null ? undefined : this.found.find((w) => pos >= w.from && pos <= w.to);
+        if (pos === null || !spell.on) return false;
+        // The word is read from the text under the pointer, and not from what is drawn. On
+        // Windows a right click first puts the cursor in the word, and the word the cursor
+        // is in is not drawn as misspelled, so asking what is drawn found nothing there.
+        const line = view.state.doc.lineAt(pos);
+        const hit = wordsIn(line.text).find((w) => pos >= line.from + w.from && pos <= line.from + w.to);
+        const word = hit && spell.wrong(hit.word) ? { from: line.from + hit.from, to: line.from + hit.to, word: hit.word } : undefined;
         if (!word) return false;
         event.preventDefault();
         void menu(view, word, event);

@@ -132,7 +132,7 @@ stories: stories
 
 ## Releases
 
-GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. The unit tests and the type check run first, and a build that fails them is never made. A push that changes only markdown files builds nothing. The Rust tests run in a workflow of their own, when the Rust side changes, and do not hold a release back. Updates are signed with the project's update key, and the app refuses any update that is not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
+GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. A release is numbered 1.0 and the number of its build, such as 1.0.148. The unit tests and the type check run first, and a build that fails them is never made. A push that changes only markdown files builds nothing. The Rust tests run in a workflow of their own, when the Rust side changes, and do not hold a release back. Updates are signed with the project's update key, and the app refuses any update that is not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
 
 ## Stack
 

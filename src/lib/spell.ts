@@ -11,6 +11,10 @@ import { noteTrouble } from './trouble.ts';
 
 export type Language = 'american' | 'british';
 
+type Message = { type: 'check' | 'suggest'; words?: string[]; word?: string };
+type Answer = { wrong?: string[]; suggestions?: string[]; unread?: boolean };
+type Checker = { correct: (word: string) => boolean; suggest: (word: string) => string[] };
+
 export interface Word {
   from: number;
   to: number;
@@ -59,27 +63,85 @@ class Spell {
   private allowed = new Map<string, Set<string>>([['both', new Set(['grey', 'greys', 'greyed', 'greying', 'greyer', 'greyest', 'greyish'])]]);
   private listeners = new Set<() => void>();
   private worker: Worker | null = null;
-  private waiting = new Map<number, (m: { wrong?: string[]; suggestions?: string[] }) => void>();
+  private waiting = new Map<number, { resolve: (m: Answer) => void; message: Message }>();
   private next = 1;
   /** Keeps a word the writer adds, wherever the writer's own dictionary is kept. */
   onAdd: ((word: string) => void) | null = null;
   /** Changes which English the open world is spelled in, when a world is open. */
   onLanguage: ((language: Language) => void) | null = null;
 
-  private post(message: Record<string, unknown>): Promise<{ wrong?: string[]; suggestions?: string[] }> {
+  /** How the dictionary is being read: in its worker, on the page itself, or not at all. */
+  status: 'starting' | 'worker' | 'page' | 'failed' = 'starting';
+  /** Why the worker could not be used, or the dictionary could not be read at all. */
+  problem = '';
+  private local: Promise<Checker> | null = null;
+
+  /**
+   * The worker could not read the dictionary, or never answered (Mike, November 21: no
+   * word was ever marked in the desktop app, and nothing said why). The page reads the
+   * dictionary itself from here on, which costs a moment once and then works the same.
+   */
+  private fallBack(reason: string) {
+    if (this.local) return;
+    this.problem = reason;
+    noteTrouble('spelling', `The spelling dictionary could not be read in its worker (${reason}), so the page is reading it itself.`);
+    this.worker?.terminate();
+    this.worker = null;
+    this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(this.language));
+    this.local.then(
+      () => (this.status = 'page'),
+      (e) => {
+        this.status = 'failed';
+        this.problem = e instanceof Error ? e.message : String(e);
+        noteTrouble('spelling', `The spelling dictionary could not be read at all: ${this.problem}`);
+      },
+    );
+    // What was asked of the worker is asked again here.
+    const asked = [...this.waiting.values()];
+    this.waiting.clear();
+    for (const w of asked) void this.answer(w.message).then(w.resolve);
+    this.asked.clear();
+    this.changed();
+  }
+
+  private async answer(message: Message): Promise<Answer> {
+    try {
+      const c = await this.local!;
+      return message.type === 'check' ? { wrong: (message.words ?? []).filter((w) => !c.correct(w)) } : { suggestions: c.suggest(message.word ?? '') };
+    } catch {
+      return { wrong: [], suggestions: [], unread: true };
+    }
+  }
+
+  private post(message: Message): Promise<Answer> {
+    if (this.local) return this.answer(message);
     if (!this.worker) {
-      this.worker = new Worker(new URL('./spell.worker.ts', import.meta.url), { type: 'module' });
-      this.worker.onmessage = (e: MessageEvent<{ id: number; wrong?: string[]; suggestions?: string[] }>) => {
-        this.waiting.get(e.data.id)?.(e.data);
+      try {
+        this.worker = new Worker(new URL('./spell.worker.ts', import.meta.url), { type: 'module' });
+      } catch (e) {
+        this.fallBack(e instanceof Error ? e.message : String(e));
+        return this.answer(message);
+      }
+      this.worker.onmessage = (e: MessageEvent<Answer & { id: number; problem?: string }>) => {
+        if (e.data.problem) return this.fallBack(e.data.problem);
+        this.waiting.get(e.data.id)?.resolve(e.data);
         this.waiting.delete(e.data.id);
       };
-      // A dictionary that cannot be read is written down, since nothing on the page would say so.
-      this.worker.onerror = (e) => noteTrouble('spelling', `The spelling dictionary could not be read: ${e.message || 'the worker failed to start'}`);
+      this.worker.onerror = (e) => this.fallBack(e.message || 'the worker failed to start');
       this.worker.postMessage({ id: 0, type: 'language', language: this.language });
+      // The worker proves itself on two words before it is trusted: one any dictionary
+      // has and one none does. No answer in good time counts as none.
+      const proof = setTimeout(() => this.status === 'starting' && this.fallBack('it did not answer'), 12000);
+      void this.post({ type: 'check', words: ['the', 'zzxqjv'] }).then((m) => {
+        clearTimeout(proof);
+        if (this.local) return;
+        if (m.wrong?.length === 1 && m.wrong[0] === 'zzxqjv') this.status = 'worker';
+        else this.fallBack('it gave a wrong answer to a test word');
+      });
     }
     const id = this.next++;
     return new Promise((resolve) => {
-      this.waiting.set(id, resolve);
+      this.waiting.set(id, { resolve, message });
       this.worker!.postMessage({ id, ...message });
     });
   }
@@ -109,6 +171,7 @@ class Spell {
     this.known.clear();
     this.asked.clear();
     this.worker?.postMessage({ id: 0, type: 'language', language });
+    if (this.local) this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(language));
     this.changed();
   }
 
@@ -142,6 +205,8 @@ class Spell {
     const language = this.language;
     void this.post({ type: 'check', words: fresh }).then((m) => {
       if (language !== this.language) return;
+      // A dictionary that could not be read answers nothing, and the words are asked again later.
+      if (m.unread) return void fresh.forEach((w) => this.asked.delete(w));
       const wrong = new Set(m.wrong ?? []);
       for (const w of fresh) {
         this.known.set(w, !wrong.has(w));

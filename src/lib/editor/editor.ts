@@ -177,6 +177,18 @@ function stepLine(view: EditorView, forward: boolean, extend: boolean): boolean 
   const gaps = view.state.field(gapField);
   const here = view.coordsAtPos(sel.head, sel.assoc || 1);
   const next = view.moveVertically(sel, forward);
+  // A file ends with one empty line, directly under its last paragraph. Down from that
+  // paragraph would rest there, where typing starts a line and not a paragraph (Mike,
+  // November 21), so the cursor goes to the end of the paragraph and stops.
+  const doc = view.state.doc;
+  const landing = doc.lineAt(next.head);
+  if (forward && !extend && landing.number === doc.lines && landing.number > 1 && landing.text.trim() === '' && sel.head < landing.from) {
+    const last = doc.line(landing.number - 1);
+    if (last.text.trim() !== '') {
+      if (sel.head !== last.to) view.dispatch({ selection: EditorSelection.cursor(last.to, -1), scrollIntoView: true, userEvent: 'select' });
+      return true;
+    }
+  }
   let crossed = false;
   gaps.between(Math.min(sel.head, next.head), Math.max(sel.head, next.head), (from, to) => {
     if ((forward ? to : from) === next.head) crossed = true;
