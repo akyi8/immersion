@@ -41,6 +41,8 @@ export class Autosave {
   /** The text being written right now, so the watcher's echo of it is ignored. */
   private writing: string | null = null;
   private showing = false;
+  /** Set when the page has gone away, after which nothing is written or tried again. */
+  private closed = false;
   private host: AutosaveHost;
 
   constructor(host: AutosaveHost) {
@@ -63,9 +65,12 @@ export class Autosave {
 
   /**
    * Writes what is waiting. With `force`, a clash still open is settled in the writer's
-   * favor, which is what closing the page without choosing means.
+   * favor, which is what closing the page, the world, or the window without choosing
+   * means. Returns whether everything typed is now on disk, so that whatever is about to
+   * close can stay open when it is not.
    */
-  async save(force = false): Promise<void> {
+  async save(force = false): Promise<boolean> {
+    if (this.closed) return !this.dirty && this.conflict === null;
     this.unschedule();
     while (this.running) await this.running;
     if (force && this.conflict !== null) {
@@ -73,13 +78,27 @@ export class Autosave {
       this.conflict = null;
       this.dirty = true;
     }
-    if (this.conflict !== null || !this.dirty) return;
+    if (this.conflict !== null) return false;
+    if (!this.dirty) return true;
     this.running = this.write();
     try {
       await this.running;
     } finally {
       this.running = null;
     }
+    return !this.dirty && this.conflict === null;
+  }
+
+  /**
+   * The page is going away. What is waiting is written once more, in the writer's favor,
+   * and then nothing more is written or tried. A save left trying after its page closed
+   * would write into whichever world was opened next.
+   */
+  async close(): Promise<boolean> {
+    const ok = await this.save(true);
+    this.closed = true;
+    this.unschedule();
+    return ok;
   }
 
   private async write() {
@@ -185,6 +204,7 @@ export class Autosave {
 
   private schedule(ms: number) {
     this.unschedule();
+    if (this.closed) return;
     this.timer = setTimeout(() => void this.save(), ms);
   }
 
@@ -199,8 +219,9 @@ export class Autosave {
     this.host.changed?.();
   }
 
-  /** Stops the timer, when the page is going away. */
+  /** Stops the timer and every later try, when the page is going away without a last save. */
   stop() {
+    this.closed = true;
     this.unschedule();
   }
 }

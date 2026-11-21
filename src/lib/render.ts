@@ -15,11 +15,18 @@ const NO_LINKS = new Set(['A', 'BUTTON', 'CODE', 'PRE', 'H1']);
  * file as `> [!narrator]`, are kept in Narrator view and removed in Protagonist view
  * (architecture decision 7).
  */
+/**
+ * What rendered markdown may never hold (code review, November 21). A page imported from
+ * elsewhere could otherwise draw a form that looks like the app asking for a passphrase,
+ * and send what is typed into it away.
+ */
+export const SAFE = { FORBID_TAGS: ['form', 'input', 'button', 'textarea', 'select', 'option', 'style', 'iframe', 'object', 'embed'], FORBID_ATTR: ['style', 'formaction'] };
+
 export function renderBody(markdown: string, index: WikiIndex, selfId: string | null, view: View): string {
   const source = markdown
     .replace(/^[ \t]*\*\*\s*aliases\s*:?\s*\*\*.*(?:\r?\n)?/im, '')
     .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, '$1');
-  const html = DOMPurify.sanitize(marked.parse(source, { async: false, gfm: true }) as string);
+  const html = DOMPurify.sanitize(marked.parse(source, { async: false, gfm: true }) as string, SAFE);
   const doc = new DOMParser().parseFromString(`<div id="root">${html}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
   // A rule drawn straight under the title only repeats the edge the page already has

@@ -43,7 +43,7 @@ export interface Source {
 }
 
 export interface Placed {
-  /** Unique across the game: origin, kind, and file id, such as `engine:technique/public-exposure`. */
+  /** Unique across the game: origin, kind, and file id, such as `engine:gear/rope`. */
   key: string;
   origin: Origin;
   element: Element;
@@ -57,7 +57,7 @@ export interface Placed {
   image: string | null;
 }
 
-/** A book's chapters in order, by reference, such as `engine:chapter/3-rolling-for-trouble`. */
+/** A book's chapters in order, by reference, such as `engine:chapter/taking-risks`. */
 export interface Book {
   name: string;
   /** The book's divisions in order, by reference, such as `world:division/the-protagonist` (Mike, November 9). */

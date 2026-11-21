@@ -37,7 +37,7 @@ export interface Session {
   plan: string | null;
   /** The real day it was played, as written, such as 2026-11-19. */
   played: string;
-  /** The date in the game, as written, such as "Spring, 485". */
+  /** The date in the game, as written, such as "The third week of the fog". */
   when: string;
   /** Who was at the table. */
   people: string[];
@@ -58,7 +58,7 @@ export interface Campaign {
   role: Role;
   /** 'own' for the world's own game, or 'other' for any other game. */
   game: 'own' | 'other';
-  /** The other game's name, such as Pendragon. */
+  /** The other game's name, such as Lantern and Ledger. */
   system: string;
   links: Link[];
   /** The campaign's rulebooks: the PDF files in its `rules` folder. */

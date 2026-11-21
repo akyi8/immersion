@@ -75,7 +75,7 @@
       body: text,
     }),
   );
-  onDestroy(() => void saver.flush());
+  onDestroy(() => void saver.flush(true));
 
   let moving = $state(false);
   let problem = $state('');

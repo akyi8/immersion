@@ -23,7 +23,7 @@
   import { chooseAndAdd, createTextHandout } from '../../lib/table/add';
   import { inDesktopApp } from '../../lib/runtime';
   import { contextMenu } from '../../lib/contextMenu.svelte';
-  import { saveNow } from '../../lib/saves';
+  import { saveAllUnder, saveNow } from '../../lib/saves';
   import { pageActions } from '../../lib/pane.svelte';
   import type { MenuEntry } from '../../lib/contextMenu.svelte';
   import { titleFocus } from '../../lib/table/tray.svelte';
@@ -306,9 +306,17 @@
       t.kind === 'adventure'
         ? () => start({ kind: 'rename', what: 'adventure', was: t.a.name, files: [`${t.a.path}/adventure.md`] })
         : () => retitle(t.kind === 'campaign' ? t.c.card : t.kind === 'session' ? (t.s.log ?? t.s.plan!) : t.path);
+    // A folder is archived only after every page open inside it is saved, and those pages
+    // are then closed (code review, November 21). A save still waiting would otherwise land
+    // at the old path after the move and make the archived folder again.
+    const archiveFolder = async (folder: string) => {
+      if (!(await saveAllUnder(folder))) throw new Error('A page in it could not be saved, so nothing was moved. The page says why.');
+      await archivePath(fs, folder);
+      for (const id of nav.panes.filter((p) => p.startsWith(folder + '/'))) nav.close(id);
+    };
     const archive = async () => {
-      if (t.kind === 'campaign') await archivePath(fs, t.c.path);
-      else if (t.kind === 'adventure') await archivePath(fs, t.a.path);
+      if (t.kind === 'campaign') await archiveFolder(t.c.path);
+      else if (t.kind === 'adventure') await archiveFolder(t.a.path);
       else if (t.kind === 'session') {
         for (const file of [t.s.log, t.s.plan]) if (file) await saveNow(file);
         await archiveSession(fs, t.s);
@@ -522,7 +530,7 @@
         <option value="own">This world's own game</option>
       </select>
       {#if game === 'other'}
-        <input type="text" bind:value={system} aria-label="The game's name" autocomplete="off" placeholder="The game's name, such as Pendragon" />
+        <input type="text" bind:value={system} aria-label="The game's name" autocomplete="off" placeholder="The game's name, such as Lantern and Ledger" />
       {/if}
     {:else if making.kind === 'rename'}
       <p class="hint">The new name shows everywhere in the app. The files on disk keep the names they have.</p>

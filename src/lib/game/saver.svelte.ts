@@ -6,9 +6,9 @@ import { registerPanel } from '../saves';
 
 /** Savers with something waiting, so a closing world or window saves them first. */
 const waiting = new Set<Saver<never>>();
-registerPanel(async () => {
-  await Promise.all([...waiting].map((s) => s.flush()));
-});
+registerPanel(async () => (await Promise.all([...waiting].map((s) => s.flush()))).every(Boolean));
+// The list above is asked before a world or the window closes. A page asks its own saver
+// with `last` when the page itself goes away.
 
 export class Saver<T> {
   status = $state<'saved' | 'editing' | 'saving' | 'problem'>('saved');
@@ -29,20 +29,34 @@ export class Saver<T> {
     this.timer = setTimeout(() => void this.flush(), this.delay);
   }
 
-  async flush() {
+  /**
+   * Saves what is waiting, and says whether it is now on disk. With `last` the page is
+   * going away, so a save that fails is not tried again: a later try would write into
+   * whichever world was open by then.
+   */
+  async flush(last = false): Promise<boolean> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     const job = this.waiting;
-    waiting.delete(this as unknown as Saver<never>);
-    if (!job) return;
+    if (!job) return this.status !== 'problem';
     this.waiting = null;
     this.status = 'saving';
     try {
       await this.run(job.value);
-      if (!this.waiting) this.status = 'saved';
+      this.problem = '';
+      if (!this.waiting) {
+        waiting.delete(this as unknown as Saver<never>);
+        this.status = 'saved';
+      }
+      return true;
     } catch (e) {
+      // What failed to save is kept and tried again, so closing the page cannot lose it.
+      this.waiting ??= job;
       this.problem = e instanceof Error ? e.message : String(e);
       this.status = 'problem';
+      if (last) waiting.delete(this as unknown as Saver<never>);
+      else this.timer = setTimeout(() => void this.flush(), 5000);
+      return false;
     }
   }
 }

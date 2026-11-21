@@ -101,6 +101,7 @@
   // What is still waiting saves before a world or the window closes, and when this page does.
   const flush = async () => {
     if (timer) await save();
+    return status !== 'problem';
   };
   onMount(() => {
     const unregister = registerPanel(flush);

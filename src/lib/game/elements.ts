@@ -10,7 +10,7 @@ import { splitHeader } from '../world.ts';
  *
  * Each kind of element has a shape, kept in `kinds/<kind>.md`: the fields every element
  * of that kind carries, and the order they print in. The engine defines the core kinds,
- * and a world can bring kinds of its own, such as chrome.
+ * and a world can bring kinds of its own, such as charms.
  */
 
 /** A field's type, which decides how it is edited. */
@@ -39,14 +39,14 @@ export interface Kind {
 }
 
 export interface Element {
-  /** The file's path inside its folder, such as `elements/gear/nine-rivers-c-3.md`. */
+  /** The file's path inside its folder, such as `elements/gear/storm-lamp.md`. */
   path: string;
   /** A stable id: the file's name without `.md`. */
   id: string;
   name: string;
   kind: string;
   tags: string[];
-  /** The id of the vendor that sells it, for gear and chrome. */
+  /** The id of the vendor that sells it, for gear and the like. */
   vendor: string;
   /** For a reskin: the id of the core element whose mechanics it uses. */
   reskins: string;

@@ -45,25 +45,25 @@ const spine = (name: string, chosen: string | null = null) => {
 };
 
 test('the spine guesses which word stands large', () => {
-  assert.deepEqual(spine('Lou Lewandowski'), ['Lou', 'Lewandowski']);
+  assert.deepEqual(spine('Ada Varga'), ['Ada', 'Varga']);
   assert.deepEqual(spine('Harrowgate'), ['Harrowgate', '']);
   // A nickname in quotes wins, and shows without its quotes.
   assert.deepEqual(spine('Marta "Wren" Okafor'), ['Wren', 'Marta Okafor']);
   assert.deepEqual(spine('Signe “Doll” Halvorsen'), ['Doll', 'Signe Halvorsen']);
   // Titles and joining words never win, and an article rides with the word after it.
   assert.deepEqual(spine('Sister Agnes'), ['Agnes', 'Sister']);
-  assert.deepEqual(spine('Earl of Ravensford'), ['Ravensford', 'Earl of']);
+  assert.deepEqual(spine('Earl of Saltmere'), ['Saltmere', 'Earl of']);
   assert.deepEqual(spine('The Chantry of Pain'), ['The Chantry', 'of Pain']);
   assert.deepEqual(spine('The Docks'), ['The Docks', '']);
   assert.deepEqual(spine('Sir'), ['Sir', '']);
 });
 
 test("the writer's choice of word beats the guess", () => {
-  assert.deepEqual(spine('Lou Lewandowski', 'Lewandowski'), ['Lewandowski', 'Lou']);
+  assert.deepEqual(spine('Ada Varga', 'Varga'), ['Varga', 'Ada']);
   assert.deepEqual(spine('Marta "Wren" Okafor', 'okafor'), ['Okafor', 'Marta Wren']);
   assert.deepEqual(spine('The Chantry of Pain', 'Pain'), ['Pain', 'The Chantry of']);
   // A word the name no longer has falls back to the guess.
-  assert.deepEqual(spine('Lou Lewandowski', 'Kowalski'), ['Lou', 'Lewandowski']);
+  assert.deepEqual(spine('Ada Varga', 'Kowalski'), ['Ada', 'Varga']);
 });
 
 test('a click can choose any word but an article or a joining word', () => {
@@ -78,5 +78,5 @@ test('more than one word can stand large', () => {
   assert.deepEqual(spine('Marta "Wren" Okafor', 'Marta Okafor'), ['Marta Okafor', 'Wren']);
   // A joining word between two large words rides with them.
   assert.deepEqual(spine('The Chantry of Pain', 'Chantry Pain'), ['The Chantry of Pain', '']);
-  assert.deepEqual(spine('Lou Lewandowski the Younger', 'Lou Younger'), ['Lou the Younger', 'Lewandowski']);
+  assert.deepEqual(spine('Ada Varga the Younger', 'Ada Younger'), ['Ada the Younger', 'Varga']);
 });

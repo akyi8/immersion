@@ -3,7 +3,7 @@
  * master knows the answer to. It is written as a callout, the way narrator-only text is:
  *
  *     > [!rumor]
- *     > The bear at Imber has a man's eyes.
+ *     > The seal at the Flats has a man's eyes.
  *
  * A rumor that has been settled says so on its first line: `> [!rumor] confirmed` or
  * `> [!rumor] false`. Text with no tag is known to everyone, and `> [!narrator]` text is

@@ -93,7 +93,7 @@
       <option value="own">This world's own game</option>
     </select>
     {#if campaign.game === 'other'}
-      <input type="text" aria-label="The game's name" placeholder="The game's name, such as Pendragon" value={campaign.system} onchange={(e) => change({ system: e.currentTarget.value.trim() || undefined })} />
+      <input type="text" aria-label="The game's name" placeholder="The game's name, such as Lantern and Ledger" value={campaign.system} onchange={(e) => change({ system: e.currentTarget.value.trim() || undefined })} />
     {/if}
   </div>
 

@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rumorsIn, setStanding } from './rumors.ts';
 
-const page = ['We rode to Imber.', '', '> [!rumor]', "> The bear has a man's eyes.", '> Dana thinks it is a knight.', '', '> [!narrator]', '> It is only a bear.', '', '> [!rumor] false', '> The Earl will marry a Saxon.', '', '> A plain quote.', ''].join('\n');
+const page = ['We rowed to the Flats.', '', '> [!rumor]', "> The seal has a man's eyes.", '> Dana thinks it is a drowned man.', '', '> [!narrator]', '> It is only a seal.', '', '> [!rumor] false', '> The harbormaster will marry a smuggler.', '', '> A plain quote.', ''].join('\n');
 
 test('rumors are found with how they stand', () => {
   assert.deepEqual(rumorsIn(page), [
-    { text: "The bear has a man's eyes. Dana thinks it is a knight.", standing: 'open', line: 2 },
-    { text: 'The Earl will marry a Saxon.', standing: 'false', line: 9 },
+    { text: "The seal has a man's eyes. Dana thinks it is a drowned man.", standing: 'open', line: 2 },
+    { text: 'The harbormaster will marry a smuggler.', standing: 'false', line: 9 },
   ]);
 });
 

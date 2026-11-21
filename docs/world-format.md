@@ -287,7 +287,7 @@ stages:
 # The Ledger
 ```
 
-The writing view hides that header only while every key in it belongs to the app. A chapter's header should therefore hold `stages:` and nothing else, because any other key makes the whole header show as raw lines above the prose.
+The writing view never shows a file's header, whatever keys it holds. A chapter's header can therefore carry other notes beside `stages:`, such as a point of view, and they stay out of the prose.
 
 A book records its part on its series board as `series_stages:` in its `book.md`, in the same form. That field stays separate from the structure of the book's own chapters. A card with no part in the board's current structure sits in an Unassigned band after the last part. A card can record parts in several structures at once, so switching a board between structures loses nothing.
 
@@ -603,7 +603,7 @@ Archiving something in the app moves it into an `archive` folder beside it: a ca
 name: The Fog Season
 role: gm
 game: own
-system: Pendragon
+system: Lantern and Ledger
 links:
   - name: Our characters
     url: https://example.com/characters
@@ -640,7 +640,7 @@ The log's header holds the session's facts:
 name: The Ledger Goes Missing
 played: 2026-11-05
 when: The first night of fog
-table: [ Mike, Dana, Rob ]
+table: [ Sam, Dana, Rob ]
 ---
 
 Tomas Reyes met us at the Salt Market and was already shouting.

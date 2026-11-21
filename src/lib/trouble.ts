@@ -74,14 +74,19 @@ export function watchForTrouble() {
   };
 }
 
-/** A short name for where the keyboard is: which open page, and which field in it. */
+/**
+ * A short name for where the keyboard is: which open page by its number, and what kind
+ * of field. It never holds a page's title or any of its words (code review, November 21).
+ * This record is kept unencrypted and can be copied out, and the page may be a private
+ * story in the vault.
+ */
 function placeOf(el: Element | null): string {
   if (!el || el === document.body) return 'nothing (the window itself)';
   const panes = [...document.querySelectorAll('section.pane')];
   const at = panes.findIndex((p) => p.contains(el));
-  const pane = at >= 0 ? `page ${at + 1} of ${panes.length} (${panes[at].getAttribute('aria-label') ?? ''})` : 'outside the pages';
-  const name = el.getAttribute('aria-label') ?? el.getAttribute('title') ?? (el.textContent ?? '').trim().slice(0, 30);
-  return `${pane}, ${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : ''} "${name}"`;
+  const pane = at >= 0 ? `page ${at + 1} of ${panes.length}` : 'outside the pages';
+  const kind = el.classList.contains('cm-content') ? 'the text' : el.matches('input, textarea') ? 'a field' : el.matches('button') ? 'a button' : el.tagName.toLowerCase();
+  return `${pane}, ${kind} (${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : ''})`;
 }
 
 /**

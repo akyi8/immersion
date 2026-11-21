@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { room } from './lib/room.svelte';
-  import { watchForTrouble } from './lib/trouble';
+  import { noteTrouble, watchForTrouble } from './lib/trouble';
   import { onMount } from 'svelte';
   import { inDesktopApp } from './lib/runtime';
   import type { WorldFs } from './lib/fs/types';
@@ -15,6 +15,7 @@
   import Loading from './screens/Loading.svelte';
   import Shell from './screens/Shell.svelte';
   import { spell } from './lib/spell';
+  import Dialog from './screens/shelf/Dialog.svelte';
   import { frameStyle, writeFrame } from './lib/index/frame';
   import type { RoomPicture } from './lib/room.svelte';
   import Reader from './screens/Reader.svelte';
@@ -182,11 +183,30 @@
   }
 
   /** Writes everything still waiting to be saved, giving up after a few seconds so nothing hangs on it. */
+  // A save in the background, when the window loses the keyboard: best effort, and silent.
   const saveEverything = () => Promise.race([saveAll().catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
 
-  async function showShelf() {
+  /**
+   * The last save before a world or the window closes (code review, November 21). A clash
+   * still open is settled in the writer's favor, and the answer says whether everything
+   * typed is on disk. When it is not, what was about to close stays open and says so, so
+   * a failed save is never followed by the page that held it going away.
+   */
+  async function saveBeforeClosing(): Promise<boolean> {
+    const slow = new Promise<boolean>((done) => setTimeout(() => done(false), 8000));
+    return Promise.race([saveAll(true).catch(() => false), slow]);
+  }
+  let closingAnyway = false;
+  /** What could not be saved, and what to do if the writer closes anyway. */
+  let unsaved = $state<{ what: string; anyway: () => void | Promise<void> } | null>(null);
+
+
+  async function showShelf(anyway = false) {
     // The last words typed are written while the world is still open to write into.
-    await saveEverything();
+    if (!anyway && !(await saveBeforeClosing())) {
+      unsaved = { what: 'go to the Worlds page', anyway: () => showShelf(true) };
+      return;
+    }
     stopWatching();
     sync.stop();
     await library?.close();
@@ -260,8 +280,30 @@
     // Typing is saved a moment after it stops, so the moment is closed whenever the writer
     // turns to another program, and before the window closes.
     window.addEventListener('blur', () => void saveEverything());
+    // A link to somewhere else opens in the computer's browser and never inside the app's
+    // own window (code review, November 21), where the page it led to would replace the
+    // app, drop what was unsaved, and could pose as it.
+    document.addEventListener(
+      'click',
+      (e) => {
+        const link = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+        if (!link) return;
+        const href = link.getAttribute('href') ?? '';
+        if (href.startsWith('#')) return;
+        e.preventDefault();
+        if (!/^https?:\/\//i.test(href)) return;
+        if (inDesktopApp) void import('@tauri-apps/plugin-opener').then((m) => m.openUrl(href)).catch((err) => noteTrouble('link', err));
+        else window.open(href, '_blank', 'noopener');
+      },
+      true,
+    );
     if (inDesktopApp) {
-      void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().onCloseRequested(async () => void (await saveEverything()))).catch(() => {});
+      void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().onCloseRequested(async (event) => {
+        if (closingAnyway || (await saveBeforeClosing())) return;
+        // The window stays open, and the writer chooses.
+        event.preventDefault();
+        unsaved = { what: 'close the window', anyway: () => ((closingAnyway = true), getCurrentWindow().close()) };
+      })).catch(() => {});
     }
     if (inDesktopApp) {
       const { DiskLibrary } = await import('./lib/library/disk');
@@ -321,7 +363,7 @@
     journal={world.journal}
     daily={world.daily}
     onShowLoading={() => ((arriving = false), (phase = 'loading'))}
-    onShowShelf={showShelf}
+    onShowShelf={() => showShelf()}
     onTheme={editTheme}
     onDetails={editDetails}
     engineRel={world.engine}
@@ -405,9 +447,30 @@
         }} />
 {/if}
 
+{#if unsaved}
+  <Dialog
+    title="Some writing is not saved"
+    action="Close anyway"
+    ready
+    busy={false}
+    problem=""
+    onSubmit={() => {
+      const go = unsaved!.anyway;
+      unsaved = null;
+      void go();
+    }}
+    onCancel={() => (unsaved = null)}>
+    <p class="unsaved">A page could not be saved, so Immersion did not {unsaved.what}. The page says "Not saved" and why. Cancel to stay and keep your writing on screen, where it can be copied or saved once the cause is fixed.</p>
+  </Dialog>
+{/if}
+
 <ContextMenu />
 
 <style>
+  .unsaved {
+    margin: 0;
+    line-height: 1.5;
+  }
   .overlay {
     position: fixed;
     inset: 0;

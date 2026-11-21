@@ -52,8 +52,8 @@
   const busy = $derived(own.status !== 'saved' ? own.status : world.status);
 
   onDestroy(() => {
-    void own.flush();
-    void world.flush();
+    void own.flush(true);
+    void world.flush(true);
   });
 
   let titleInput = $state<HTMLInputElement>();

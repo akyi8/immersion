@@ -41,12 +41,17 @@ struct DirEntry {
 }
 
 /// Joins a relative path onto the world root, refusing any path that would leave it.
+///
+/// A part that names a drive, such as `D:`, is refused as `..` is (code review, November
+/// 21). On Windows, pushing such a part onto a path replaces the whole path, so `D:/x`
+/// would have left the folder without a single `..` in it.
 fn inside(root: &Path, rel: &str) -> Result<PathBuf, String> {
     let mut path = root.to_path_buf();
     for part in rel.split(['/', '\\']) {
         match part {
             "" | "." => continue,
             ".." => return Err(format!("{rel} reaches outside the world folder")),
+            p if p.contains(':') => return Err(format!("{rel} reaches outside the world folder")),
             _ => path.push(part),
         }
     }
@@ -1003,9 +1008,17 @@ fn set_git_sync(on: bool, app: AppHandle) {
 
 /// The text of the library's `immersion.md`, or None when there is no library or no file yet.
 #[tauri::command]
-fn read_you(app: AppHandle) -> Option<String> {
-    let lib = load_settings(&app).library?;
-    fs::read_to_string(Path::new(&lib).join(YOU_FILE)).ok()
+///
+/// A file that exists and cannot be read is an error and never "no file" (code review,
+/// November 21). Read as no file, the next save would write a fresh one without the
+/// vault's key settings, and sync would carry that to every computer.
+fn read_you(app: AppHandle) -> Result<Option<String>, String> {
+    let Some(lib) = load_settings(&app).library else { return Ok(None) };
+    match fs::read_to_string(Path::new(&lib).join(YOU_FILE)) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!("Could not read {YOU_FILE}: {e}")),
+    }
 }
 
 /// Saves the library's `immersion.md`, through a temporary file so a crash never leaves half of it.
@@ -1422,6 +1435,17 @@ pub fn run() {
 mod tests {
     use super::{added_words, git_run, vault_name_ok, inside, library_worlds, place_image, relevant_change, shelf_paths, sync_folder, Settings};
     use std::path::Path;
+
+    #[test]
+    fn a_path_that_names_a_drive_or_climbs_out_is_refused() {
+        let root = Path::new("/worlds/harrowgate");
+        assert_eq!(inside(root, "wiki/people/wren.md").unwrap(), root.join("wiki").join("people").join("wren.md"));
+        assert!(inside(root, "../other/secret.md").is_err());
+        assert!(inside(root, "wiki/../../secret.md").is_err());
+        // On Windows a part with a drive in it would replace the whole path.
+        assert!(inside(root, "D:/Users/someone/secret.md").is_err());
+        assert!(inside(root, "C:..\\Google\\secret.md").is_err());
+    }
 
     #[test]
     fn hidden_and_half_saved_files_are_not_reported() {

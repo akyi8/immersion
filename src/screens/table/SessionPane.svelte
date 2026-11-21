@@ -146,7 +146,7 @@
     <input class="name" bind:this={titleInput} aria-label="The session's name" value={session.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() }, true)} />
     <div class="facts">
       <label>Played <input type="date" value={session.played} onchange={(e) => change({ played: e.currentTarget.value })} /></label>
-      <label class="wide">In the game <input type="text" value={session.when} placeholder="Spring, 485" onchange={(e) => change({ when: e.currentTarget.value.trim() })} /></label>
+      <label class="wide">In the game <input type="text" value={session.when} placeholder="The third week of the fog" onchange={(e) => change({ when: e.currentTarget.value.trim() })} /></label>
       <label class="wide">At the table <input type="text" value={session.people.join(', ')} placeholder="Names, with commas between" onchange={(e) => change({ table: e.currentTarget.value.split(',').map((p) => p.trim()).filter(Boolean) })} /></label>
     </div>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

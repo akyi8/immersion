@@ -55,7 +55,7 @@
   let intro = $state((() => section.placed.element.flavor)());
   // svelte-ignore state_referenced_locally
   const saver = new Saver(() => onSave({ name: name.trim() || section.placed.element.name, intro }));
-  onDestroy(() => void saver.flush());
+  onDestroy(() => void saver.flush(true));
   const rules = $derived(section.items.filter((i) => i.type === 'rule').length);
 
   let naming = $state(false);

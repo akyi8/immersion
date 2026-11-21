@@ -34,7 +34,7 @@
   let text = $state((() => body)());
   // svelte-ignore state_referenced_locally
   const saver = new Saver(() => onSave({ name: heading.trim() || name, body: text }));
-  onDestroy(() => void saver.flush());
+  onDestroy(() => void saver.flush(true));
 </script>
 
 <article class="front">

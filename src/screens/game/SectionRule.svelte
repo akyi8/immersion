@@ -34,8 +34,8 @@
   const own = new Saver(() => onSave({ name: name.trim() || item.placed.element.name, text }));
   const world = new Saver<string>((t) => onSaveWorld(t));
   onDestroy(() => {
-    void own.flush();
-    void world.flush();
+    void own.flush(true);
+    void world.flush(true);
   });
   const busy = $derived(own.status !== 'saved' ? own.status : world.status);
 </script>

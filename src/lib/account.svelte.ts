@@ -1,4 +1,5 @@
 import type { Library, LibraryInfo } from './library/types';
+import { noteTrouble } from './trouble.ts';
 import { withWords, DEFAULT_LOOK, moduleList, readYou, withLook, withProfiles, type Look, type Profile } from './you.ts';
 import { splitHeader, withHeader } from './world.ts';
 import type { KeyParams } from './vault/crypto.ts';
@@ -60,7 +61,12 @@ class Account {
   async refresh() {
     if (!this.library) return;
     this.info = await this.library.info();
-    this.source = this.info.path ? await this.library.readYou() : null;
+    try {
+      this.source = this.info.path ? await this.library.readYou() : null;
+    } catch (e) {
+      // A file that cannot be read keeps whatever was read before, and is written down.
+      noteTrouble('settings', e);
+    }
     this.profiles = readYou(this.source).profiles;
     this.words = this.info.path ? readYou(this.source).words : localWords();
     this.vaultParams = vaultParamsFrom(this.source);
@@ -75,9 +81,19 @@ class Account {
   private async fresh(): Promise<string | null> {
     if (!this.library) return this.source;
     try {
-      this.source = await this.library.readYou();
+      let now = await this.library.readYou();
+      // A file that was here and is suddenly gone is most likely in the middle of being
+      // replaced by a sync (code review, November 21). Writing a fresh file over that
+      // moment would drop the vault's key settings on every computer, so it is read once
+      // more, and failing that the copy already held is the base for the write.
+      if (now === null && this.source !== null) {
+        await new Promise((done) => setTimeout(done, 400));
+        now = await this.library.readYou();
+        if (now === null) return this.source;
+      }
+      this.source = now;
     } catch {
-      // The copy already held is the best there is.
+      // The file could not be read. The copy already held is the best there is.
     }
     return this.source;
   }

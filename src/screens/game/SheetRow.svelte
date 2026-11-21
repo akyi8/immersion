@@ -27,7 +27,7 @@
   // Seeded once from the file; the row then holds the writer's own copy.
   let draft = $state<Element>((() => structuredClone($state.snapshot(placed.element)) as Element)());
   const saver = new Saver(() => onSave({ ...($state.snapshot(draft) as Element), name: draft.name.trim() || placed.element.name }));
-  onDestroy(() => void saver.flush());
+  onDestroy(() => void saver.flush(true));
 
   const textOf = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
   function setField(key: string, type: string, value: string) {

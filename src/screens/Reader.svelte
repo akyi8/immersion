@@ -21,7 +21,7 @@
   import { splitHeader } from '../lib/world';
 
   /**
-   * A reading window (Jen and Mike, October 25): one page and nothing else, so it can sit
+   * A reading window (October 25): one page and nothing else, so it can sit
    * on a second monitor or be shared on a call. Names in it open beside it in this window.
    * It starts in Protagonist view, so narrator-only text stays hidden until the quiet
    * switch in the corner shows it.

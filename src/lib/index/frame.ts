@@ -94,7 +94,7 @@ export const defaultShape = (category: string, world: Shape | null = null): Shap
 /**
  * How a name stands on a card's spine: one word large, and the rest small beside it.
  * Which word is the large one is the writer's choice (Mike, November 15), because no rule
- * can tell that Lou Lewandowski wants the surname and Sister Agnes wants Agnes. The
+ * can tell that Ada Varga wants the surname and Sister Agnes wants Agnes. The
  * writer clicks a word on the spine to choose it, and the entry's `spine:` line keeps the
  * choice. Until then the app guesses: a nickname in quotes first, and otherwise the first
  * word that is not an article, a title, or a joining word. An article straight before

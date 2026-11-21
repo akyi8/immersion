@@ -86,7 +86,7 @@ export function rollLine(r: Rolled, why = ''): string {
 }
 
 /**
- * A Beautiful Disasters roll: one eight-sided die for each point of pressure. Each die
+ * A pool roll, for a world's own game: one eight-sided die for each point of pressure. Each die
  * below the edge is one trouble, and the 8s and the 1s are counted because they buy
  * consequences. The table decides what the trouble means.
  */

@@ -71,7 +71,7 @@ Goal: put the ledger in play and let them meet Tomas Reyes angry.
 name: The Ledger Goes Missing
 played: 2026-11-05
 when: The first night of fog
-table: [ Mike, Dana, Rob ]
+table: [ Sam, Dana, Rob ]
 ---
 
 Tomas Reyes met us at the Salt Market and was already shouting. His ledger is gone, and with it every favor owed to him in Harrowgate.
@@ -91,7 +91,7 @@ Goal: the mudflats, and the first real trouble.
 name: Low Water
 played: 2026-11-12
 when: The second night of fog
-table: [ Mike, Dana, Rob ]
+table: [ Sam, Dana, Rob ]
 ---
 
 We searched the mudflats at low water.

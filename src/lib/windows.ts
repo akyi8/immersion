@@ -1,7 +1,7 @@
 import { inDesktopApp } from './runtime';
 
 /**
- * Reading windows (Jen and Mike, October 25). A page opens in a bare window of its own,
+ * Reading windows (October 25). A page opens in a bare window of its own,
  * holding only that page, so it can sit on a second monitor or be shared on a call.
  * Names in it open beside it, inside the same window. Reading windows close when their
  * world closes, and they never reopen on their own at the next launch.

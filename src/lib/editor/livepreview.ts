@@ -119,10 +119,7 @@ class WriteHereWidget extends WidgetType {
   }
 }
 
-/**
- * Header keys the app writes for itself or shows in a place of its own, such as an entry's
- * date under its name, which the writer never needs to see as raw header lines.
- */
+/** A stretch of the text that is hidden or kept from the cursor. */
 type Zone = { from: number; to: number };
 
 /** The start of the line after `n`, past one blank separator line if there is one. */

@@ -6,23 +6,23 @@ import { archivePath, archiveSession, createAdventure, createCampaign, createSes
 test('a campaign is made, filled, and read back', async () => {
   const fs = new MemoryFs({ 'world.md': '# W\n' });
   assert.deepEqual(await readTable(fs), []);
-  await createCampaign(fs, { name: 'The Salt Ledger', role: 'gm', game: 'other', system: 'Pendragon' });
+  await createCampaign(fs, { name: 'The Salt Ledger', role: 'gm', game: 'other', system: 'Lantern and Ledger' });
   let [c] = await readTable(fs);
   assert.equal(c.path, 'table/the-salt-ledger');
-  assert.deepEqual([c.name, c.role, c.game, c.system], ['The Salt Ledger', 'gm', 'other', 'Pendragon']);
-  await createAdventure(fs, c, 'The Year 485');
+  assert.deepEqual([c.name, c.role, c.game, c.system], ['The Salt Ledger', 'gm', 'other', 'Lantern and Ledger']);
+  await createAdventure(fs, c, 'The Long Winter');
   [c] = await readTable(fs);
-  const stem = await createSession(fs, c, c.adventures[0], 'The Bear Hunt', '2026-11-19');
-  assert.equal(stem, 'table/the-salt-ledger/the-year-485/the-bear-hunt');
-  await setFacts(fs, `${stem}.log.md`, { when: 'Spring, 485', table: ['Mike', 'Dana'] });
+  const stem = await createSession(fs, c, c.adventures[0], 'The Fog Bell', '2026-11-19');
+  assert.equal(stem, 'table/the-salt-ledger/the-long-winter/the-fog-bell');
+  await setFacts(fs, `${stem}.log.md`, { when: 'The third week of the fog', table: ['Sam', 'Dana'] });
   [c] = await readTable(fs);
   const s = c.adventures[0].sessions[0];
-  assert.deepEqual([s.name, s.played, s.when, s.people, s.log, s.plan], ['The Bear Hunt', '2026-11-19', 'Spring, 485', ['Mike', 'Dana'], `${stem}.log.md`, `${stem}.plan.md`]);
+  assert.deepEqual([s.name, s.played, s.when, s.people, s.log, s.plan], ['The Fog Bell', '2026-11-19', 'The third week of the fog', ['Sam', 'Dana'], `${stem}.log.md`, `${stem}.plan.md`]);
   // The next session starts from the last one's date in the game and its table.
   const next = await createSession(fs, c, c.adventures[0], 'The Barrow', '2026-11-26');
   [c] = await readTable(fs);
-  assert.deepEqual(c.adventures[0].sessions.map((x) => x.name), ['The Bear Hunt', 'The Barrow']);
-  assert.equal(c.adventures[0].sessions[1].when, 'Spring, 485');
+  assert.deepEqual(c.adventures[0].sessions.map((x) => x.name), ['The Fog Bell', 'The Barrow']);
+  assert.equal(c.adventures[0].sessions[1].when, 'The third week of the fog');
   assert.equal(sessionOf([c], `${next}.plan.md`)?.session.name, 'The Barrow');
 });
 
@@ -41,8 +41,8 @@ test("a player's session has no plan, and a second adventure follows the first",
 });
 
 test('where a session ended is its last plain paragraph', () => {
-  const log = '---\nname: One\n---\n\nWe rode out.\n\nThe bear is dead.\n\n> [!rumor]\n> It had eyes.\n';
-  assert.equal(lastWords(log), 'The bear is dead.');
+  const log = '---\nname: One\n---\n\nWe rowed out.\n\nThe seal is gone.\n\n> [!rumor]\n> It had eyes.\n';
+  assert.equal(lastWords(log), 'The seal is gone.');
   assert.equal(lastWords('---\nname: One\n---\n'), '');
 });
 

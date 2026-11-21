@@ -164,3 +164,43 @@ test('a file that went missing is written again', async () => {
   assert.equal(d.file.text, page + 'a\n');
   assert.equal(d.file.writes, 1);
 });
+
+// Code review, November 21: an open clash at close lost the writer's text, and a save
+// left trying after its page closed could write into the world opened next.
+test('a last save settles an open clash in the writer\'s favor and says it is on disk', async () => {
+  const d = desk(page);
+  d.type('one\n\nTWO mine\n\nthree\n');
+  d.file.text = 'one\n\nTWO theirs\n\nthree\n';
+  await d.saver.changedElsewhere();
+  assert.notEqual(d.saver.conflict, null);
+  // An ordinary save writes nothing while the writer has not chosen, and says so.
+  assert.equal(await d.saver.save(), false);
+  assert.equal(d.file.text, 'one\n\nTWO theirs\n\nthree\n');
+  // The last save, before a world or the window closes, keeps what the writer typed.
+  assert.equal(await d.saver.save(true), true);
+  assert.equal(d.file.text, 'one\n\nTWO mine\n\nthree\n');
+});
+
+test('a save that fails says so, and a closed page never tries again', async () => {
+  const d = desk(page);
+  d.type('one\n\ntwo more\n\nthree\n');
+  d.file.failing = true;
+  assert.equal(await d.saver.save(), false);
+  assert.equal(d.saver.status, 'error');
+  // The page goes away while the disk still refuses.
+  assert.equal(await d.saver.close(), false);
+  // The disk works again, as it would for the next world opened. Nothing more is written.
+  d.file.failing = false;
+  assert.equal(await d.saver.save(true), false);
+  d.saver.typed();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(d.file.writes, 0);
+  assert.equal(d.file.text, page);
+});
+
+test('a page that closes with everything saved says so', async () => {
+  const d = desk(page);
+  d.type('one\n\ntwo more\n\nthree\n');
+  assert.equal(await d.saver.close(), true);
+  assert.equal(d.file.text, 'one\n\ntwo more\n\nthree\n');
+});

@@ -37,7 +37,7 @@
   // Dice. The roll is built by clicking the dice (Mike, November 14): a click adds one die
   // of that shape, and a right click takes one away. The roll can also be typed.
   const SHAPES = [4, 6, 8, 10, 12, 20, 100];
-  // A game built on Beautiful Disasters rolls a pool of eight-sided dice and nothing else.
+  // A world's own game rolls a pool of eight-sided dice and nothing else.
   const own = $derived(campaign?.game === 'own');
   let said = $state('');
   let why = $state('');
@@ -106,7 +106,7 @@
     };
   }
 
-  // A Beautiful Disasters roll: the d8s in the pool are the pressure.
+  // A pool roll: the d8s in the pool are the pressure.
   let edge = $state(7);
   async function throwTrouble() {
     const pressure = countOf(8);

@@ -6,16 +6,16 @@ const item = (kind: string, name: string, detail = '', also: string[] = []): Fin
 
 test('the finder ranks names that start with the query first', () => {
   const items = [
-    item('Entry', 'Ada Rhye-Cross', 'People'),
+    item('Entry', 'Ada Vane-Cross', 'People'),
     item('Entry', 'Wren Cross', 'People', ['Wren']),
     item('Board', 'Wren Cross Letters', 'Series'),
     item('Chapter', 'The Crossing', 'The Tide Letter'),
   ];
   assert.deepEqual(find(items, 'wren').map((i) => i.name), ['Wren Cross', 'Wren Cross Letters']);
-  assert.deepEqual(find(items, 'cross').map((i) => i.name), ['Wren Cross', 'Ada Rhye-Cross', 'Wren Cross Letters', 'The Crossing']);
+  assert.deepEqual(find(items, 'cross').map((i) => i.name), ['Wren Cross', 'Ada Vane-Cross', 'Wren Cross Letters', 'The Crossing']);
   // Every word must match, and the detail counts.
   assert.deepEqual(find(items, 'crossing tide').map((i) => i.name), ['The Crossing']);
-  assert.deepEqual(find(items, 'people ada').map((i) => i.name), ['Ada Rhye-Cross']);
+  assert.deepEqual(find(items, 'people ada').map((i) => i.name), ['Ada Vane-Cross']);
   // Accents and capitals do not matter.
   assert.equal(find([item('Entry', 'Ōshima Pier')], 'oshima')[0].name, 'Ōshima Pier');
   assert.deepEqual(find(items, '   '), []);

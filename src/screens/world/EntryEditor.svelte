@@ -117,7 +117,7 @@
       view.dispatch({ selection: { anchor: view.state.doc.length } });
     }
     stopWatching = fs.onChange(changedElsewhere);
-    unregister = registerSaver(id, () => saver.save());
+    unregister = registerSaver(id, (last) => saver.save(last));
   });
 
   // A rebuilt index brings new names, and a new pane to the right moves the marked name,
@@ -138,7 +138,9 @@
     unregister();
     // Closing a page with a clash still open keeps what the writer typed (design: the player wins).
     // The editor outlives the page by one save, because the save reads its text.
-    void saver.save(true).finally(() => view?.destroy());
+    // After that one save it is stopped for good, so a write that failed is never tried
+    // again from a page that is gone, into whatever world is open by then.
+    void saver.close().finally(() => view?.destroy());
   });
 </script>
 
