@@ -644,10 +644,11 @@
     nav.open(`${SEC}${key}`);
   }
 
-  async function add(origin: Origin, kindId: string, name: string, from: number) {
+  async function add(origin: Origin, kindId: string, name: string, from: number, stay = false) {
     const key = await addElement(origin, kindId, name);
     await load();
-    openElement(key, from);
+    // An element added from the sheet's last row is written there, so the page stays.
+    if (!stay) openElement(key, from);
   }
 
   async function setAside(p: Placed, on: boolean) {
@@ -869,8 +870,11 @@
               where={tree?.book.name ?? worldName}
               {worldName}
               elements={c.elements}
+              {engineName}
               onOpen={(key) => openElement(key, i)}
-              onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)} />
+              onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)}
+              onSave={(p, next) => save(p, next)}
+              onNewHere={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i, true)} />
           {:else if id.startsWith(KIND)}
             {@const [, origin, kindId] = id.split(':')}
             {@const kind = game!.kinds.get(kindId)!}
@@ -880,7 +884,10 @@
               {worldName}
               elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
               onOpen={(key) => openElement(key, i)}
-              onNew={(name) => add(origin as Origin, kindId, name, i)} />
+              {engineName}
+              onNew={(name) => add(origin as Origin, kindId, name, i)}
+              onSave={(p, next) => save(p, next)}
+              onNewHere={(name) => add(origin as Origin, kindId, name, i, true)} />
           {:else}
             {@const p = byKey.get(keyIn(id))!}
             <GameElement

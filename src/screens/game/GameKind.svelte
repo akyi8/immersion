@@ -1,18 +1,27 @@
 <script lang="ts">
-  import type { Kind } from '../../lib/game/elements';
+  import type { Element, Kind } from '../../lib/game/elements';
+  import Pick from '../Pick.svelte';
+  import SheetRow from './SheetRow.svelte';
   import type { Placed } from '../../lib/game/game';
 
   /**
    * Every element of one kind from one place, the engine or the world, as a list to open
    * and to add to. Core elements a world sets aside or reskins stay listed, marked.
+   *
+   * The same elements also show as a sheet (Mike, November 21): one row for each, one
+   * column for each of the kind's fields, typed in place. The list and each element's own
+   * form stay as they were, and the page remembers which of the two was last used.
    */
   let {
     kind,
     where,
     worldName,
     elements,
+    engineName = '',
     onOpen,
     onNew,
+    onSave,
+    onNewHere,
   }: {
     kind: Kind;
     /** The engine's or the world's name. */
@@ -21,7 +30,45 @@
     elements: Placed[];
     onOpen: (key: string) => void;
     onNew: (name: string) => Promise<void>;
+    engineName?: string;
+    /** Saves one element from its row of the sheet. Without it the page is a list only. */
+    onSave?: (p: Placed, next: Element) => Promise<void>;
+    /** Adds an element and stays on this page, for the sheet's last row. */
+    onNewHere?: (name: string) => Promise<void>;
   } = $props();
+
+  const SHOW = 'immersion.game.kind-view';
+  let show = $state<'list' | 'sheet'>(
+    (() => {
+      try {
+        return localStorage.getItem(SHOW) === 'sheet' ? 'sheet' : 'list';
+      } catch {
+        return 'list';
+      }
+    })(),
+  );
+  function setShow(v: 'list' | 'sheet') {
+    show = v;
+    try {
+      localStorage.setItem(SHOW, v);
+    } catch {
+      // Not remembering the choice is harmless.
+    }
+  }
+  const sheet = $derived(show === 'sheet' && !!onSave);
+  let fresh = $state('');
+  async function addHere(e: SubmitEvent) {
+    e.preventDefault();
+    const n = fresh.trim();
+    if (!n) return;
+    problem = '';
+    try {
+      await (onNewHere ?? onNew)(n);
+      fresh = '';
+    } catch (err) {
+      problem = err instanceof Error ? err.message : String(err);
+    }
+  }
 
   let filter = $state('');
   let naming = $state(false);
@@ -33,6 +80,9 @@
     if (!q) return elements;
     return elements.filter((p) => p.element.name.toLowerCase().includes(q) || p.element.tags.some((t) => t.toLowerCase().includes(q)));
   });
+
+  // A reskin takes its mechanics from another element, so it is edited in its own form.
+  const rows = $derived(shown.filter((p) => !p.base));
 
   async function add(e: SubmitEvent) {
     e.preventDefault();
@@ -49,13 +99,14 @@
   }
 </script>
 
-<article class="kind">
+<article class="kind" class:wide={sheet}>
   <header>
     <div class="label">{where} · Kind</div>
     <h1>{kind.plural}</h1>
     <div class="row">
       <span class="meta">{elements.length} {elements.length === 1 ? 'element' : 'elements'}</span>
       <span class="spacer"></span>
+      {#if onSave}<Pick small label="Show {kind.plural} as" value={show} onpick={setShow} options={[['list', 'List'], ['sheet', 'Sheet']] as const} />{/if}
       <input class="filter" type="search" placeholder="Filter by name or tag" bind:value={filter} aria-label="Filter {kind.plural}" />
       {#if naming}
         <form class="naming" onsubmit={add}>
@@ -71,6 +122,30 @@
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </header>
   {#if kind.about}<p class="about">{kind.about}</p>{/if}
+  {#if sheet}
+    <div class="sheet">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" class="name-col">Name</th>
+            {#each kind.fields as f (f.key)}<th scope="col" class={f.type}>{f.label}</th>{/each}
+            <th scope="col" class="text">{kind.body ?? 'Flavor'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each rows as p (p.key)}
+            <SheetRow placed={p} {kind} {engineName} onSave={(next) => onSave!(p, next)} onOpen={() => onOpen(p.key)} />
+          {:else}
+            <tr><td class="none" colspan={kind.fields.length + 2}>{filter ? 'Nothing matches.' : `No ${kind.plural.toLowerCase()} yet.`}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+    <form class="fresh" onsubmit={addHere}>
+      <input type="text" bind:value={fresh} placeholder="+ New {kind.name.toLowerCase()}: type its name and press Enter" aria-label="New {kind.name}'s name" autocomplete="off" />
+    </form>
+    <p class="keys">Tab moves across. Alt with an up or down arrow moves between rows, and Enter moves down from a one-line cell.</p>
+  {:else}
   <ul>
     {#each shown as p (p.key)}
       <li>
@@ -86,11 +161,75 @@
       <li class="none">{filter ? 'Nothing matches.' : `No ${kind.plural.toLowerCase()} yet.`}</li>
     {/each}
   </ul>
+  {/if}
 </article>
 
 <style>
   article {
     max-width: 720px;
+  }
+  /* The sheet takes the page's whole width and scrolls sideways inside its own box. */
+  article.wide {
+    max-width: none;
+  }
+  .sheet {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--round);
+  }
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    width: max-content;
+    min-width: 100%;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    padding: 6px 8px;
+    font-family: var(--font-label);
+    font-size: calc(10.5px * var(--type));
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--structure);
+    border-right: 1px solid var(--line);
+    background: var(--paper, var(--bg));
+  }
+  thead th.name-col {
+    left: 0;
+    z-index: 2;
+    width: 190px;
+  }
+  thead th.line {
+    width: 120px;
+  }
+  thead th.text,
+  thead th.list {
+    width: 300px;
+  }
+  td.none {
+    padding: 10px;
+    color: var(--muted);
+  }
+  .fresh input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+    font: inherit;
+    font-size: calc(13.5px * var(--type));
+    color: var(--text);
+    background: none;
+    border: 1px dashed var(--edge);
+    border-radius: var(--round);
+    padding: 6px 10px;
+  }
+  .keys {
+    margin: 8px 0 0;
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
   }
   header {
     margin-bottom: 14px;
