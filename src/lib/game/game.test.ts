@@ -218,3 +218,40 @@ test('an element file saved on Windows reads without an empty first line', async
   assert.equal(e.fields.offers, 'Choose two.');
   assert.equal(e.flavor, 'The vast middle.\nNot starving.');
 });
+
+test("a new world's book is laid out over its engine's", async () => {
+  const { bookOver } = await import('./game.ts');
+  const engine = new MemoryFs({
+    'engine.md': '# Example Engine\n',
+    'kinds/gear.md': '---\nname: Gear\n---\n',
+    'kinds/division.md': '---\nname: Division\n---\n',
+    'kinds/chapter.md': '---\nname: Chapter\n---\n',
+    'kinds/module.md': '---\nname: Module\n---\n',
+    'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter ]\ndivisions: [ division/the-protagonist, division/the-aspects ]\n---\n',
+    'elements/chapter/front-matter.md': '---\nname: Front Matter\nkind: chapter\nitems: [ module/safety ]\n---\n',
+    'elements/module/safety.md': '---\nname: Safety\nkind: module\n---\n\nTalk first.\n',
+    'elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\nsections: [ chapter/taking-risks ]\n---\n\nWho you play.\n',
+    'elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ncatalog: [ gear ]\n---\n',
+    'elements/chapter/taking-risks.md': '---\nname: Taking Risks\nkind: chapter\nitems: [ module/when-to-roll ]\n---\n',
+    'elements/module/when-to-roll.md': '---\nname: When to Roll\nkind: module\n---\n\nRoll when it matters.\n',
+    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\n---\n',
+  });
+  const world = new MemoryFs({ 'world.md': '---\nname: Low Tide\n---\n' });
+  const open = () => loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Low Tide', fs: world, dir: 'game' });
+  const before = await open();
+  assert.equal(before.books.world, null);
+  for (const f of bookOver(before, 'Low Tide')) await world.writeText(`game/${f.path}`, f.text);
+
+  const mine = bookTree(await open(), 'world')!;
+  assert.equal(mine.book.name, 'Low Tide');
+  assert.deepEqual(mine.front.map((s) => [s.placed.key, s.items.map((i) => i.type === 'rule' && i.placed.key)]), [['world:chapter/front-matter', ['engine:module/safety']]]);
+  assert.deepEqual(mine.divisions.map((d) => [d.placed.key, d.placed.element.flavor]), [['world:division/the-protagonist', 'Who you play.'], ['world:division/the-aspects', '']]);
+  // The engine's section and its rule show in the world's division, still the engine's own.
+  const section = mine.divisions[0].sections[0];
+  assert.equal(section.placed.key, 'engine:chapter/taking-risks');
+  assert.deepEqual(section.items.map((i) => i.type === 'rule' && i.placed.key), ['engine:module/when-to-roll']);
+  assert.deepEqual(mine.divisions[1].catalog[0].elements.map((p) => p.key), ['engine:gear/rope']);
+  // Nothing in the engine changed.
+  assert.equal(await engine.exists('elements/division/the-protagonist.md'), true);
+  assert.match(await engine.readText('book.md'), /name: Example Engine/);
+});

@@ -5,7 +5,7 @@
   import { titleFocus } from '../../lib/table/tray.svelte';
   import { saveAll } from '../../lib/saves';
   import type { View } from '../../lib/render';
-  import { onMount, setContext } from 'svelte';
+  import { onMount, setContext, tick } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { gameScanner, isGameLink, GAME_LINK } from '../../lib/game/links';
   import { GAME_LINKS, type GameLinks } from './links';
@@ -33,6 +33,7 @@
     type Placed,
     type SectionNode,
     type Source,
+    bookOver,
   } from '../../lib/game/game';
   import { readFrame, writeFrame, type Frame } from '../../lib/index/frame';
   import { ui } from '../../lib/ui.svelte';
@@ -66,6 +67,7 @@
     engineRel,
     gameDir,
     openEngine,
+    engineChoices = async () => [],
   }: {
     /** Narrator or Protagonist, which a wiki entry opened here follows. */
     view?: View;
@@ -80,7 +82,61 @@
     engineRel: string;
     gameDir: string;
     openEngine: (rel: string | null) => Promise<GameFs | null>;
+    /** The engines the library's other worlds build on, each as its path from the library's top. */
+    engineChoices?: () => Promise<string[]>;
   } = $props();
+
+  /**
+   * A world with no game yet starts one here (Mike, November 21). The engines on offer
+   * are the ones the library's other worlds already build on. Choosing one names it in
+   * the world's `world.md` and lays the world's book out over the engine's, so the game
+   * opens with the base game's shape and its core rules in place.
+   */
+  let choices = $state<{ rel: string; name: string }[]>([]);
+  let starting = $state(false);
+  $effect(() => {
+    if (!game || game.engine || engineRel) return;
+    let live = true;
+    void (async () => {
+      const found: { rel: string; name: string }[] = [];
+      for (const rel of await engineChoices().catch(() => [])) {
+        try {
+          const efs = await openEngine(rel);
+          if (!efs) continue;
+          const md = (await efs.exists('engine.md')) ? await efs.readText('engine.md') : '';
+          const { header, body } = splitHeader(md);
+          found.push({ rel, name: (typeof header.name === 'string' && header.name.trim()) || /^#\s+(.+)$/m.exec(body)?.[1]?.trim() || rel });
+        } catch {
+          // An engine that cannot be opened is not offered.
+        }
+      }
+      await openEngine(null).catch(() => {});
+      if (live) choices = found;
+    })();
+    return () => (live = false);
+  });
+
+  async function layOut() {
+    if (!game?.engine || game.books.world) return;
+    for (const f of bookOver(game, worldName)) await game.world.fs.writeText(pathIn(game.world, f.path), f.text);
+    await load();
+  }
+
+  async function startOn(rel: string) {
+    starting = true;
+    problem = '';
+    try {
+      await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { engine: rel }));
+      await rebuild();
+      await tick();
+      await load();
+      await layOut();
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+    } finally {
+      starting = false;
+    }
+  }
 
   const FRONT = '@front:';
   const DIV = '@div:';
@@ -953,7 +1009,18 @@
             <span class="n">{count('world')} elements of its own{game.setAside.size ? ` · ${game.setAside.size} core set aside` : ''}</span>
           </div>
         </div>
-        {#if !game.engine && !problem}
+        {#if game.engine && !game.books.world && !game.elements.some((p) => p.origin === 'world')}
+          <p class="hint">{worldName} is built on {engineName} and has no book of its own yet.</p>
+          <button type="button" class="start" disabled={starting} onclick={() => ((starting = true), layOut().catch((e) => (problem = String(e))).finally(() => (starting = false)))}>
+            {starting ? 'Laying it out…' : `Lay out ${worldName}'s book from ${engineName}`}
+          </button>
+        {/if}
+        {#if !game.engine && !problem && choices.length}
+          <p class="hint">{worldName} has no game yet. Building it on an engine gives it that game's core rules, laid out as a book you add {worldName}'s own sections, rules, and aspects to.</p>
+          {#each choices as c (c.rel)}
+            <button type="button" class="start" disabled={starting} onclick={() => startOn(c.rel)}>{starting ? 'Setting it up…' : `Build ${worldName}'s game on ${c.name}`}</button>
+          {/each}
+        {:else if !game.engine && !problem}
           <p class="hint">
             This world names no engine. A world's game is built on an engine when its <code>world.md</code> says where the engine's folder is, as a path
             from the top of the library, such as <code>engine: games/example-engine</code>. The engine folder holds an <code>engine.md</code>.
@@ -1116,6 +1183,20 @@
     font-size: calc(11px * var(--type));
     color: var(--muted);
     flex-shrink: 0;
+  }
+  .start {
+    align-self: flex-start;
+    margin: 4px 18px 10px;
+    padding: 9px 16px;
+    font-size: calc(14px * var(--type));
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--round);
+  }
+  .start:disabled {
+    opacity: 0.6;
   }
   .tag-field {
     font: inherit;

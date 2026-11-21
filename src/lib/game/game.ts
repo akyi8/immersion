@@ -1,4 +1,5 @@
-import { readElement, readGameFile, readKind, type Element, type Kind } from './elements.ts';
+import { stringify } from 'yaml';
+import { newElement, readElement, readGameFile, readKind, writeElement, type Element, type Kind } from './elements.ts';
 import { splitHeader, withHeader } from '../world.ts';
 import { IMAGE_EXTENSIONS, type DirEntry, type ImageSource } from '../fs/types.ts';
 
@@ -407,3 +408,42 @@ export function pictureOf(game: Game, p: Placed, inWorld: boolean): { src: Sourc
   return null;
 }
 
+
+/**
+ * The files of a world's first book, laid out over its engine's (Mike, November 21), so a
+ * new game opens with the base game's shape and its core rules already in place. Each of
+ * the engine's divisions becomes a division of the world's own with the same name, front
+ * page, and sections, and the front and back matter become sections of the world's own
+ * that print the engine's pages. The paths are from the world's game folder. Nothing in
+ * the engine is changed, and the world adds its own sections and rules from there.
+ */
+export function bookOver(game: Game, worldName: string): { path: string; text: string }[] {
+  const base = bookTree(game, 'engine');
+  if (!base) return [];
+  const files: { path: string; text: string }[] = [];
+  const taken = new Set<string>();
+  const fromEngine = (p: Placed, field: string) => listField(p, field).map((ref) => (ref.startsWith('heading:') ? ref : keyOf(ref, 'engine')));
+  const make = (kindId: string, from: Placed, fields: Record<string, string | string[]>, flavor: string): string | null => {
+    const kind = game.kinds.get(kindId);
+    if (!kind) return null;
+    const e = newElement(from.element.name, kind, taken);
+    taken.add(refOf(e));
+    files.push({ path: e.path, text: writeElement({ ...e, tags: [kind.id], fields, flavor }, kind) });
+    return refOf(e);
+  };
+  const section = (s: SectionNode) => make('chapter', s.placed, { items: fromEngine(s.placed, 'items') }, '');
+  const front = base.front.map(section).filter((r): r is string => !!r);
+  const back = base.back.map(section).filter((r): r is string => !!r);
+  const divisions = base.divisions
+    .map((d) => {
+      const catalog = listField(d.placed, 'catalog');
+      return make('division', d.placed, catalog.length ? { catalog } : { sections: fromEngine(d.placed, 'sections') }, d.placed.element.flavor);
+    })
+    .filter((r): r is string => !!r);
+  const header: Record<string, unknown> = { name: worldName };
+  if (front.length) header.front_matter = front;
+  if (back.length) header.back_matter = back;
+  header.divisions = divisions;
+  files.push({ path: 'book.md', text: `---\n${stringify(header, { lineWidth: 0 })}---\n` });
+  return files;
+}

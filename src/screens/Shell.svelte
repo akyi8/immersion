@@ -34,6 +34,7 @@
     engineRel = '',
     gameDir = 'game',
     openEngine = async () => null,
+    engineChoices = async () => [],
   }: {
     index: WikiIndex | null;
     fs: WorldFs;
@@ -53,6 +54,8 @@
     engineRel?: string;
     gameDir?: string;
     openEngine?: (rel: string | null) => Promise<GameFs | null>;
+    /** The engines the library's other worlds build on, for a world starting its game. */
+    engineChoices?: () => Promise<string[]>;
   } = $props();
 
   const nav = new Navigator();
@@ -233,7 +236,7 @@
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'game'}
-    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} />
+    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} {engineChoices} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}

@@ -347,7 +347,7 @@ games/example-engine/
       when-to-roll.png      the rule's header picture
 ```
 
-A world points at its engine with `engine: games/example-engine` in its `world.md`. While the world is open, the app reads and writes the engine folder beside it, and Git sync carries the engine's changes in the same commit as the world's.
+A world points at its engine with `engine: games/example-engine` in its `world.md`. The app writes that line when a world's game is started from the Game module, and then lays out the world's first book over the engine's: a division of the world's own for each of the engine's, with the same name, front page, and sections, each section written as `engine:chapter/<id>`, and sections of the world's own for the front and back matter that list the engine's pages. Nothing in the engine folder is changed. While the world is open, the app reads and writes the engine folder beside it, and Git sync carries the engine's changes in the same commit as the world's.
 
 ### A world's game folder
 

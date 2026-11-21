@@ -246,7 +246,10 @@
     } else {
       const [{ MemoryLibrary }, { sampleWorld }, game] = await Promise.all([import('./lib/library/memory'), import('./lib/sample'), import('./lib/sample/game')]);
       const trial = game.trialGame();
-      library = new MemoryLibrary(sampleWorld(), trial ? { '/worlds/game-trial': trial.world } : {}, {
+      const { MemoryFs } = await import('./lib/fs/memory');
+      // A second sample world with no game yet, so starting one can be tried in the browser.
+      const bare = new MemoryFs({ 'world.md': '---\nname: Low Tide\ntagline: A sample world with no game yet\n---\n', 'wiki/places/the-flats.md': '# The Flats\n\nMud to the horizon at low water.\n' });
+      library = new MemoryLibrary(sampleWorld(), { '/worlds/low-tide': bare, ...(trial ? { '/worlds/game-trial': trial.world } : {}) }, {
         [game.SAMPLE_ENGINE]: game.sampleEngine(),
         ...(trial ? { [trial.engine]: trial.engineFs } : {}),
       });
@@ -301,6 +304,11 @@
     engineRel={world.engine}
     gameDir={world.gameDir}
     openEngine={(rel) => (library ? library.openEngine(rel) : Promise.resolve(null))}
+    engineChoices={async () => {
+      if (!library) return [];
+      const named = (await library.list()).map((w) => (w.worldMd ? splitHeader(w.worldMd).header.engine : null));
+      return [...new Set(named.filter((e): e is string => typeof e === 'string' && e.trim() !== '').map((e) => e.trim()))];
+    }}
   />
   {#if detailsFor && library}
     <WorldDetails
