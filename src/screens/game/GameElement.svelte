@@ -73,6 +73,8 @@
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const reskin = $derived(!!placed.base);
+  // Reskinning is no longer offered from this page. The files and the module still support it.
+  export const offersReskin = () => onReskin;
   const shown = $derived(effective({ ...placed, element: draft }));
 
   function changed() {
@@ -141,11 +143,10 @@
       {#if placed.origin === 'engine'}
         {#if placed.reskinnedBy}
           <button type="button" class="tool" onclick={() => onOpen(placed.reskinnedBy!.key)}>Open the reskin</button>
-        {:else}
-          <button type="button" class="tool" onclick={onReskin} title="Give this element a new name and flavor in {worldName}, keeping its mechanics">Reskin for {worldName}</button>
-          <button type="button" class="tool" onclick={() => onSetAside(!placed.setAside)} title="Whether {worldName}'s game uses this core element">
-            {placed.setAside ? `Use in ${worldName}` : `Set aside in ${worldName}`}
-          </button>
+        {:else if placed.setAside}
+          <!-- Setting aside and reskinning stay in the files and leave the page (Mike, November 21).
+               A game that already set this aside can still take it back. -->
+          <button type="button" class="tool" onclick={() => onSetAside(false)} title="Bring this core element back into {worldName}'s game">Use in {worldName}</button>
         {/if}
       {:else if placed.base}
         <button type="button" class="tool" onclick={() => onOpen(placed.base!.key)}>Open the core element</button>

@@ -38,7 +38,11 @@
   const STORE = 'immersion.game.tree';
   const remembered = (): string[] => {
     try {
-      return JSON.parse(localStorage.getItem(STORE) ?? '[]');
+      // Sections start folded since November 21. What was open before keeps its divisions open.
+      const was: string[] = JSON.parse(localStorage.getItem(STORE) ?? '[]');
+      if (localStorage.getItem(STORE + '.sections') === 'folded') return was;
+      localStorage.setItem(STORE + '.sections', 'folded');
+      return was.filter((k) => !k.includes('chapter/'));
     } catch {
       return [];
     }
@@ -141,7 +145,8 @@
       end();
     }}>
     <button type="button" class="twist" aria-label={expanded.has(key) ? 'Close' : 'Open'} onclick={() => toggle(key)}>{expanded.has(key) ? '▾' : '▸'}</button>
-    <button type="button" class="name" onclick={() => (toggle(key, true), onOpen(`@sec:${key}`))}>{s.placed.element.name}</button>
+    <!-- A section is written on its own page, so its name opens the page and leaves its rules folded away (Mike, November 21). The twist still shows them, to drag a rule to a new place. -->
+    <button type="button" class="name" onclick={() => onOpen(`@sec:${key}`)}>{s.placed.element.name}</button>
     {#if tree.origin === 'world' && s.placed.origin === 'world'}<span class="own" title="{worldName}'s own section">◆</span>{/if}
     <button type="button" class="plus" title="Add a rule" aria-label="Add a rule to {s.placed.element.name}" onclick={() => startAdding('rule', key)}>+</button>
   </div>

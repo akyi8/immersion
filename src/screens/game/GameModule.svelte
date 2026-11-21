@@ -675,7 +675,6 @@
   }
 
   const count = (origin: Origin) => (game?.elements ?? []).filter((p) => p.origin === origin).length;
-  const bookLabel = (origin: Origin) => (origin === 'world' ? worldName : engineName);
 </script>
 
 <div class="game">
@@ -695,12 +694,14 @@
           <p class="hint">Nothing by that name or tag.</p>
         {/each}
       {:else}
-        {#if game?.books.world && game.books.engine}
-          <div class="books" role="group" aria-label="Which book">
-            {#each ['world', 'engine'] as const as o (o)}
-              <button type="button" class:on={bookOrigin === o} aria-pressed={bookOrigin === o} onclick={() => (chosen = o)}>{bookLabel(o)}</button>
-            {/each}
-          </div>
+        <!-- In a world, the book on screen is the world's (Mike, November 21). Core is a
+             mark on a rule and not a second book to visit. The base game's own book is
+             still reached from the foot of this list, for its title page and its order. -->
+        {#if game?.books.world && bookOrigin === 'engine'}
+          <button type="button" class="back-to-world" onclick={() => (chosen = 'world')}>
+            <span class="label">The base game, {engineName}</span>
+            <span>← Back to {worldName}</span>
+          </button>
         {/if}
         {#if tree}
           <BookTree
@@ -714,6 +715,9 @@
             onAddRule={addRule}
             onAddSection={addSection}
             onMenu={(e, id) => contextMenu.show(e, menuFor(id))} />
+        {/if}
+        {#if game?.books.world && game.books.engine && bookOrigin === 'world'}
+          <button type="button" class="base-book" title="The book every game built on {engineName} starts from: its title page, its divisions, and their order" onclick={() => (chosen = 'engine')}>The base game's book</button>
         {/if}
         {#if game && (game.expansions.length || bookOrigin === 'world')}
           <h2 class="label">Expansions</h2>
@@ -955,27 +959,37 @@
     border-right: 1px solid var(--line);
     padding: 12px 0 24px;
   }
-  .books {
+  .back-to-world {
     display: flex;
-    margin: 6px 18px 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin: 6px 12px 8px;
+    padding: 8px 10px;
+    font-size: calc(13px * var(--type));
+    color: var(--text);
+    text-align: left;
+    background: var(--accent-wash);
     border: 1px solid var(--edge);
     border-radius: var(--round);
-    overflow: hidden;
   }
-  .books button {
-    flex: 1;
+  .back-to-world .label {
+    font-size: calc(10.5px * var(--type));
+    color: var(--accent);
+  }
+  .base-book {
+    display: block;
+    margin: 10px 18px 0;
+    padding: 2px 0;
     font-size: calc(12px * var(--type));
     color: var(--muted);
     background: none;
     border: 0;
-    padding: 5px 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  .books button.on {
-    color: var(--selected-fg);
-    background: var(--selected-bg);
+  .base-book:hover {
+    color: var(--text);
   }
   .notice {
     margin: 4px 18px 8px;
