@@ -1,6 +1,6 @@
 <script lang="ts">
   import Pick from './Pick.svelte';
-  import { tick, type Snippet } from 'svelte';
+  import { tick, untrack, type Snippet } from 'svelte';
   import type { Navigator } from '../lib/nav.svelte';
   import { ui } from '../lib/ui.svelte';
   import { beats } from '../lib/beats.svelte';
@@ -134,11 +134,14 @@
     });
   });
 
-  // Following a name that is already open brings its pane into view.
+  // Following a name that is already open brings its pane into view. Only a new request
+  // does this. The row of pages is made again after every save, and reading it here would
+  // run this again and pull the row back to the page last asked for, away from the page
+  // being written in (Mike, November 21).
   $effect(() => {
     const r = nav.reveal;
     if (!r) return;
-    const i = panes.indexOf(r.id);
+    const i = untrack(() => panes.indexOf(r.id));
     if (i >= 0) show(i);
   });
 
