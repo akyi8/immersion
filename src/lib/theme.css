@@ -382,30 +382,45 @@ button {
 }
 
 /* While the writer types, the page falls back in layers around the sentence being
-   written (Mike, November 11). The rest of its paragraph loses a tenth, the other
-   paragraphs lose a fifth, and the other open pages lose more than half. All of it
-   returns with the pointer. */
+   written (Mike, November 11, and deeper since November 21). The rest of its paragraph
+   loses a fifth, the other paragraphs lose nearly half, and the other open pages lose
+   three quarters. Pictures step back too, on the page and in the Radiance room. All of
+   it returns with the pointer. */
 .cm-line,
 .cm-far {
   transition: opacity 600ms ease;
 }
 html.typing .pane:focus-within .cm-line {
-  opacity: 0.8;
+  opacity: 0.55;
 }
 html.typing .pane:focus-within .cm-focused .cm-activeLine {
   opacity: 1;
 }
 html.typing .cm-focused .cm-far {
-  opacity: 0.9;
+  opacity: 0.78;
 }
 html.typing .pane:not(:focus-within) > .body {
-  opacity: 0.45;
+  opacity: 0.25;
   transition: opacity 900ms ease;
+}
+/* A picture is the brightest thing on a page, so it steps back furthest: the page's own,
+   and the one that belongs to the Radiance room. */
+.pane img,
+.room-picture {
+  transition: opacity 900ms ease;
+}
+html.typing .pane img {
+  opacity: 0.3;
+}
+html.typing .room-picture {
+  opacity: 0.25;
 }
 @media (prefers-reduced-motion: reduce) {
   .cm-line,
   .cm-far,
-  html.typing .pane:not(:focus-within) > .body {
+  html.typing .pane:not(:focus-within) > .body,
+  .pane img,
+  .room-picture {
     transition: none;
   }
 }
@@ -424,7 +439,7 @@ html.typing .sidebar,
 html.typing .tray,
 html.typing .pane .tools,
 html.typing .pane-actions {
-  opacity: 0.16;
+  opacity: 0.1;
 }
 @media (prefers-reduced-motion: reduce) {
   .shell > header,
