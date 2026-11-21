@@ -7,6 +7,8 @@
  * worker, and a word is looked up once and remembered, so checking costs nothing while
  * typing.
  */
+import { noteTrouble } from './trouble.ts';
+
 export type Language = 'american' | 'british';
 
 export interface Word {
@@ -71,6 +73,8 @@ class Spell {
         this.waiting.get(e.data.id)?.(e.data);
         this.waiting.delete(e.data.id);
       };
+      // A dictionary that cannot be read is written down, since nothing on the page would say so.
+      this.worker.onerror = (e) => noteTrouble('spelling', `The spelling dictionary could not be read: ${e.message || 'the worker failed to start'}`);
       this.worker.postMessage({ id: 0, type: 'language', language: this.language });
     }
     const id = this.next++;
