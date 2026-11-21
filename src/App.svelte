@@ -80,7 +80,13 @@
   $effect(() => spell.allow('world', index ? [...index.entries.values()].flatMap((e) => [e.name, ...e.aliases]) : []));
   $effect(() => {
     const inside = !!world && !!fs && (phase === 'loading' || phase === 'inside');
-    spell.setLanguage(inside ? world!.spelling : 'american');
+    spell.setLanguage(inside ? world!.spelling : 'american', inside && world!.spanish);
+    spell.onSpanish = inside
+      ? async (on) => {
+          await fs!.writeText('world.md', withHeader(await fs!.readText('world.md'), { spelling_also: on ? 'spanish' : undefined }));
+          world = await loadWorld(fs!);
+        }
+      : null;
     spell.onLanguage = inside
       ? async (language) => {
           await fs!.writeText('world.md', withHeader(await fs!.readText('world.md'), { spelling: language === 'british' ? 'british' : undefined }));

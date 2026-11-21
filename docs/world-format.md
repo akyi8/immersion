@@ -46,6 +46,7 @@ stories: stories
 - `series_threads:` and `series_structures:` belong to series boards, which section 6 describes.
 - `pictures:` sets how every entry shows its picture, and `room_frame:` frames the world's own picture in the Radiance layout. Section 3 describes both.
 - `spelling: british` spells the world in British English. Without it the world is spelled in American English.
+- `spelling_also: spanish` accepts Spanish words as well spelled too, for a world written in both languages.
 - `archived: true` moves the world below the others on the Worlds page, under an Archived heading. Nothing else about the world changes.
 - `journal:` and `daily:` mark the writer's journal world, which the app creates and manages.
 - `engine:` names the engine this world's game is built on, as the engine folder's path from the top of the library. `game:` names the folder that holds the world's own game elements, and defaults to `game`. Section 11 describes both.
@@ -118,7 +119,7 @@ An entry in People shows its picture as a portrait beside its name. An entry in 
 
 A world can set how all its pictures show at once, with `pictures: behind`, `pictures: banner`, or `pictures: portrait` in its `world.md`. An entry's own `picture:` still wins over the world's choice, and with neither the category decides. The app sets the world's choice in Settings, under Look, where it can also take every entry's own choice away so that all of them follow the world.
 
-A world is spelled in American English unless its `world.md` says `spelling: british`. The app writes that line from a right click on a misspelled word. The words a writer adds to their own dictionary are kept in the library's `immersion.md`, as `dictionary:`, a list of words in lowercase, and apply in every world.
+A world is spelled in American English unless its `world.md` says `spelling: british`. With `spelling_also: spanish` a word is well spelled if either English or Mexican Spanish has it. The app writes that line from a right click on a misspelled word. The words a writer adds to their own dictionary are kept in the library's `immersion.md`, as `dictionary:`, a list of words in lowercase, and apply in every world.
 
 In the Radiance layout one picture stands down the right edge of the window. For the world's own picture, `room_frame: 60 50 1.2` in `world.md` frames it there: the point kept in view across and down, from 0 to 100, and the zoom, from 1 to 4. A missing `room_frame` is centered at zoom 1. The app writes it from Settings, under Look. A page's own picture is framed in the room by that entry's `behind_frame:`.
 

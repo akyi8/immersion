@@ -55,6 +55,8 @@ class Spell {
     }
   })();
   language: Language = 'american';
+  /** Whether Spanish words are well spelled too, for a world written in both. */
+  spanish = false;
   /** Words looked up so far: true for a word the dictionary has. */
   private known = new Map<string, boolean>();
   private asked = new Set<string>();
@@ -69,6 +71,8 @@ class Spell {
   onAdd: ((word: string) => void) | null = null;
   /** Changes which English the open world is spelled in, when a world is open. */
   onLanguage: ((language: Language) => void) | null = null;
+  /** Changes whether the open world is spelled in Spanish as well, when a world is open. */
+  onSpanish: ((on: boolean) => void) | null = null;
 
   /** How the dictionary is being read: in its worker, on the page itself, or not at all. */
   status: 'starting' | 'worker' | 'page' | 'failed' = 'starting';
@@ -87,7 +91,7 @@ class Spell {
     noteTrouble('spelling', `The spelling dictionary could not be read in its worker (${reason}), so the page is reading it itself.`);
     this.worker?.terminate();
     this.worker = null;
-    this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(this.language));
+    this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(this.language, this.spanish));
     this.local.then(
       () => (this.status = 'page'),
       (e) => {
@@ -128,7 +132,7 @@ class Spell {
         this.waiting.delete(e.data.id);
       };
       this.worker.onerror = (e) => this.fallBack(e.message || 'the worker failed to start');
-      this.worker.postMessage({ id: 0, type: 'language', language: this.language });
+      this.worker.postMessage({ id: 0, type: 'language', language: this.language, spanish: this.spanish });
       // The worker proves itself on two words before it is trusted: one any dictionary
       // has and one none does. No answer in good time counts as none.
       const proof = setTimeout(() => this.status === 'starting' && this.fallBack('it did not answer'), 12000);
@@ -165,13 +169,14 @@ class Spell {
     this.changed();
   }
 
-  setLanguage(language: Language) {
-    if (language === this.language) return;
+  setLanguage(language: Language, spanish = false) {
+    if (language === this.language && spanish === this.spanish) return;
     this.language = language;
+    this.spanish = spanish;
     this.known.clear();
     this.asked.clear();
-    this.worker?.postMessage({ id: 0, type: 'language', language });
-    if (this.local) this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(language));
+    this.worker?.postMessage({ id: 0, type: 'language', language, spanish });
+    if (this.local) this.local = import('./spell.dictionary.ts').then((m) => m.loadDictionary(language, spanish));
     this.changed();
   }
 
@@ -202,9 +207,9 @@ class Spell {
     const fresh = [...new Set(words)].filter((w) => !this.known.has(w) && !this.asked.has(w) && !this.fine(w));
     if (!fresh.length) return;
     for (const w of fresh) this.asked.add(w);
-    const language = this.language;
+    const language = `${this.language}${this.spanish}`;
     void this.post({ type: 'check', words: fresh }).then((m) => {
-      if (language !== this.language) return;
+      if (language !== `${this.language}${this.spanish}`) return;
       // A dictionary that could not be read answers nothing, and the words are asked again later.
       if (m.unread) return void fresh.forEach((w) => this.asked.delete(w));
       const wrong = new Set(m.wrong ?? []);

@@ -100,6 +100,7 @@ async function menu(view: EditorView, word: Word, event: MouseEvent) {
     const other = spell.language === 'american' ? 'british' : 'american';
     items.push('separator', { label: other === 'british' ? 'Use British spelling in this world' : 'Use American spelling in this world', run: () => spell.onLanguage?.(other) });
   }
+  if (spell.onSpanish) items.push({ label: spell.spanish ? 'Stop accepting Spanish in this world' : 'Accept Spanish too in this world', run: () => spell.onSpanish?.(!spell.spanish) });
   contextMenu.show(event, items, at);
 }
 

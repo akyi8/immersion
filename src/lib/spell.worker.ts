@@ -9,10 +9,10 @@ import { loadDictionary, type Checker } from './spell.dictionary';
  */
 let checker: Promise<Checker> | null = null;
 
-self.onmessage = async (e: MessageEvent<{ id: number; type: 'language' | 'check' | 'suggest'; language?: 'american' | 'british'; words?: string[]; word?: string }>) => {
+self.onmessage = async (e: MessageEvent<{ id: number; type: 'language' | 'check' | 'suggest'; language?: 'american' | 'british'; spanish?: boolean; words?: string[]; word?: string }>) => {
   const m = e.data;
   if (m.type === 'language') {
-    checker = loadDictionary(m.language ?? 'american');
+    checker = loadDictionary(m.language ?? 'american', !!m.spanish);
     checker.catch(() => {});
     return;
   }

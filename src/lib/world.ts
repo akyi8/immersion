@@ -27,6 +27,8 @@ export interface World {
   roomFrame: Frame | null;
   /** Which English the world is spelled in. American unless its `world.md` says `spelling: british`. */
   spelling: 'american' | 'british';
+  /** True when Spanish words are well spelled in this world too, which its `world.md` says as `spelling_also: spanish`. */
+  spanish: boolean;
 }
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
@@ -66,6 +68,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     pictures: readShape(header.pictures),
     roomFrame: readFrame(header.room_frame),
     spelling: header.spelling === 'british' ? 'british' : 'american',
+    spanish: header.spelling_also === 'spanish',
   };
 }
 
