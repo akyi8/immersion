@@ -1,29 +1,33 @@
 <script lang="ts">
   import { titleFocus } from '../../lib/table/tray.svelte';
   import { onDestroy } from 'svelte';
-  import type { SectionNode } from '../../lib/game/game';
+  import type { Placed, SectionNode } from '../../lib/game/game';
   import type { Frame } from '../../lib/index/frame';
-  import { renderRule } from '../../lib/game/render';
   import { Saver, said } from '../../lib/game/saver.svelte';
   import GameBanner, { type PictureChoice } from './GameBanner.svelte';
   import GameText from './GameText.svelte';
+  import SectionRule from './SectionRule.svelte';
 
   /**
-   * A rule section, read as the book prints it (Mike, November 9). Its introduction is
-   * written here; below it, every rule follows in order, formatted, with the world's
-   * piece after each core rule. A rule's name opens it for writing.
+   * A rule section as one continuous page, which is where a game is written (Mike,
+   * November 21). It reads the way the book prints: the introduction, then every rule
+   * under its heading in book order, each written in place, with what the world adds
+   * after each core rule. A rule can still be opened alone.
    */
   let {
     titleId = '',
     section,
     inWorld,
     place,
+    engineName,
     worldName,
-    names,
     picture,
     choices,
     onFrame,
     onSave,
+    onSaveRule,
+    onSaveWorld,
+    onAddRule,
     onOpen,
   }: {
     /** The page's id, so Rename in its menu can put the cursor in the title. */
@@ -31,13 +35,17 @@
     section: SectionNode;
     inWorld: boolean;
     place: string;
+    engineName: string;
     worldName: string;
-    /** The name of an origin: the engine, the world, or an expansion. */
-    names: (origin: string) => string;
     picture: { url: string; frame: Frame | null } | null;
     choices: PictureChoice[];
     onFrame: (frame: Frame) => Promise<void>;
     onSave: (changes: { name: string; intro: string }) => Promise<void>;
+    onSaveRule: (rule: Placed, changes: { name: string; text: string }) => Promise<void>;
+    /** Saves what the world adds after a core rule. */
+    onSaveWorld: (rule: Placed, text: string) => Promise<void>;
+    /** Adds a rule at the foot of this section, and stays on this page. */
+    onAddRule: (name: string) => Promise<void>;
     /** Opens a rule or an element by its key. */
     onOpen: (key: string, type: 'rule' | 'element') => void;
   } = $props();
@@ -48,6 +56,9 @@
   const saver = new Saver(() => onSave({ name: name.trim() || section.placed.element.name, intro }));
   onDestroy(() => void saver.flush());
   const rules = $derived(section.items.filter((i) => i.type === 'rule').length);
+
+  let naming = $state(false);
+  let newName = $state('');
 
   let titleInput = $state<HTMLInputElement>();
   $effect(() => titleFocus.serve(titleId, titleInput));
@@ -65,6 +76,7 @@
   </div>
   {#if saver.problem}<p class="problem" role="alert">{saver.problem}</p>{/if}
   <GameText
+    compact
     text={section.placed.element.flavor}
     self="game:{section.placed.key}"
     label="Section introduction"
@@ -75,30 +87,39 @@
     }} />
 
   <div class="read">
-    {#each section.items as item, i (i)}
+    {#each section.items as item, i (item.type === 'rule' ? item.placed.key : `heading-${i}`)}
       {#if item.type === 'heading'}
         <p class="divider">{item.text}</p>
       {:else}
-        <section class="rule">
-          <h2><button type="button" onclick={() => onOpen(item.placed.key, 'rule')}>{item.placed.element.name}</button></h2>
-          {#if item.placed.element.flavor}
-            <div class="prose">{@html renderRule(item.placed.element.flavor)}</div>
-          {:else}
-            <p class="empty">Nothing written yet.</p>
-          {/if}
-          {#if item.worldPiece?.element.flavor}
-            <div class="prose world" aria-label="{worldName}'s piece">{@html renderRule(item.worldPiece.element.flavor)}</div>
-          {/if}
-          {#each item.expansionPieces.filter((x) => x.element.flavor) as x (x.key)}
-            <div class="prose world expansion">
-              <span class="own">{names(x.origin)}</span>
-              {@html renderRule(x.element.flavor)}
-            </div>
-          {/each}
-          {#if inWorld && item.placed.origin !== 'engine'}<span class="own">{names(item.placed.origin)}'s own rule</span>{/if}
-        </section>
+        <SectionRule
+          {item}
+          {inWorld}
+          {engineName}
+          {worldName}
+          onSave={(c) => onSaveRule(item.placed, c)}
+          onSaveWorld={(t) => onSaveWorld(item.placed, t)}
+          onOpen={() => onOpen(item.placed.key, 'rule')} />
       {/if}
     {/each}
+    {#if naming}
+      <form
+        class="new"
+        onsubmit={async (e) => {
+          e.preventDefault();
+          const n = newName.trim();
+          if (!n) return;
+          newName = '';
+          naming = false;
+          await onAddRule(n);
+        }}>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input type="text" bind:value={newName} placeholder="The new rule's name" aria-label="The new rule's name" autocomplete="off" autofocus onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), e.stopPropagation(), (naming = false))} />
+        <button type="submit" disabled={!newName.trim()}>Add</button>
+        <button type="button" class="quiet" onclick={() => (naming = false)}>Cancel</button>
+      </form>
+    {:else}
+      <button type="button" class="add" onclick={() => (naming = true)}>+ New rule</button>
+    {/if}
     {#if section.elements.length}
       <p class="divider">Listed here</p>
       <ul class="elements">
@@ -152,68 +173,38 @@
     font-size: calc(14px * var(--type));
   }
   .read {
-    border-top: 1px solid var(--line);
-    padding-top: 8px;
-  }
-  .rule {
-    margin: 0 0 28px;
-  }
-  h2 {
-    margin: 22px 0 8px;
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: calc(28px * var(--type));
-    letter-spacing: 0.02em;
-    color: var(--title);
-  }
-  h2 button {
-    font: inherit;
-    color: inherit;
-    letter-spacing: inherit;
-    background: none;
-    border: 0;
-    padding: 0;
-    text-align: left;
-    cursor: pointer;
-  }
-  h2 button:hover {
-    color: var(--structure);
-  }
-  .prose {
-    font-family: var(--font-body);
-    font-size: var(--prose-size);
-    line-height: var(--prose-leading);
-    color: var(--text);
-  }
-  .prose :global(h3) {
-    margin: 1.3em 0 0.4em;
-    font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--structure);
-  }
-  .prose :global(p) {
-    margin: 0 0 0.8em;
-  }
-  .prose.world {
     margin-top: 10px;
-    padding-left: 16px;
-    border-left: 2px solid var(--structure-deep, var(--line));
-    color: var(--text-soft);
   }
-  .prose.expansion {
-    border-left-style: dashed;
-  }
-  .empty {
-    color: var(--muted);
-    font-style: italic;
-  }
-  .own {
-    font-family: var(--font-label);
-    font-size: calc(11px * var(--type));
+  .add,
+  .new button {
+    font-size: calc(13px * var(--type));
     color: var(--structure);
+    background: none;
+    border: 1px dashed var(--edge);
+    border-radius: var(--round);
+    padding: 5px 12px;
+  }
+  .add {
+    margin-top: 18px;
+  }
+  .new {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .new input {
+    flex: 1 1 200px;
+    font: inherit;
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 5px 10px;
+  }
+  .new .quiet {
+    color: var(--muted);
+    border-color: transparent;
   }
   .divider {
     margin: 26px 0 4px;

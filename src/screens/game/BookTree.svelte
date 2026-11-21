@@ -173,9 +173,8 @@
           {#if tree.origin === 'world' && item.placed.origin === 'world'}
             <span class="own" title="{worldName}'s own rule">◆</span>
           {:else if item.worldPiece}
-            <span class="own" title="With {worldName}'s piece">+</span>
+            <span class="own" title="With an example or clarification from {worldName}">+</span>
           {/if}
-          {#if item.expansionPieces.length}<span class="own" title="With pieces from {item.expansionPieces.map((x) => names(x.origin)).join(', ')}">◇</span>{/if}
         </div>
       {/if}
     {/each}

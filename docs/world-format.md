@@ -367,7 +367,7 @@ harrowgate/
       vendor/
         the-chandler.md
       add-on/
-        when-to-roll.md     the world's piece of a core rule
+        when-to-roll.md     what the world adds after a core rule
     expansions/
       fogbound/             an expansion, with elements of its own
 ```
@@ -457,7 +457,7 @@ front_matter: [ chapter/front-matter ]
 back_matter: [ chapter/back-matter ]
 ```
 
-Each book lists its own, so a world's front matter is a section of the world's own. It can still print the engine's pages, each with the world's piece after it, and a page that belongs to one book alone sits only in that book's front matter.
+Each book lists its own, so a world's front matter is a section of the world's own. It can still print the engine's pages, each with what the world adds after it, and a page that belongs to one book alone sits only in that book's front matter.
 
 A reference names an element by `engine:` or `world:`, then its kind and id, such as `engine:chapter/taking-risks`. A reference without `engine:` or `world:` points into the folder of the file that names it, so a world's `book.md` names the world's own divisions.
 
@@ -500,7 +500,7 @@ items:
 When a protagonist tries something uncertain, the dice decide.
 ```
 
-A rule is an element of kind `module`, and its body is its text. An engine's rule is a core rule, which every game built on the engine prints. A world adds its own piece to a core rule with an element of kind `add-on` in `elements/add-on/`, whose `extends` names the rule it belongs to. The world's piece prints after the core text, and holds the world's examples and anything only that world adds:
+A rule is an element of kind `module`, and its body is its text. An engine's rule is a core rule, which every game built on the engine prints. A world never changes a core rule's text. It adds its examples and clarifications after a core rule, with an element of kind `add-on` in `elements/add-on/`, whose `extends` names the rule it belongs to. What the world adds prints after the core text, and the app shows it under the words "In" and the world's name:
 
 ```markdown
 ---
@@ -513,9 +513,9 @@ extends: module/when-to-roll
 *Wren wants to cross the pier in the fog. The narrator calls for a roll, because the guard is listening.*
 ```
 
-The app creates the add-on the first time the writer types in a core rule's world piece. A rule of the world's own has no add-on, because all of its text is already the world's. A world's own rule goes only into the world's own sections, and a world's own section only into the world's divisions, so the engine's book never names something one world alone has.
+The app creates the add-on the first time the writer types under a core rule's "In" and the world's name. An add-on with no text is read as none. Only a rule takes an add-on. A section's introduction and a division's front page are the engine's text alone, and an add-on that names one of them is not read. A rule of the world's own has no add-on, because all of its text is already the world's. A world's own rule goes only into the world's own sections, and a world's own section only into the world's divisions, so the engine's book never names something one world alone has.
 
-Any page of the book can carry a header picture: the title page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, the world's piece of a core rule or section can carry a picture of its own beside the add-on, which shows instead of the core picture.
+Any page of the book can carry a header picture: the title page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, a core rule can carry the world's own picture beside its add-on, which shows instead of the core picture.
 
 A kind's shape file can name its body with `body:`, such as `body: Text` for rules or `body: Front page` for divisions. The form shows that name above the body instead of Flavor.
 
@@ -530,13 +530,11 @@ harrowgate/game/expansions/
     elements/
       gear/
         dark-lantern.md
-      add-on/
-        when-to-roll.md     Fogbound's piece of a core rule
 ```
 
 An expansion's elements have the expansion's folder name as their origin, so a reference to one is written `fogbound:gear/dark-lantern`, and two expansions can each have an element with the same id. An expansion's gear, vendors, and other aspects appear in the world book's catalog lists, marked with the expansion's name. The engine's base game never shows them.
 
-An expansion adds its own piece to a rule with an add-on in its own `elements/add-on/`. Its `extends` names a core rule as `module/<id>`, or a rule of the world's own as `world:module/<id>`. The piece prints after the world's piece, for a table that has the expansion.
+An expansion adds elements of its own and never adds to a rule of another book, so it has no add-ons. An `add-on` file found in an expansion's folder is not read.
 
 An element of the world's own can move into one of its expansions, or back, with Belongs to in its form. The app moves the file and its picture. The folder names `engine`, `world`, and `heading` cannot name an expansion.
 

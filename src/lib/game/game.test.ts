@@ -163,7 +163,7 @@ test('a new body keeps the header exactly', () => {
   assert.equal(withBody('Plain.\n', 'Other.'), 'Other.\n');
 });
 
-test('an expansion adds elements and pieces, and the book shows them only in the world', async () => {
+test('an expansion adds elements of its own and never a piece of a rule, and the book shows them only in the world', async () => {
   const engine = new MemoryFs({
     'engine.md': '# Example Engine\n',
     'kinds/gear.md': '---\nname: Gear\n---\n',
@@ -191,9 +191,10 @@ test('an expansion adds elements and pieces, and the book shows them only in the
 
   const mine = bookTree(game, 'world')!;
   assert.deepEqual(mine.divisions[0].catalog[0].elements.map((p) => p.key), ['engine:gear/rope', 'fogbound:gear/rope']);
+  // An add-on left in an expansion's folder from before is read as a file and adds nothing to the rule.
   const [edge, low] = mine.divisions[1].sections[0].items;
-  assert.equal(edge.type === 'rule' && edge.expansionPieces[0].element.flavor, '*In fog, the edge starts at 6.*');
-  assert.equal(low.type === 'rule' && low.expansionPieces[0].element.flavor, 'Smugglers land at low water.');
+  assert.equal(edge.type === 'rule' && edge.worldPiece, null);
+  assert.equal(low.type === 'rule' && low.worldPiece, null);
 
   const base = bookTree(game, 'engine')!;
   assert.deepEqual(base.divisions[0].catalog[0].elements.map((p) => p.key), ['engine:gear/rope']);

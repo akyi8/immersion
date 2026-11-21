@@ -277,18 +277,6 @@
     return game!.addOns.get(refOf(p.element))!;
   }
 
-  /** An expansion's piece of a core or world element, created the first time. */
-  async function expansionPieceOf(p: Placed, origin: Origin): Promise<Placed> {
-    if (!game) throw new Error('The game is not open');
-    const find = () => game!.pieces.get(p.key)?.find((x) => x.origin === origin);
-    const existing = find();
-    if (existing) return existing;
-    const src = expansionOf(origin);
-    if (!src) throw new Error(`There is no expansion called ${origin}.`);
-    await writeAddOn(src, p, p.origin === 'engine' ? refOf(p.element) : p.key);
-    return find()!;
-  }
-
   async function writeAddOn(src: Source, p: Placed, extendsRef: string) {
     const kind = game?.kinds.get('add-on') ?? null;
     // A module's add-on is named for the module; any other kind's carries its kind first.
@@ -296,11 +284,6 @@
     const e: Element = { path: `elements/add-on/${id}.md`, id, name: p.element.name, kind: 'add-on', tags: ['add-on'], vendor: '', reskins: '', fields: { extends: extendsRef }, flavor: '' };
     await src.fs.writeText(pathIn(src, e.path), writeElement(e, kind));
     await load();
-  }
-
-  async function savePiece(p: Placed, origin: Origin, text: string) {
-    const piece = await expansionPieceOf(p, origin);
-    await save(piece, { ...piece.element, flavor: text });
   }
 
   /** Moves a world's own element into an expansion, or back (Mike, November 9). */
@@ -375,6 +358,26 @@
    * Nothing is deleted. A section's rules stay in the game, under every element by kind.
    */
   const canArchive = (p: Placed) => !!game && (bookOrigin === 'engine' ? p.origin === 'engine' : p.origin !== 'engine');
+  // A rule's tags are kept in its menu, out of the writing (Mike, November 21).
+  let tagging = $state<Placed | null>(null);
+  let tagText = $state('');
+  let tagBusy = $state(false);
+  let tagProblem = $state('');
+  async function saveTags() {
+    const p = tagging;
+    if (!p) return;
+    tagBusy = true;
+    try {
+      await saveAll();
+      await save(p, { ...p.element, tags: tagText.split(',').map((t) => t.trim()).filter(Boolean) });
+      tagging = null;
+    } catch (e) {
+      tagProblem = e instanceof Error ? e.message : String(e);
+    } finally {
+      tagBusy = false;
+    }
+  }
+
   let archiving = $state<Placed | null>(null);
   let archiveBusy = $state(false);
   let archiveProblem = $state('');
@@ -441,7 +444,9 @@
     if (!p) return [];
     const titled = id.startsWith(RULE) || id.startsWith(SEC) || id.startsWith(EL);
     return [
-      ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }, 'separator' as const] : []),
+      ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }] : []),
+      ...(id.startsWith(RULE) ? [{ label: 'Tags…', run: () => ((tagProblem = ''), (tagText = p.element.tags.join(', ')), (tagging = p)) }] : []),
+      ...(titled ? ['separator' as const] : []),
       { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) },
     ];
   }
@@ -468,8 +473,9 @@
   function choicesFor(p: Placed): PictureChoice[] {
     if (!game) return [];
     const piece = game.addOns.get(refOf(p.element)) ?? null;
-    const core: PictureChoice = { label: inWorld && p.origin === 'engine' ? `${engineName} picture` : 'picture', set: (image) => setPicture(p, image), remove: p.image ? () => removePicture(p) : null };
-    if (!(inWorld && p.origin === 'engine')) return [core];
+    const core: PictureChoice = { label: inWorld && p.origin === 'engine' && p.element.kind === 'module' ? `${engineName} picture` : 'picture', set: (image) => setPicture(p, image), remove: p.image ? () => removePicture(p) : null };
+    // Only a core rule can carry a world's own picture. Sections and divisions show the engine's.
+    if (!(inWorld && p.origin === 'engine' && p.element.kind === 'module')) return [core];
     return [
       core,
       {
@@ -619,13 +625,14 @@
     return `${origin}:${refOf(e)}`;
   }
 
-  async function addRule(secKey: string, name: string) {
+  async function addRule(secKey: string, name: string, stay = false) {
     const sec = byKey.get(secKey);
     if (!sec) return;
     const key = await addElement(sec.origin, 'module', name);
     await save(sec, withList(sec, 'items', [...list(sec, 'items'), key]));
     await load();
-    nav.open(`${RULE}${key}`);
+    // A rule added from its section's page is written there, so the page stays.
+    if (!stay) nav.open(`${RULE}${key}`);
   }
 
   async function addSection(divKey: string, name: string) {
@@ -809,13 +816,16 @@
               titleId={id}
               section={s}
               {inWorld}
-              place="{places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section"
+              place={(places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? '') === s.placed.element.name ? 'Section' : `${places.sectionIn.get(s.placed.key)?.placed.element.name ?? tree?.book.name ?? ''} · Section`}
+              {engineName}
               {worldName}
-              names={originName}
               picture={shown(id, pictureFor(s.placed))}
               choices={choicesFor(s.placed)}
               onFrame={(frame) => saveFrame(s.placed, frame)}
               onSave={(c) => save(s.placed, { ...s.placed.element, name: c.name, flavor: c.intro })}
+              onSaveRule={(r, c) => save(r, { ...r.element, name: c.name, flavor: c.text })}
+              onSaveWorld={(r, text) => saveWorldPiece(r, text)}
+              onAddRule={(name) => addRule(s.placed.key, name, true)}
               onOpen={(key, type) => nav.open(`${type === 'rule' ? RULE : EL}${key}`, i)} />
           {:else if id.startsWith(RULE)}
             {@const r = byKey.get(keyIn(id))!}
@@ -825,17 +835,14 @@
               rule={r}
               worldPiece={game!.addOns.get(refOf(r.element)) ?? null}
               {inWorld}
-              place={[sec && places.sectionIn.get(sec.placed.key)?.placed.element.name, sec?.placed.element.name ?? 'Rule'].filter(Boolean).join(' · ')}
+              place={[...new Set([sec && places.sectionIn.get(sec.placed.key)?.placed.element.name, sec?.placed.element.name ?? 'Rule'].filter(Boolean))].join(' · ')}
               {engineName}
               {worldName}
               picture={shown(id, pictureFor(r))}
               choices={choicesFor(r)}
               onFrame={(frame) => saveFrame(r, frame)}
-              onSave={(c) => save(r, { ...r.element, name: c.name, tags: c.tags, flavor: c.text })}
-              onSaveWorld={(text) => saveWorldPiece(r, text)}
-              expansions={inWorld ? (game?.expansions ?? []).map((x) => ({ origin: x.origin, name: x.name })) : []}
-              pieces={inWorld ? (game!.pieces.get(r.key) ?? []) : []}
-              onSavePiece={(origin, text) => savePiece(r, origin, text)} />
+              onSave={(c) => save(r, { ...r.element, name: c.name, flavor: c.text })}
+              onSaveWorld={(text) => saveWorldPiece(r, text)} />
           {:else if id.startsWith(EXP)}
             {@const x = expansionOf(keyIn(id))!}
             <FrontPage
@@ -920,6 +927,14 @@
     </main>
   {/if}
 </div>
+
+{#if tagging}
+  <Dialog title="Tags" action="Save" ready busy={tagBusy} problem={tagProblem} onSubmit={saveTags} onCancel={() => (tagging = null)}>
+    <p class="hint">The tags of “{tagging.element.name}”, with a comma between each. Tags say where a rule belongs and what it is.</p>
+    <!-- svelte-ignore a11y_autofocus -->
+    <input class="tag-field" type="text" bind:value={tagText} aria-label="Tags" autocomplete="off" autofocus />
+  </Dialog>
+{/if}
 
 {#if archiving}
   <Dialog title="Archive this {archiving.element.kind === 'chapter' ? 'section' : archiving.element.kind === 'module' ? 'rule' : archiving.element.kind}" action="Archive" ready busy={archiveBusy} problem={archiveProblem} onSubmit={() => archiving && archiveElement(archiving)} onCancel={() => (archiving = null)}>
@@ -1055,6 +1070,16 @@
     font-size: calc(11px * var(--type));
     color: var(--muted);
     flex-shrink: 0;
+  }
+  .tag-field {
+    font: inherit;
+    font-family: var(--font-label);
+    font-size: calc(14px * var(--type));
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    padding: 8px 10px;
   }
   .hint {
     margin: 2px 18px 6px;

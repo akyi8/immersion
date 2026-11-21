@@ -21,6 +21,7 @@
     label,
     placeholder = '',
     self = '',
+    compact = false,
     onChange,
   }: {
     /** The text as the file has it. The editor starts from it and follows it when the file changes outside. */
@@ -29,6 +30,8 @@
     placeholder?: string;
     /** This page's own link, so it does not link to itself. */
     self?: string;
+    /** As tall as its text and no taller, for a page that holds many of these one after another. */
+    compact?: boolean;
     onChange: (text: string) => void;
   } = $props();
 
@@ -102,7 +105,7 @@
   </p>
 {/if}
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="text" onclick={focusEnd}>
+<div class="text" class:compact onclick={focusEnd}>
   {#if empty && placeholder}<p class="placeholder">{placeholder}</p>{/if}
   <div bind:this={host}></div>
 </div>
@@ -113,6 +116,10 @@
     min-height: 140px;
     padding: 4px 0 24px;
     cursor: text;
+  }
+  .text.compact {
+    min-height: 1.6em;
+    padding-bottom: 6px;
   }
   .clash {
     margin: 0 0 10px;

@@ -100,8 +100,6 @@ export interface Game {
   addOns: Map<string, Placed>;
   /** The world's expansions, each a folder in the game folder's `expansions/`, in name order. */
   expansions: Expansion[];
-  /** Each expansion's pieces of an element, by the element's key, such as `engine:module/the-edge`. */
-  pieces: Map<string, Placed[]>;
 }
 
 /** An expansion: its own folder of elements inside the world's game folder. */
@@ -257,21 +255,13 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
     const extendsRef = p.origin === 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
     if (typeof extendsRef === 'string' && extendsRef) addOns.set(extendsRef, p);
   }
-  // An expansion's piece extends a core element, written `module/x`, or a world's, written `world:module/x`.
-  const pieces = new Map<string, Placed[]>();
-  for (const p of placed) {
-    const ext = p.origin !== 'engine' && p.origin !== 'world' && p.element.kind === 'add-on' ? p.element.fields.extends : undefined;
-    if (typeof ext !== 'string' || !ext) continue;
-    const key = keyOf(ext, 'engine');
-    pieces.set(key, [...(pieces.get(key) ?? []), p]);
-  }
   const bookOf = async (src: Source | null): Promise<Book | null> => {
     if (!src || !(await src.fs.exists(join(src.dir, 'book.md')))) return null;
     const book = readBook(await src.fs.readText(join(src.dir, 'book.md')));
     if (book) book.image = imageBeside(await src.fs.readDir(src.dir), 'book');
     return book;
   };
-  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns, expansions, pieces };
+  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns, expansions };
 }
 
 /**
@@ -315,8 +305,6 @@ export interface RuleNode {
   placed: Placed;
   /** This world's piece of a core rule, in a world's book. */
   worldPiece: Placed | null;
-  /** Each expansion's piece of the rule, in a world's book. */
-  expansionPieces: Placed[];
 }
 export interface HeadingNode {
   type: 'heading';
@@ -379,7 +367,6 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
           type: 'rule',
           placed: hit,
           worldPiece: inWorld && hit.origin === 'engine' ? (game.addOns.get(refOf(hit.element)) ?? null) : null,
-          expansionPieces: inWorld ? (game.pieces.get(hit.key) ?? []) : [],
         });
       else elements.push(hit);
     }
@@ -413,7 +400,8 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
  * core element can carry a picture of its own, which shows instead of the core one.
  */
 export function pictureOf(game: Game, p: Placed, inWorld: boolean): { src: Source; path: string; owner: Placed } | null {
-  const piece = inWorld && p.origin === 'engine' ? game.addOns.get(refOf(p.element)) : undefined;
+  // Only a rule takes what a world adds, so only a rule can show a world's own picture.
+  const piece = inWorld && p.origin === 'engine' && p.element.kind === 'module' ? game.addOns.get(refOf(p.element)) : undefined;
   if (piece?.image) return { src: game.world, path: piece.image, owner: piece };
   if (p.image) return { src: sourceOf(game, p), path: p.image, owner: p };
   return null;
