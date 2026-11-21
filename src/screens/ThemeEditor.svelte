@@ -5,8 +5,10 @@
   import { mode } from '../lib/mode.svelte';
 
   /**
-   * The theme panel (Mike, October 25). It sits at the side of the window, so the whole
-   * app behind it shows the theme while it is being chosen. A theme is two colors and
+   * The theme editor (Mike, October 25). For the open world it is the Theme group of the
+   * Settings page (November 18), which stands to one side while it is open. On the Worlds
+   * page it is a panel at the side of the window. Either way the app behind it shows the
+   * theme while it is being chosen. A theme is two colors and
    * two fonts, with optional overrides for the background and the text, and it is
    * saved in the world's `world.md`. Its light side is worked out from the same colors,
    * and any of the light side's colors can be chosen by hand.

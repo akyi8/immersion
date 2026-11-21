@@ -2,11 +2,13 @@
   import type { BookTree, DivisionNode, SectionNode } from '../../lib/game/game';
 
   /**
-   * A game's book as a tree (Mike, November 9). The divisions are folders, each section
-   * inside them is a folder, and the rules are where the text lives. A division with a
+   * A game's book as a tree (Mike, November 9). The divisions are folders and each
+   * section inside them opens its own page, where its rules are written, so a section's
+   * rules stay folded here until its twist is opened (November 21). A division with a
    * catalog lists its kinds as folders, and their elements inside. The front matter and
-   * back matter are folders of their own, before and after the divisions. Rules and sections can
-   * be dragged to a new place, and the + on a folder adds a rule or a section to it.
+   * back matter are folders of their own, before and after the divisions. Rules and
+   * sections can be dragged to a new place. The + on a folder adds a rule or a section to
+   * it, and the + beside the book's name adds a section at the top of the book.
    */
   let {
     tree,

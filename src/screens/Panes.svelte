@@ -18,8 +18,10 @@
    * running upward. Clicking a spine brings its pane back into view. Each module decides
    * what its panes hold, through the `pane` snippet.
    *
-   * Every document carries the same toolbar in its top corner (Mike, October 26): full
-   * screen, a new window, and close. Beats live in the pane's own actions row (Mike,
+   * Every document carries the same toolbar in its top corner (Mike, October 26, and the
+   * interface's rules of November 15), in one order: ⋯ for what is done to the page, Aa
+   * for how it looks, full screen, a new window, and close. A page's title is one size
+   * alone and a smaller one when pages share the row. Beats live in the pane's own actions row (Mike,
    * October 31), and show up here only in full screen, where that row is hidden. Full screen shows
    * one pane alone, and the others stay open behind it, so nothing loses its place.
    */

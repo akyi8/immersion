@@ -97,7 +97,7 @@ export interface Game {
   setAside: Set<string>;
   /** The engine's book, which is the base game, and the world's own book (Mike, November 8). */
   books: { engine: Book | null; world: Book | null };
-  /** The world's piece of each core module, by the module it extends, such as `module/the-edge`. */
+  /** What the world adds after each core rule, its add-on, by the rule it extends, such as `module/the-edge`. */
   addOns: Map<string, Placed>;
   /** The world's expansions, each a folder in the game folder's `expansions/`, in name order. */
   expansions: Expansion[];
@@ -297,14 +297,14 @@ export function gameFileWith(source: string | null, setAside: string[]): string 
 
 /**
  * The book as a tree (Mike, November 9): divisions, each with a front page, hold rule
- * sections, and each section holds its rules. A core rule carries the world's piece
- * beside it when the book is a world's. A division with a `catalog` lists every element
+ * sections, and each section holds its rules. A core rule carries what the world adds
+ * after it when the book is a world's. A division with a `catalog` lists every element
  * of those kinds instead of sections, so the aspects print as lists.
  */
 export interface RuleNode {
   type: 'rule';
   placed: Placed;
-  /** This world's piece of a core rule, in a world's book. */
+  /** What this world adds after a core rule, in a world's book: its examples and clarifications. */
   worldPiece: Placed | null;
 }
 export interface HeadingNode {
@@ -397,8 +397,8 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
 }
 
 /**
- * The picture at the top of an element's page. In a world's book, the world's piece of a
- * core element can carry a picture of its own, which shows instead of the core one.
+ * The picture at the top of an element's page. In a world's book, a core rule can carry
+ * the world's own picture, kept beside the world's add-on, which shows instead of the core one.
  */
 export function pictureOf(game: Game, p: Placed, inWorld: boolean): { src: Source; path: string; owner: Placed } | null {
   // Only a rule takes what a world adds, so only a rule can show a world's own picture.

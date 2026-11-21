@@ -11,9 +11,11 @@
    * element's kind gets its own box: a line, a paragraph, or a list with one item a line.
    * Changes save on their own a moment after typing stops.
    *
-   * A core element shown in a world can be set aside in that world, or reskinned for it.
-   * A reskin changes only the name and the flavor, so its mechanics show here read-only,
-   * as the core element has them.
+   * A world's files can set a core element aside or reskin it, and the page shows either
+   * where a world has done so. A reskin changes only the name and the flavor, so its
+   * mechanics show here read-only, as the core element has them. The page no longer
+   * offers to set aside or to reskin (Mike, November 21), since no game used them and the
+   * two controls made every core aspect harder to read.
    *
    * An element of the world's own, or of one of its expansions, can move between them
    * (Mike, November 9), such as a piece of gear that belongs in an expansion after all.

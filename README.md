@@ -84,7 +84,7 @@ The Table module holds campaigns played at a real table, for the game master who
 - **Settings.** A cog at the right end of the header opens Settings, and the world's menu and the finder open them too. Settings are one page with five groups down its left side, named for what a setting is for: Look, Theme, Writing and play, Modules, and Files. Theme holds the open world's colors and fonts. While it is open the page stands to one side, so the world's pages show the theme as it is chosen, and nothing is kept until Save the theme. Each setting has a short name, one sentence, and a small tag saying where the choice applies: this world, all worlds, or this computer. Every setting is changed where it sits, with a switch, a choice, or a small form, and a box at the top finds a setting by any word in it.
 - **One look for each idea.** A choice between two or three things is drawn one way everywhere, as a soft track with the chosen part raised. A page's title is one size when the page stands alone and a smaller one when two or more pages share the window. Every sidebar row is the same height. The second color marks labels and quiet actions only, and running text that steps back is a warm grey.
 - **Layouts.** Settings, under Look, choose how the app is laid out: Classic, ruled with fine lines. Soft, with space instead of lines and rounded paper on a desk. Radiance, which is Soft with a picture that belongs to the room. In Radiance the picture stands down the right edge of the window. It is whole at the edge and fades toward the pages into their own ground, black on the dark side and white on the light, and the paper runs under the whole picture, so no edge of the work area crosses it. The last page keeps its text and its corner buttons out of the picture's whole half. A page's picture is framed in the room the way that page frames it for Behind, from Frame and place the picture in the page's Aa menu. The world's own picture is framed from Settings, under Look, with Room picture. It is the world's picture, and while a page that has a picture of its own is the one in use, the room shows that page's picture instead. A page's own picture then shows in the room and not on the page. A narrow window puts the picture away.
-- **Themes.** Each world has its own colors and fonts, chosen in the theme editor. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings.
+- **Themes.** Each world has its own colors and fonts, chosen in Settings, under Theme. Each writer chooses light or dark, a layout, a board font, and a zoom level in Settings, under Look.
 - **Modules.** Settings show or hide each module in the header, and the + after the last module in the header opens that list. World, Boards, and Story are on from the start, and Character, Play, Game, and Table wait until they are turned on. A click on the module already open closes its pages and shows its home.
 - **Updates.** The app checks for a new release when it starts and every six hours, and offers to install it.
 
@@ -105,6 +105,7 @@ harrowgate/
     ideas/          the drawer
     finished/       the shelf
   table/            campaigns, each with its adventures and sessions
+  game/             the world's own game: its book and its elements
 ```
 
 `world.md` starts with a YAML header:
@@ -123,19 +124,19 @@ stories: stories
 ## Building
 
 - `npm install` installs the frontend dependencies.
-- `npm run dev` serves the app in a browser at http://localhost:1420, with Harrowgate, a small built-in demo world.
-- `npm test` runs the unit tests, and `npm run check` type-checks the code.
+- `npm run dev` serves the app in a browser at http://localhost:1420, with two small built-in demo worlds. Harrowgate has a wiki, stories, a campaign, and a game built on a sample engine. Low Tide has no game yet, so starting one can be tried.
+- `npm test` runs the unit tests, and `npm run check` type-checks the code. `npm run build` builds the screens, which also proves that the workers and the bundled files are put together correctly.
 - `cargo test` in `src-tauri/` runs the Rust tests.
 - `npx tauri dev` runs the desktop app. It needs Rust and, on Linux, the WebKitGTK development libraries.
 - `npx tauri build` builds an installer for the current platform. Release builds sign their update files, so a local build needs the update key in `TAURI_SIGNING_PRIVATE_KEY`, or `--config '{"bundle":{"createUpdaterArtifacts":false}}'` to skip signing.
 
 ## Releases
 
-GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. Updates are signed with the project's update key, and the app refuses any update that is not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
+GitHub Actions builds the macOS and Windows apps on every push to `main` and publishes each build as a release. The unit tests and the type check run first, and a build that fails them is never made. A push that changes only markdown files builds nothing. The Rust tests run in a workflow of their own, when the Rust side changes, and do not hold a release back. Updates are signed with the project's update key, and the app refuses any update that is not signed with it. The builds are not yet code-signed with Apple or Microsoft certificates, so macOS and Windows show a warning the first time the app is installed by hand.
 
 ## Stack
 
-Tauri 2 with a Rust backend, Svelte 5 and TypeScript for the screens, CodeMirror 6 for the editor, PDF.js for rulebooks, Dice-Box for the dice, and Vite. Fonts are bundled, so every theme works offline.
+Tauri 2 with a Rust backend, Svelte 5 and TypeScript for the screens, CodeMirror 6 for the editor, PDF.js for rulebooks, Dice-Box for the dice, nspell with the dictionary-en word lists for spelling, and Vite. Fonts are bundled, so every theme works offline.
 
 ## License
 

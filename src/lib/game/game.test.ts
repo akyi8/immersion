@@ -66,7 +66,7 @@ test('a game is the core elements plus the world, minus what the world sets asid
   assert.match(gameFileWith(await world.readText('game/game.md'), []), /^# Game/);
 });
 
-test('a book lists its chapters, and a world piece is found by the module it extends', async () => {
+test("a book lists its chapters, and a world's add-on is found by the rule it extends", async () => {
   const engine = new MemoryFs({
     'engine.md': '# Example Engine\n',
     'book.md': '---\nname: Example Engine\nchapters:\n  - engine:chapter/rolling\n---\n',
@@ -135,7 +135,7 @@ test('a book is a tree of divisions, sections, and rules, and the base game leav
   assert.equal(mine.book.body, 'Salt and fog.');
   assert.equal(mine.book.image, 'book.jpg');
   assert.deepEqual(mine.divisions.map((d) => d.placed.element.name), ['The Protagonist', 'The Aspects']);
-  // The front matter is a world's own section that can print core pages with the world's piece.
+  // The front matter is a world's own section that can print core pages with what the world adds after each.
   const page = mine.front[0].items[0];
   assert.equal(page.type === 'rule' && page.worldPiece?.element.flavor, '*Wren climbs the pier.*');
   assert.deepEqual(mine.back, []);

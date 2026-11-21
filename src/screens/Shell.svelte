@@ -46,7 +46,7 @@
     daily?: boolean;
     onShowLoading: () => void;
     onShowShelf: () => void;
-    /** Opens the theme panel for this world. */
+    /** Opens this world's theme, which is the Theme group of Settings. */
     onTheme: () => void;
     /** Opens the world's name and tagline. */
     onDetails: () => void;

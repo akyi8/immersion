@@ -9,7 +9,9 @@ export interface RoomPicture {
 
 /**
  * The Radiance layout's room (Mike, November 17). Every open page is a card on its own
- * ground, and one picture belongs to the room, down its right edge in a margin of its own.
+ * ground, and one picture belongs to the room, down its right edge. The paper runs under
+ * the picture, which fades into the page's own ground, and the last page keeps its text
+ * out of the picture's whole half.
  * The picture is the world's. While a page that has a picture of its own is the one in
  * use, the room shows that page's picture instead. A page's picture shows at the level
  * of the room and never on the card. The room frames a page's picture the way the page

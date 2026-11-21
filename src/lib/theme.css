@@ -2,8 +2,9 @@
    (architecture decision 10). A world's own theme replaces the color tokens and the
    display and body fonts while the world is open (src/lib/theme.ts).
    The colors come from the Absent Gods brand guide (Mike, October 24): amber marks
-   names and primary actions, and teal carries structure, such as rules, labels,
-   focus, selected states, and links. */
+   names and primary actions, and teal carries structure only: labels, quiet actions,
+   focus, and game terms. What is selected is a grey wash, and text that steps back is a
+   warm grey (Mike, November 17). */
 @import '@fontsource/bebas-neue/400.css';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/400-italic.css';

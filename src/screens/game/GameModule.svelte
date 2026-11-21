@@ -51,12 +51,15 @@
   import type { PictureChoice } from './GameBanner.svelte';
 
   /**
-   * The Game module (Mike, November 7 and 9): a tabletop game's rules, kept as separate
-   * elements and read as a book. The sidebar shows the book as a tree: its front page,
-   * its divisions, their rule sections, and the rules. A rule opens for writing, with the
-   * core text and, in a world's book, the world's own text below it. Core elements belong
-   * to the engine and appear in every game built on it; this world's own elements, and
-   * its choices about the core ones, live in its game folder.
+   * The Game module (Mike, November 7 and 9, reshaped November 21): a tabletop game's
+   * rules, kept as separate elements and written as a book. The files are stored by
+   * owner, the engine's and the world's, and the pages do not show that layout. In a
+   * world, the book on screen is the world's. The sidebar shows it as a tree: its title
+   * page, its front matter, its divisions, and their sections. A section opens as one
+   * page with every rule written in place. A core rule carries one mark, and a world adds
+   * its examples and clarifications after it. A kind's elements show as a list or as a
+   * sheet. Core elements belong to the engine and appear in every game built on it, and
+   * this world's own elements live in its game folder.
    */
   let {
     view = 'narrator',
@@ -329,7 +332,7 @@
   };
   const withList = (p: Placed, field: string, items: string[]): Element => ({ ...p.element, fields: { ...p.element.fields, [field]: items } });
 
-  /** Writes this world's piece of a core element, creating its add-on file the first time. */
+  /** The file that holds what this world adds after a core rule, its add-on, made the first time it is written in. */
   async function worldPieceOf(p: Placed): Promise<Placed> {
     if (!game) throw new Error('The game is not open');
     const existing = game.addOns.get(refOf(p.element));
@@ -394,7 +397,7 @@
   }
 
   // Pictures: a file beside the element with the same name. A world's own picture for a
-  // core element sits beside the world's piece of it.
+  // core rule sits beside the world's add-on for it.
   const stemOf = (path: string) => path.replace(/\.md$/i, '');
 
   async function setPicture(owner: Placed, image: ImageSource) {

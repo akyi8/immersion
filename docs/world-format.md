@@ -23,7 +23,7 @@ The examples use Harrowgate, the small demo world that the browser build opens. 
 
 A library is one folder that holds a writer's worlds. Immersion asks for its location the first time it runs, and the Worlds page lists every world it finds there. The app looks for worlds up to six folders deep, so a world can sit inside a project folder. It skips hidden folders, `node_modules`, and any folder inside a world.
 
-The library's root can hold `immersion.md`, which belongs to the app. That file stores the writer's author profiles, the vault's key settings, and per-writer choices such as layout and which modules the header shows. When the library is a Git repository, `immersion.md` syncs along with the worlds, so those choices follow the writer to other computers.
+The library's root can hold `immersion.md`, which belongs to the app. That file stores the writer's author profiles, the vault's key settings, the words the writer has added to the spelling dictionary, and per-writer choices such as layout and which modules the header shows. When the library is a Git repository, `immersion.md` syncs along with the worlds, so those choices follow the writer to other computers.
 
 ## 2. A world
 
@@ -41,9 +41,11 @@ stories: stories
 - `name:` is the world's name, and `tagline:` is the line shown under it.
 - `wiki:` is the folder that holds the wiki. It defaults to `wiki`.
 - `stories:` is the folder that holds the writing. It defaults to `stories`.
-- `theme:` holds the world's colors and fonts, which the app's theme editor writes.
+- `theme:` holds the world's colors and fonts, which the app writes from Settings, under Theme.
 - `profile:` names the author profile that new manuscripts in this world use.
 - `series_threads:` and `series_structures:` belong to series boards, which section 6 describes.
+- `pictures:` sets how every entry shows its picture, and `room_frame:` frames the world's own picture in the Radiance layout. Section 3 describes both.
+- `spelling: british` spells the world in British English. Without it the world is spelled in American English.
 - `archived: true` moves the world below the others on the Worlds page, under an Archived heading. Nothing else about the world changes.
 - `journal:` and `daily:` mark the writer's journal world, which the app creates and manages.
 - `engine:` names the engine this world's game is built on, as the engine folder's path from the top of the library. `game:` names the folder that holds the world's own game elements, and defaults to `game`. Section 11 describes both.
@@ -305,7 +307,7 @@ Paragraphs are separated by one blank line, which the editor writes when the wri
 Some files belong to the app, and editing them by hand risks damaging what they hold:
 
 - **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable.
-- **`immersion.md`** at the library root holds author profiles, the vault's key settings, and the writer's layout choices. Its `vault:` field must never be changed by hand.
+- **`immersion.md`** at the library root holds author profiles, the vault's key settings, the writer's own spelling dictionary, and the writer's layout choices. Its `vault:` field must never be changed by hand.
 - **`draws.md`** inside a campaign's folder records the cards drawn from each deck, and the app rewrites it with every draw (see section 12).
 - **`archive/`** folders are deliberately left out of the app.
 
@@ -423,7 +425,7 @@ A dock knife with a cork grip, so it floats.
 
 A game's rulebook is a book of divisions, rule sections, and rules. The book has a title page and is split into divisions, such as The Protagonist and The Narrator, and each division has a front page of its own. A division holds rule sections, and each section holds its rules in order. A rule is where the text lives: it prints under its own heading, and any subheadings inside its text are written as `###`.
 
-The engine can have a `book.md`, which is the base game's book, and a world's game folder can have one, which is that world's book. When both exist, the Game sidebar offers a switch between them. `book.md` is the book's title page, and its header names the book and lists its divisions in order:
+The engine can have a `book.md`, which is the base game's book, and a world's game folder can have one, which is that world's book. In a world, the Game sidebar shows the world's book, and the base game's book opens from a link at the foot of the tree. `book.md` is the book's title page, and its header names the book and lists its divisions in order:
 
 ```markdown
 ---
@@ -547,6 +549,8 @@ An element of the world's own can move into one of its expansions, or back, with
 Archiving an element in the app moves its file from `elements/<kind>/` to `archive/elements/<kind>/` in the same game folder, with its picture, and removes it from every list that named it: a section's `items`, a division's `sections`, and a book's `front_matter`, `back_matter`, `divisions`, and `chapters`. The archived file's header gains `archived_from`, a list of where it stood, each with the element or book it was listed `in`, the `list` it was in, and the reference that came after it as `before`. The app does not read the `archive` folder. Moving a file back and adding its reference to a list restores it.
 
 ### Setting aside and reskinning
+
+The app reads both from a world's files. Since November 2026 it no longer offers either on an aspect's page, so a world sets an element aside or reskins it by editing these files. An element already set aside can still be brought back from its page.
 
 A world records its choices about core elements on its own side. Its `game.md` lists the core elements it sets aside, each written as kind and id:
 
