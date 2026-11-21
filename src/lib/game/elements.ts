@@ -94,7 +94,9 @@ export function readElement(path: string, source: string): Element {
     vendor: text(header.vendor),
     reskins: text(header.reskins),
     fields,
-    flavor: body.replace(/^\n+/, '').replace(/\n+$/, ''),
+    // A file saved on Windows ends its lines with a return and a newline. Read as it stood,
+    // the body opened with an empty line that the page showed and the sheet hid a line behind.
+    flavor: body.replace(/\r\n?/g, '\n').replace(/^\n+/, '').replace(/\n+$/, ''),
   };
 }
 

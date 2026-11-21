@@ -7,6 +7,7 @@
   import GameBanner, { type PictureChoice } from './GameBanner.svelte';
   import GameText from './GameText.svelte';
   import SectionRule from './SectionRule.svelte';
+  import CoreMark from './CoreMark.svelte';
 
   /**
    * A rule section as one continuous page, which is where a game is written (Mike,
@@ -71,7 +72,7 @@
     {/snippet}
   </GameBanner>
   <div class="status-row">
-    <span class="meta">{rules} {rules === 1 ? 'rule' : 'rules'}</span>
+    <span class="meta">{#if section.placed.origin === 'engine'}<CoreMark {engineName} />{/if}{rules} {rules === 1 ? 'rule' : 'rules'}</span>
     <span class="status">{said(saver.status)}</span>
   </div>
   {#if saver.problem}<p class="problem" role="alert">{saver.problem}</p>{/if}
@@ -161,6 +162,11 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 6px;
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .meta,
   .status {

@@ -18,6 +18,7 @@
     names,
     onAddRule,
     onAddSection,
+    onAddTop,
     onMenu,
   }: {
     tree: BookTree;
@@ -33,7 +34,11 @@
     names: (origin: string) => string;
     onAddRule: (section: string, name: string) => Promise<void>;
     onAddSection: (division: string, name: string) => Promise<void>;
+    /** Adds a section at the book's top level, after its front matter, such as an introduction. */
+    onAddTop?: (name: string) => Promise<void>;
   } = $props();
+
+  const TOP = '@top';
 
   const STORE = 'immersion.game.tree';
   const remembered = (): string[] => {
@@ -91,7 +96,8 @@
     if (!n || !adding || busy) return;
     busy = true;
     try {
-      if (adding.type === 'rule') await onAddRule(adding.parent, n);
+      if (adding.parent === TOP) await onAddTop?.(n);
+      else if (adding.type === 'rule') await onAddRule(adding.parent, n);
       else await onAddSection(adding.parent, n);
       adding = null;
       name = '';
@@ -100,7 +106,7 @@
     }
   }
   function startAdding(type: 'rule' | 'section', parent: string) {
-    toggle(parent, true);
+    if (parent !== TOP) toggle(parent, true);
     adding = { type, parent };
     name = '';
   }
@@ -237,9 +243,11 @@
   <div class="row top front" class:on={isOpen(`@front:${tree.origin}`)} style="--depth: 0" role="treeitem" aria-selected={isOpen(`@front:${tree.origin}`)} tabindex="-1">
     <button type="button" class="name" onclick={() => onOpen(`@front:${tree.origin}`)}>{tree.book.name}</button>
     <span class="n">title page</span>
+    {#if onAddTop}<button type="button" class="plus" title="Add a section at the top of the book, such as an introduction" aria-label="Add a section at the top of the book" onclick={() => startAdding('section', TOP)}>+</button>{/if}
   </div>
   <!-- The front and back matter sit at the top level, as folders of their own (Mike, November 9). -->
   {#each tree.front as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}
+  {@render adder('section', TOP, 0)}
   {#each tree.divisions as d (d.placed.key)}{@render division(d)}{/each}
   {#each tree.back as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}
   {#if tree.loose.length}

@@ -221,6 +221,8 @@
   const plain = $derived.by(() => {
     const out = new Set<string>();
     for (const s of [...(tree?.front ?? []), ...(tree?.back ?? [])]) {
+      // A section added at the top of the book, such as an introduction, is ordinary writing and says so.
+      if (s.placed.element.fields.links === 'yes') continue;
       out.add(`${SEC}${s.placed.key}`);
       for (const i of s.items) if (i.type === 'rule') out.add(`${RULE}${i.placed.key}`);
     }
@@ -635,6 +637,28 @@
     if (!stay) nav.open(`${RULE}${key}`);
   }
 
+  /**
+   * Adds a section at the book's top level, after its front matter and before its
+   * divisions (Mike, November 21), such as an introduction. It is listed with the front
+   * matter in `book.md`, and its `links: yes` says it is written like any other section,
+   * where the notices of the front matter link nothing.
+   */
+  async function addTopSection(name: string) {
+    if (!game || !bookSource || !bookOrigin) return;
+    const key = await addElement(bookOrigin, 'chapter', name);
+    await load();
+    const sec = byKey.get(key);
+    if (!sec) throw new Error('The section could not be made.');
+    await save(sec, { ...sec.element, fields: { ...sec.element.fields, links: 'yes' } });
+    const file = pathIn(bookSource, 'book.md');
+    const text = await bookSource.fs.readText(file);
+    const before = splitHeader(text).header.front_matter;
+    const front = Array.isArray(before) ? before.filter((r): r is string => typeof r === 'string') : [];
+    await bookSource.fs.writeText(file, withHeader(text, { front_matter: [...front, refOf(sec.element)] }));
+    await load();
+    nav.open(`${SEC}${key}`);
+  }
+
   async function addSection(divKey: string, name: string) {
     const div = byKey.get(divKey);
     if (!div) return;
@@ -715,6 +739,7 @@
             names={originName}
             onAddRule={addRule}
             onAddSection={addSection}
+            onAddTop={addTopSection}
             onMenu={(e, id) => contextMenu.show(e, menuFor(id))} />
         {/if}
         {#if game?.books.world && game.books.engine && bookOrigin === 'world'}

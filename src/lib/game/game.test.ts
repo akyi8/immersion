@@ -210,3 +210,11 @@ test("a book's title page is read from its header", () => {
   assert.equal(book?.body, 'Old front page text.');
   assert.equal(readBook('---\nname: Bare\n---\n')?.year, null);
 });
+
+test('an element file saved on Windows reads without an empty first line', async () => {
+  const { readElement } = await import('./elements.ts');
+  const e = readElement('elements/origin/average.md', '---\r\nname: Average\r\nkind: origin\r\noffers: Choose two.\r\n---\r\n\r\nThe vast middle.\r\nNot starving.\r\n');
+  assert.equal(e.name, 'Average');
+  assert.equal(e.fields.offers, 'Choose two.');
+  assert.equal(e.flavor, 'The vast middle.\nNot starving.');
+});

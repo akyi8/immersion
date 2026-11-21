@@ -40,10 +40,26 @@
     const fit = () => {
       el.style.height = 'auto';
       el.style.height = `${el.scrollHeight + 2}px`;
+      el.scrollTop = 0;
     };
     fit();
     el.addEventListener('input', fit);
-    return { destroy: () => el.removeEventListener('input', fit) };
+    // A column changes width when the page does, and the text then wraps differently.
+    let width = el.offsetWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.offsetWidth === width) return;
+      width = el.offsetWidth;
+      fit();
+    });
+    watch.observe(el);
+    // The text arrives a moment after the cell does, so it is measured again once it has.
+    queueMicrotask(fit);
+    return {
+      destroy: () => {
+        el.removeEventListener('input', fit);
+        watch.disconnect();
+      },
+    };
   }
 
   /**

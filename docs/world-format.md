@@ -457,6 +457,8 @@ front_matter: [ chapter/front-matter ]
 back_matter: [ chapter/back-matter ]
 ```
 
+A section that stands at the top of the book, after the notices and before the first division, is listed with the front matter too, such as an introduction. Its header says `links: yes`, which means it is written like any other section and links names, where the notices of the front matter and the back matter link nothing. The app adds such a section from the + beside the book's name in the tree.
+
 Each book lists its own, so a world's front matter is a section of the world's own. It can still print the engine's pages, each with what the world adds after it, and a page that belongs to one book alone sits only in that book's front matter.
 
 A reference names an element by `engine:` or `world:`, then its kind and id, such as `engine:chapter/taking-risks`. A reference without `engine:` or `world:` points into the folder of the file that names it, so a world's `book.md` names the world's own divisions.
