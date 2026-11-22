@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { readElement, readKind, writeElement, writeKind, newElement, type Kind } from './elements.ts';
-import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, pictureOf, withBody, readBook } from './game.ts';
+import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, overBase, pictureOf, withBody, readBook } from './game.ts';
 
 const gear: Kind = {
   id: 'gear',
@@ -295,4 +295,105 @@ test('a header that cannot be read stops the save, and the file keeps every key'
   assert.throws(() => withChanges(broken, base, { ...base, name: 'Long Blade' }, merge3), /cannot be read/);
   // A change to the body alone does not touch the header, so it is still saved.
   assert.match(withChanges(broken, base, { ...base, flavor: 'Very sharp.' }, merge3), /effect: Roll: 2d6\n---\n\nVery sharp\./);
+});
+
+// A world's book follows the base game's (Cerys, November 23).
+const kindFile = (name: string) => `---\nname: ${name}\nfields: []\n---\n`;
+const el = (kind: string, name: string, more = '') => `---\nname: ${name}\nkind: ${kind}\ntags: [ ${kind} ]\n${more}---\n`;
+const baseGame = (extra: Record<string, string> = {}) => ({
+  'engine.md': '# Example Engine\n',
+  'kinds/division.md': kindFile('Division'),
+  'kinds/chapter.md': kindFile('Section'),
+  'kinds/module.md': kindFile('Rule'),
+  'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter ]\ndivisions: [ division/the-protagonist, division/the-narrator ]\n---\n',
+  'elements/chapter/front-matter.md': el('chapter', 'Front Matter', 'items: [ module/notice ]\n'),
+  'elements/module/notice.md': el('module', 'Notice'),
+  'elements/division/the-protagonist.md': el('division', 'The Protagonist', 'sections: [ chapter/risks, chapter/gear, chapter/growing ]\n'),
+  'elements/division/the-narrator.md': el('division', 'The Narrator', 'sections: [ chapter/scenes ]\n'),
+  'elements/chapter/risks.md': el('chapter', 'Risks'),
+  'elements/chapter/gear.md': el('chapter', 'Gear'),
+  'elements/chapter/growing.md': el('chapter', 'Growing'),
+  'elements/chapter/scenes.md': el('chapter', 'Scenes'),
+  ...extra,
+});
+// The world as it was laid out over the base game, with a section of its own after Gear and one at the end.
+const worldGame = (extra: Record<string, string> = {}) => ({
+  'world.md': '---\nname: Harrowgate\n---\n',
+  'game/book.md': '---\nname: Harrowgate\nfront_matter: [ chapter/front-matter, chapter/introduction ]\ndivisions: [ division/the-protagonist, division/the-narrator ]\n---\n',
+  'game/elements/chapter/front-matter.md': el('chapter', 'Front Matter', 'items: [ "engine:module/notice" ]\n'),
+  'game/elements/chapter/introduction.md': el('chapter', 'Introduction'),
+  'game/elements/division/the-protagonist.md': el('division', 'The Protagonist', 'sections: [ "engine:chapter/risks", "engine:chapter/gear", "world:chapter/tides", "engine:chapter/growing", "world:chapter/samples" ]\n'),
+  'game/elements/division/the-narrator.md': el('division', 'The Narrator', 'sections: [ "engine:chapter/scenes" ]\n'),
+  'game/elements/chapter/tides.md': el('chapter', 'The Tides'),
+  'game/elements/chapter/samples.md': el('chapter', 'Sample Protagonists'),
+  ...extra,
+});
+const worldTree = async (engineFiles: Record<string, string>, worldFiles: Record<string, string>) => {
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: new MemoryFs(engineFiles), dir: '' }, { origin: 'world', name: 'Harrowgate', fs: new MemoryFs(worldFiles), dir: 'game' });
+  return bookTree(game, 'world')!;
+};
+const names = (xs: { placed: { element: { name: string } } }[]) => xs.map((x) => x.placed.element.name);
+
+test("a world's own entries go into the base game's list at the number they hold", () => {
+  const own = (k: string) => k.startsWith('w');
+  assert.deepEqual(overBase(['a', 'b', 'c'], ['a', 'b', 'w1', 'c', 'w2'], own), ['a', 'b', 'w1', 'c', 'w2']);
+  // The base game gained an entry at the top and lost one, and the world's keep their numbers.
+  assert.deepEqual(overBase(['new', 'a', 'c'], ['a', 'b', 'w1', 'c', 'w2'], own), ['new', 'a', 'w1', 'c', 'w2']);
+  assert.deepEqual(overBase(['a'], ['a', 'b', 'c', 'w1'], own), ['a', 'w1']);
+});
+
+test("a world's book reads as it was laid out, when the base game has not changed", async () => {
+  const t = await worldTree(baseGame(), worldGame());
+  assert.deepEqual(names(t.divisions), ['The Protagonist', 'The Narrator']);
+  assert.deepEqual(names(t.divisions[0].sections), ['Risks', 'Gear', 'The Tides', 'Growing', 'Sample Protagonists']);
+  assert.deepEqual(names(t.front), ['Front Matter', 'Introduction']);
+});
+
+test('a division, a section, and a front page added to the base game show in the world', async () => {
+  const t = await worldTree(
+    baseGame({
+      'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter, chapter/safety ]\ndivisions: [ division/the-protagonist, division/adventures, division/the-narrator ]\n---\n',
+      'elements/division/adventures.md': el('division', 'Adventures', 'sections: [ chapter/hooks ]\n'),
+      'elements/chapter/hooks.md': el('chapter', 'Hooks'),
+      'elements/chapter/safety.md': el('chapter', 'Safety'),
+      'elements/division/the-narrator.md': el('division', 'The Narrator', 'sections: [ chapter/scenes, chapter/pacing ]\n'),
+      'elements/chapter/pacing.md': el('chapter', 'Pacing'),
+      'elements/chapter/front-matter.md': el('chapter', 'Front Matter', 'items: [ module/notice, module/credits ]\n'),
+      'elements/module/credits.md': el('module', 'Credits'),
+    }),
+    worldGame(),
+  );
+  assert.deepEqual(names(t.divisions), ['The Protagonist', 'Adventures', 'The Narrator']);
+  assert.deepEqual(names(t.divisions[1].sections), ['Hooks']);
+  assert.equal(t.divisions[1].placed.origin, 'engine');
+  assert.deepEqual(names(t.divisions[2].sections), ['Scenes', 'Pacing']);
+  // The world's Introduction keeps its number, second, and the base game's new page follows it.
+  assert.deepEqual(names(t.front), ['Front Matter', 'Introduction', 'Safety']);
+  assert.deepEqual(t.front[0].items.map((i) => (i.type === 'rule' ? i.placed.element.name : '')), ['Notice', 'Credits']);
+});
+
+test("the base game's order and names win, and a world's section keeps its number", async () => {
+  const t = await worldTree(
+    baseGame({
+      'elements/division/the-protagonist.md': el('division', 'The Hero', 'sections: [ chapter/growing, chapter/risks ]\n'),
+    }),
+    worldGame(),
+  );
+  assert.equal(t.divisions[0].placed.element.name, 'The Hero');
+  // The world's own file is still the one written to.
+  assert.equal(t.divisions[0].placed.key, 'world:division/the-protagonist');
+  // Gear left the base game's division, so it leaves the world's. The Tides was third and is third.
+  assert.deepEqual(names(t.divisions[0].sections), ['Growing', 'Risks', 'The Tides', 'Sample Protagonists']);
+});
+
+test("a world's own division stands at its number among the base game's", async () => {
+  const t = await worldTree(
+    baseGame(),
+    worldGame({
+      'game/book.md': '---\nname: Harrowgate\ndivisions: [ division/the-harbor, division/the-protagonist, division/the-narrator ]\n---\n',
+      'game/elements/division/the-harbor.md': el('division', 'The Harbor', 'sections: [ chapter/tides ]\n'),
+    }),
+  );
+  assert.deepEqual(names(t.divisions), ['The Harbor', 'The Protagonist', 'The Narrator']);
+  assert.deepEqual(names(t.divisions[0].sections), ['The Tides']);
 });

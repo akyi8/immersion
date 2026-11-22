@@ -436,6 +436,26 @@ Which of the three an element is comes from its labels, described under "Labels"
 
 Which names link depends on where the text is. The wiki, the stories, and the boards link wiki names alone. A world's game text links all three. The base engine's text links the engine's own aspects and mechanics.
 
+### A world's book follows the base game's
+
+A world's book is the base game's book with the world's own parts laid over it. The base game's divisions, sections, and front and back matter stand in the base game's order under the base game's names. A division or a section added to the base game shows in every world built on it, and one removed from the base game leaves every world.
+
+A part of the base game and a file of the world's with the same id are one part. `elements/division/the-protagonist.md` in the world's game folder is the world's side of the base game's `division/the-protagonist`: it holds the sections the world adds to that division, and its body is the world's own front page for it, shown when it has one. The world's file never renames the division.
+
+The world's own parts keep the number they hold in the world's list. A world's division file lists the whole division as the world saw it, the base game's sections and its own:
+
+```yaml
+sections:
+  - engine:chapter/taking-risks
+  - engine:chapter/gear
+  - chapter/the-tides
+  - engine:chapter/growing
+```
+
+The app reads only the world's own entries from that list, and each one's place in it. `chapter/the-tides` is third, so it stands third in the division whatever the base game does around it. The `engine:` entries are kept so the numbers stay true, and the app writes the list afresh whenever a section is added or moved in the world's book. The same holds for the divisions in a world's `book.md`, for its `front_matter` and `back_matter`, and for the rules in a front or back matter section the world shares with the base game.
+
+A world cannot leave out a part of the base game. A division with no sections is shown with none.
+
 ### Labels
 
 A label is a lowercase word on an element. An element's labels are its kind and everything in its `tags:`, read as one set, so the kind `gear` and the tag `gear` are the same label. Most labels are plain tags that only the writer reads. A few mean something to the app.

@@ -50,8 +50,13 @@ A kind of place that sells, and the kind of person who runs it. Each world write
     'elements/chapter/front-matter.md': '---\nname: Front Matter\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/safety\n---\n',
     'elements/chapter/back-matter.md': '---\nname: Back Matter\nkind: chapter\ntags: [ core, chapter ]\n---\n',
     'elements/module/safety.md': '---\nname: Safety\nkind: module\ntags: [ core, module ]\n---\n\nAgree before play on what belongs in the game, and stop whenever anyone asks.\n',
-    'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter ]\nback_matter: [ chapter/back-matter ]\ndivisions:\n  - division/the-protagonist\n  - division/the-aspects\n---\n\nThe base game: everything every game built on the Example Engine shares.\n',
+    'book.md': '---\nname: Example Engine\nfront_matter: [ chapter/front-matter ]\nback_matter: [ chapter/back-matter ]\ndivisions:\n  - division/the-protagonist\n  - division/the-narrator\n  - division/the-aspects\n---\n\nThe base game: everything every game built on the Example Engine shares.\n',
     'elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\ntags: [ core, division ]\nsections:\n  - chapter/taking-risks\n---\n\nWho the player is, and how they get into trouble.\n',
+    // A division the world's book does not list. The world shows it all the same, because a
+    // world's book follows the base game's.
+    'elements/division/the-narrator.md': '---\nname: The Narrator\nkind: division\ntags: [ core, division ]\nsections:\n  - chapter/running-a-scene\n---\n\nHow to run the game.\n',
+    'elements/chapter/running-a-scene.md': '---\nname: Running a Scene\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/set-the-stakes\n---\n',
+    'elements/module/set-the-stakes.md': '---\nname: Set the Stakes\nkind: module\ntags: [ core, module ]\n---\n\nSay what is at risk before anyone rolls.\n',
     'elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ core, division ]\ncatalog: [ need, gear ]\n---\n\nEvery aspect, listed by kind.\n',
     'elements/chapter/taking-risks.md': '---\nname: Taking Risks\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/when-to-roll\n  - module/reading-the-dice\n---\n\nWhen a protagonist tries something uncertain, the dice decide.\n',
     'elements/module/when-to-roll.md': '---\nname: When to Roll\nkind: module\ntags: [ core, module ]\n---\n\nRoll only when failing would be *interesting*. Walking across a quiet room needs no dice.\n',

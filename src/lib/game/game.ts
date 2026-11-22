@@ -385,6 +385,21 @@ const listField = (p: Placed, key: string): string[] => {
   return Array.isArray(v) ? v : typeof v === 'string' && v.trim() ? [v.trim()] : [];
 };
 
+/**
+ * A world's list laid over the base game's (Cerys, November 23). The base game's entries
+ * come first, in the base game's order. Each entry of the world's own then goes in at the
+ * place it holds in the world's list, counted from the top, so a world's section keeps its
+ * number when the base game changes around it. An entry the world lists from the base
+ * game is ignored here, because the base game decides whether and where it stands.
+ */
+export function overBase(base: string[], world: string[], own: (key: string) => boolean): string[] {
+  const out = [...base];
+  world.forEach((key, at) => {
+    if (own(key) && !out.includes(key)) out.splice(Math.min(at, out.length), 0, key);
+  });
+  return out;
+}
+
 export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
   const book = game.books[origin];
   if (!book) return null;
@@ -392,15 +407,16 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
   const byKey = new Map(game.elements.map((p) => [p.key, p]));
   // The base game shows only the engine's own elements.
   const visible = (p: Placed | undefined): p is Placed => !!p && (inWorld || p.origin === 'engine');
-  const section = (p: Placed): SectionNode => {
+  const itemKeys = (p: Placed) => listField(p, 'items').map((ref) => (ref.startsWith('heading:') ? ref : keyOf(ref, p.origin)));
+  const section = (p: Placed, keys: string[] = itemKeys(p)): SectionNode => {
     const items: (RuleNode | HeadingNode)[] = [];
     const elements: Placed[] = [];
-    for (const ref of listField(p, 'items')) {
-      if (ref.startsWith('heading:')) {
-        items.push({ type: 'heading', text: ref.slice(8).trim() });
+    for (const key of keys) {
+      if (key.startsWith('heading:')) {
+        items.push({ type: 'heading', text: key.slice(8).trim() });
         continue;
       }
-      const hit = byKey.get(keyOf(ref, p.origin));
+      const hit = byKey.get(key);
       if (!visible(hit)) continue;
       if (hit.element.kind === 'module')
         items.push({
@@ -416,29 +432,78 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
     refs
       .map((r) => byKey.get(keyOf(r, from)))
       .filter(visible)
-      .map(section);
-  const divisions = book.divisions
-    .map((r) => byKey.get(keyOf(r, origin)))
-    .filter(visible)
-    .map((d): DivisionNode => ({
-      placed: d,
-      sections: sections(listField(d, 'sections'), d.origin),
-      // A catalog names labels (Cerys, November 22). A kind is a label, so a list by kind
-      // reads as it always did, and a list can now gather by a tag as well: every element
-      // that carries the label, whatever folder it sits in.
-      catalog: listField(d, 'catalog')
-        .map((id): CatalogNode => {
-          const label = id.trim().toLowerCase();
-          const kind = game.kinds.get(label);
-          return {
-            kind: kind ?? labelKind(label, game.labels.get(label)?.plural),
-            byLabel: !kind,
-            elements: game.elements.filter((p) => !STRUCTURAL.has(p.element.kind) && hasLabel(p.element, label, game.labels) && (inWorld ? inPlay(p) : p.origin === 'engine')),
-          };
-        })
-        .filter((c) => c.elements.length > 0),
-    }));
-  return { origin, book, divisions, loose: sections(book.chapters, origin), front: sections(book.frontMatter, origin), back: sections(book.backMatter, origin) };
+      .map((p) => section(p));
+  // A catalog names labels (Cerys, November 22). A kind is a label, so a list by kind
+  // reads as it always did, and a list can now gather by a tag as well: every element
+  // that carries the label, whatever folder it sits in.
+  const catalog = (ids: string[]): CatalogNode[] =>
+    [...new Set(ids.map((id) => id.trim().toLowerCase()))]
+      .map((label): CatalogNode => {
+        const kind = game.kinds.get(label);
+        return {
+          kind: kind ?? labelKind(label, game.labels.get(label)?.plural),
+          byLabel: !kind,
+          elements: game.elements.filter((p) => !STRUCTURAL.has(p.element.kind) && hasLabel(p.element, label, game.labels) && (inWorld ? inPlay(p) : p.origin === 'engine')),
+        };
+      })
+      .filter((c) => c.elements.length > 0);
+
+  const base = inWorld ? game.books.engine : null;
+  if (!base) {
+    const divisions = book.divisions
+      .map((r) => byKey.get(keyOf(r, origin)))
+      .filter(visible)
+      .map((d): DivisionNode => ({ placed: d, sections: sections(listField(d, 'sections'), d.origin), catalog: catalog(listField(d, 'catalog')) }));
+    return { origin, book, divisions, loose: sections(book.chapters, origin), front: sections(book.frontMatter, origin), back: sections(book.backMatter, origin) };
+  }
+
+  // A world's book follows the base game's (Cerys, November 23). The base game's divisions
+  // and sections stand in the base game's order under the base game's names, and whatever
+  // the base game gains, every world gains. The world's own divisions, sections, and
+  // rules are laid over that. A part of the base game and the world's file by the same id
+  // are one part: the world's file holds what the world adds to it.
+  const isOwn = (key: string) => !key.startsWith('engine:');
+  const twin = (e: Placed) => {
+    const w = byKey.get(`world:${refOf(e.element)}`);
+    return w && w.element.kind === e.element.kind ? w : null;
+  };
+  /** The world's list with each entry that has a twin in the base game named as that twin. */
+  const asBase = (refs: string[]) =>
+    refs.map((r) => {
+      const key = keyOf(r, 'world');
+      const w = byKey.get(key);
+      const e = w && w.origin === 'world' ? byKey.get(`engine:${refOf(w.element)}`) : null;
+      return e && e.element.kind === w!.element.kind ? e.key : key;
+    });
+  /** The base game's part as the world shows it: the world's file when it has one, under the base game's name. */
+  const shown = (e: Placed, w: Placed | null): Placed => (w ? { ...w, element: { ...w.element, name: e.element.name, flavor: w.element.flavor || e.element.flavor } } : e);
+
+  const matter = (baseRefs: string[], worldRefs: string[]): SectionNode[] =>
+    overBase(baseRefs.map((r) => keyOf(r, 'engine')), asBase(worldRefs), isOwn)
+      .map((key) => {
+        const p = byKey.get(key);
+        if (!p) return null;
+        if (p.origin !== 'engine') return section(p);
+        const w = twin(p);
+        return section(shown(p, w), overBase(itemKeys(p), w ? itemKeys(w) : [], isOwn));
+      })
+      .filter((x): x is SectionNode => !!x);
+
+  const divisions = overBase(base.divisions.map((r) => keyOf(r, 'engine')), asBase(book.divisions), isOwn)
+    .map((key): DivisionNode | null => {
+      const p = byKey.get(key);
+      if (!p) return null;
+      if (p.origin !== 'engine') return { placed: p, sections: sections(listField(p, 'sections'), p.origin), catalog: catalog(listField(p, 'catalog')) };
+      const w = twin(p);
+      const keys = overBase(listField(p, 'sections').map((r) => keyOf(r, 'engine')), w ? listField(w, 'sections').map((r) => keyOf(r, 'world')) : [], isOwn);
+      return {
+        placed: shown(p, w),
+        sections: keys.map((k) => byKey.get(k)).filter(visible).map((x) => section(x)),
+        catalog: catalog([...listField(p, 'catalog'), ...(w ? listField(w, 'catalog') : [])]),
+      };
+    })
+    .filter((d): d is DivisionNode => !!d);
+  return { origin, book, divisions, loose: sections(book.chapters, origin), front: matter(base.frontMatter, book.frontMatter), back: matter(base.backMatter, book.backMatter) };
 }
 
 /**

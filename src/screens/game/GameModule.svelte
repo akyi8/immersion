@@ -674,22 +674,60 @@
     await save(to, withList(to, 'items', target));
   }
 
+  /**
+   * A world's book follows the base game's (Cerys, November 23), so the world's file for a
+   * division holds only what the world adds to it. A division that came from the base
+   * game since the world was laid out has no such file yet, and it gets one the first time
+   * the world adds a section to it.
+   */
+  async function worldTwin(p: Placed): Promise<Placed> {
+    if (!game || !inWorld || p.origin !== 'engine') return p;
+    const key = `world:${refOf(p.element)}`;
+    const kind = game.kinds.get(p.element.kind);
+    if (byKey.get(key) || !kind) return byKey.get(key) ?? p;
+    const e: Element = { ...newElement(p.element.name, kind, new Set()), id: p.element.id, path: p.element.path, tags: [kind.id] };
+    await game.world.fs.writeText(pathIn(game.world, e.path), writeElement(e, kind));
+    await load();
+    return byKey.get(key) ?? p;
+  }
+  /**
+   * Saves a division's front page. In a world's book a division of the base game keeps the
+   * base game's name, so a new name typed there is not taken, and the page says why.
+   */
+  async function saveDivision(p: Placed, shownName: string, c: { name: string; text: string; was: { name: string; text: string } }) {
+    const core = inWorld && (p.origin === 'engine' || !!byKey.get(`engine:${refOf(p.element)}`));
+    if (!core) return saveTyped(p, c);
+    if (c.name !== c.was.name && c.name !== shownName) notice = `${shownName} is a division of ${engineName}, so its name is set in ${engineName}'s book.`;
+    // The world's own file is made only when the world has something to say on this page.
+    if (c.text === c.was.text) return;
+    const mine = await worldTwin(p);
+    await saveTyped(mine, { ...c, name: mine.element.name, was: { ...c.was, name: mine.element.name } });
+  }
+  /** A division's sections as the book shows them now, which is the list a change starts from. */
+  const sectionsShown = (divKey: string) => tree?.divisions.find((d) => d.placed.key === divKey)?.sections.map((s) => s.placed.key) ?? null;
+
   async function moveSection(secKey: string, fromKey: string | null, toKey: string, before: string | null) {
     if (!game || !bookSource) return;
     const sec = byKey.get(secKey);
-    const to = byKey.get(toKey);
+    let to = byKey.get(toKey);
     if (!sec || !to || secKey === before) return;
-    if (to.origin === 'engine' && sec.origin === 'world') {
+    if (inWorld && sec.origin === 'engine') {
+      notice = `${sec.element.name} is a core section, so its place is set in ${engineName}'s book, and ${worldName} follows it.`;
+      return;
+    }
+    if (!inWorld && to.origin === 'engine' && sec.origin === 'world') {
       notice = `${sec.element.name} is ${worldName}'s own section, so it belongs in ${worldName}'s book.`;
       return;
     }
     notice = '';
-    const target = list(to, 'sections').filter((r) => keyOf(r, to.origin) !== secKey);
-    const at = before ? target.findIndex((r) => keyOf(r, to.origin) === before) : -1;
+    const shownNow = sectionsShown(toKey);
+    to = await worldTwin(to);
+    const target = (shownNow ?? list(to, 'sections')).filter((r) => keyOf(r, to!.origin) !== secKey);
+    const at = before ? target.findIndex((r) => keyOf(r, to!.origin) === before) : -1;
     if (at < 0) target.push(secKey);
     else target.splice(at, 0, secKey);
     const from = fromKey ? byKey.get(fromKey) : null;
-    if (from && from !== to) await save(from, withList(from, 'sections', list(from, 'sections').filter((r) => keyOf(r, from.origin) !== secKey)));
+    if (from && from.key !== to.key && from.origin === sec.origin) await save(from, withList(from, 'sections', list(from, 'sections').filter((r) => keyOf(r, from.origin) !== secKey)));
     if (!fromKey) {
       // A section from before divisions leaves the book's loose list.
       const file = pathIn(bookSource, 'book.md');
@@ -746,10 +784,14 @@
   }
 
   async function addSection(divKey: string, name: string) {
-    const div = byKey.get(divKey);
-    if (!div) return;
+    const at = byKey.get(divKey);
+    if (!at) return;
+    // The new section goes after everything the division shows now, the base game's
+    // sections included, so it holds the last number in the world's list.
+    const shownNow = sectionsShown(divKey);
+    const div = await worldTwin(at);
     const key = await addElement(div.origin, 'chapter', name);
-    await save(div, withList(div, 'sections', [...list(div, 'sections'), key]));
+    await save(div, withList(div, 'sections', [...(shownNow ?? list(div, 'sections')), key]));
     await load();
     nav.open(`${SEC}${key}`);
   }
@@ -918,12 +960,12 @@
             {@const d = tree?.divisions.find((x) => x.placed.key === p.key)}
             <FrontPage
               place="{tree?.book.name ?? ''} · Division"
-              name={p.element.name}
-              body={p.element.flavor}
+              name={d?.placed.element.name ?? p.element.name}
+              body={d?.placed.element.flavor ?? p.element.flavor}
               picture={shown(id, pictureFor(p))}
               choices={choicesFor(p)}
               onFrame={(frame) => saveFrame(p, frame)}
-              onSave={(c) => saveTyped(p, c)}
+              onSave={(c) => saveDivision(p, d?.placed.element.name ?? p.element.name, c)}
               contents={d
                 ? d.catalog.length
                   ? d.catalog.map((c) => ({ label: c.kind.plural, note: `${c.elements.length}`, open: () => nav.open(`${CAT}${c.kind.id}`, i) }))
