@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keep, kept } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
@@ -28,7 +29,7 @@
   import { pageActions } from '../../lib/pane.svelte';
   import type { MenuEntry } from '../../lib/contextMenu.svelte';
   import { titleFocus } from '../../lib/retitle';
-  import { openInWindow } from '../../lib/windows';
+  import { moveToWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
 
@@ -105,7 +106,7 @@
 
   /** A rulebook or a handout moves to a window of its own, to sit on another screen or be shared on a call. */
   function toWindow(id: string) {
-    void openInWindow(id, label(id));
+    void moveToWindow(id, label(id), () => nav.panes.includes(id) && nav.close(id));
   }
   const showsPlan = (c: Campaign) => c.role === 'gm' && plans;
 
@@ -151,22 +152,10 @@
 
   // The sidebar remembers which adventures are folded shut.
   const FOLDS = 'immersion.table.folds';
-  let shut = $state<string[]>(
-    (() => {
-      try {
-        return JSON.parse(localStorage.getItem(FOLDS) ?? '[]') as string[];
-      } catch {
-        return [];
-      }
-    })(),
-  );
+  let shut = $state<string[]>(kept<string[]>(FOLDS, []));
   function fold(path: string) {
     shut = shut.includes(path) ? shut.filter((p) => p !== path) : [...shut, path];
-    try {
-      localStorage.setItem(FOLDS, JSON.stringify(shut));
-    } catch {
-      // Not remembering a fold is harmless.
-    }
+    keep(FOLDS, shut);
   }
 
   // One small form makes a campaign, an adventure, or a session.

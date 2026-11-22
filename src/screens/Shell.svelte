@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keepWord, word } from '../lib/prefs';
   import Pick from './Pick.svelte';
   import { mod, onMac, onShortcut } from '../lib/shortcuts';
   import { onMount } from 'svelte';
@@ -89,21 +90,10 @@
   });
 
 
-  function savedView(): View {
-    try {
-      return localStorage.getItem('immersion.view') === 'protagonist' ? 'protagonist' : 'narrator';
-    } catch {
-      return 'narrator';
-    }
-  }
-  let view = $state<View>(savedView());
+  let view = $state<View>(word('immersion.view') === 'protagonist' ? 'protagonist' : 'narrator');
   function setView(v: View) {
     view = v;
-    try {
-      localStorage.setItem('immersion.view', v);
-    } catch {
-      // Not remembering the choice is harmless.
-    }
+    keepWord('immersion.view', v);
   }
 
   // The header shows the modules the writer has turned on in Settings (Cerys, November 7).

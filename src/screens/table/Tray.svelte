@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keepWord, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import Pick from '../Pick.svelte';
   import type { WorldFs } from '../../lib/fs/types';
@@ -18,21 +19,11 @@
   let { fs, campaign }: { fs: WorldFs; campaign: Campaign | null } = $props();
 
   const OPEN = 'immersion.table.tray';
-  const saved = (() => {
-    try {
-      return localStorage.getItem(OPEN);
-    } catch {
-      return null;
-    }
-  })();
+  const saved = word(OPEN);
   let tab = $state<'dice' | 'cards' | null>(saved === 'cards' ? 'cards' : saved === 'shut' ? null : 'dice');
   function show(next: 'dice' | 'cards') {
     tab = tab === next ? null : next;
-    try {
-      localStorage.setItem(OPEN, tab ?? 'shut');
-    } catch {
-      // Not remembering the tray is harmless.
-    }
+    keepWord(OPEN, tab ?? 'shut');
   }
 
   // Dice. The roll is built by clicking the dice (Cerys, November 14): a click adds one die

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keep, keepWord, kept, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import { registerPanel } from '../../lib/saves';
   import { onMount, tick, untrack, type Snippet } from 'svelte';
@@ -210,21 +211,8 @@
   // by each chapter's or book's file, on this computer only, like the app's other layout.
   const WIDTHS_KEY = 'immersion.columnWidths';
   const COLUMN = 260;
-  function savedWidths(): Record<string, number> {
-    try {
-      return JSON.parse(localStorage.getItem(WIDTHS_KEY) ?? '{}') as Record<string, number>;
-    } catch {
-      return {};
-    }
-  }
-  let widths = $state<Record<string, number>>(savedWidths());
-  function keepWidths() {
-    try {
-      localStorage.setItem(WIDTHS_KEY, JSON.stringify(widths));
-    } catch {
-      // Not remembering a width is harmless.
-    }
-  }
+  let widths = $state<Record<string, number>>(kept<Record<string, number>>(WIDTHS_KEY, {}));
+  const keepWidths = () => keep(WIDTHS_KEY, widths);
   function resize(e: PointerEvent, path: string) {
     e.preventDefault();
     const bar = e.currentTarget as HTMLElement;
@@ -452,22 +440,11 @@
   }
 
   // Threads (Cerys, October 25).
-  function savedFlip(): boolean {
-    try {
-      return localStorage.getItem('immersion.boardFlip') === 'down';
-    } catch {
-      return false;
-    }
-  }
   /** False: chapters run across and threads down. True: the other way round. */
-  let flipped = $state(savedFlip());
+  let flipped = $state(word('immersion.boardFlip') === 'down');
   function flip() {
     flipped = !flipped;
-    try {
-      localStorage.setItem('immersion.boardFlip', flipped ? 'down' : 'across');
-    } catch {
-      // Not remembering the choice is harmless.
-    }
+    keepWord('immersion.boardFlip', flipped ? 'down' : 'across');
   }
 
   let naming = $state(false);

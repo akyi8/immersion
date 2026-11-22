@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keepWord, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
@@ -36,22 +37,11 @@
   const timeline = $derived(buildTimeline(index.all()));
   const W = $derived(timeline.moments.length);
 
-  function savedFlip(): boolean {
-    try {
-      return localStorage.getItem('immersion.timelineFlip') === 'across';
-    } catch {
-      return false;
-    }
-  }
   /** False: dates run down the page. True: dates run across. */
-  let across = $state(savedFlip());
+  let across = $state(word('immersion.timelineFlip') === 'across');
   function flip() {
     across = !across;
-    try {
-      localStorage.setItem('immersion.timelineFlip', across ? 'across' : 'down');
-    } catch {
-      // Not remembering the choice is harmless.
-    }
+    keepWord('immersion.timelineFlip', across ? 'across' : 'down');
   }
 
   // Grid positions. Down: era lanes, then the date, then the events, as columns.

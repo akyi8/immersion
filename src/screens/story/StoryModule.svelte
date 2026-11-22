@@ -12,7 +12,7 @@
   import { makeFolder, moveToPlace, newManuscript, newNote } from '../../lib/story/manage';
   import { fileToFolder, readTitlePage, seriesLine } from '../../lib/story/book';
   import { saveAllUnder, saveNow } from '../../lib/saves';
-  import { openInWindow } from '../../lib/windows';
+  import { moveToWindow } from '../../lib/windows';
   import { splitHeader } from '../../lib/world';
   import { slugify } from '../../lib/slug';
   import { ui } from '../../lib/ui.svelte';
@@ -157,9 +157,7 @@
 
   /** Moves a page into a reading window of its own; its pane here closes (Cerys, October 25). */
   async function toWindow(id: string) {
-    await saveNow(id);
-    openInWindow(id, label(id));
-    if (nav.panes.includes(id)) nav.close(id);
+    await moveToWindow(id, label(id), () => nav.panes.includes(id) && nav.close(id));
   }
 
   /** Opens a piece, and moves to a chapter in it when `offset` is given. */

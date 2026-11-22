@@ -5,8 +5,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import { buildStoryIndex, filesOf, titleFromName, type StoryIndex } from '../../lib/story/index';
-  import { saveNow } from '../../lib/saves';
-  import { openInWindow } from '../../lib/windows';
+  import { moveToWindow } from '../../lib/windows';
   import { ui } from '../../lib/ui.svelte';
   import Panes from '../Panes.svelte';
   import TimelineView from '../world/TimelineView.svelte';
@@ -93,9 +92,7 @@
   }
 
   async function toWindow(id: string) {
-    await saveNow(id);
-    openInWindow(id, label(id));
-    nav.close(id);
+    await moveToWindow(id, label(id), () => nav.close(id));
   }
 
   const isOpen = (id: string) => nav.panes.includes(id);

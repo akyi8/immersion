@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keep, keepWord, kept, word } from '../../lib/prefs';
   import type { BookTree, DivisionNode, SectionNode } from '../../lib/game/game';
 
   /**
@@ -44,15 +45,11 @@
 
   const STORE = 'immersion.game.tree';
   const remembered = (): string[] => {
-    try {
-      // Sections start folded since November 21. What was open before keeps its divisions open.
-      const was: string[] = JSON.parse(localStorage.getItem(STORE) ?? '[]');
-      if (localStorage.getItem(STORE + '.sections') === 'folded') return was;
-      localStorage.setItem(STORE + '.sections', 'folded');
-      return was.filter((k) => !k.includes('chapter/'));
-    } catch {
-      return [];
-    }
+    // Sections start folded since November 21. What was open before keeps its divisions open.
+    const was = kept<string[]>(STORE, []);
+    if (word(STORE + '.sections') === 'folded') return was;
+    keepWord(STORE + '.sections', 'folded');
+    return was.filter((k) => !k.includes('chapter/'));
   };
   let expanded = $state<Set<string>>(new Set(remembered()));
   function toggle(key: string, to?: boolean) {
@@ -60,11 +57,7 @@
     if (to ?? !next.has(key)) next.add(key);
     else next.delete(key);
     expanded = next;
-    try {
-      localStorage.setItem(STORE, JSON.stringify([...next]));
-    } catch {
-      // A browser without storage keeps the folders open for this visit only.
-    }
+    keep(STORE, [...next]);
   }
 
   // Dragging: a rule onto a rule lands before it, onto a section at its end; a section

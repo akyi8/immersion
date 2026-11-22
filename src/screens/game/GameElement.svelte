@@ -2,8 +2,8 @@
   import { errorText } from '../../lib/errors';
   import { retitle } from '../../lib/retitle';
   import GameText from './GameText.svelte';
-  import { onMount } from 'svelte';
-  import { registerPanel } from '../../lib/saves';
+  import { onDestroy } from 'svelte';
+  import { Saver, said } from '../../lib/game/saver.svelte';
   import type { Element, Kind } from '../../lib/game/elements';
   import { effective, type Placed } from '../../lib/game/game';
 
@@ -56,12 +56,11 @@
   async function moveTo(origin: string) {
     if (!onMove || origin === placed.origin) return;
     moving = true;
-    problem = '';
+    moveProblem = '';
     try {
       await onMove(origin);
     } catch (e) {
-      problem = errorText(e);
-      status = 'problem';
+      moveProblem = errorText(e);
     } finally {
       moving = false;
     }
@@ -73,49 +72,24 @@
   let draft = $state<Element>((() => structuredClone($state.snapshot(placed.element)) as Element)());
   // Where the form started, so a save writes only what was changed in it.
   let started = (() => structuredClone($state.snapshot(placed.element)) as Element)();
-  let status = $state<'saved' | 'waiting' | 'saving' | 'problem'>('saved');
-  let problem = $state('');
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  // A problem moving the element, which is not a save and so is not the saver's to hold.
+  let moveProblem = $state('');
+  const saver = new Saver<null>(async () => {
+    const next = $state.snapshot(draft) as Element;
+    await onSave(next, started);
+    // What was just saved is where the next save starts from.
+    started = structuredClone(next);
+  }, SAVE_DELAY_MS);
+  // What is still waiting saves when this page closes. The saver itself answers a closing
+  // world or window.
+  onDestroy(() => void saver.flush(true));
+  const changed = () => saver.push(null);
+  const problem = $derived(saver.status === 'problem' ? saver.problem : moveProblem);
 
   const reskin = $derived(!!placed.base);
   // Reskinning is no longer offered from this page. The files and the module still support it.
   export const offersReskin = () => onReskin;
   const shown = $derived(effective({ ...placed, element: draft }));
-
-  function changed() {
-    status = 'waiting';
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(save, SAVE_DELAY_MS);
-  }
-
-  async function save() {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    status = 'saving';
-    try {
-      const next = $state.snapshot(draft) as Element;
-      await onSave(next, started);
-      // What was just saved is where the next save starts from.
-      started = structuredClone(next);
-      status = 'saved';
-    } catch (e) {
-      problem = errorText(e);
-      status = 'problem';
-    }
-  }
-
-  // What is still waiting saves before a world or the window closes, and when this page does.
-  const flush = async () => {
-    if (timer) await save();
-    return status !== 'problem';
-  };
-  onMount(() => {
-    const unregister = registerPanel(flush);
-    return () => {
-      unregister();
-      void flush();
-    };
-  });
 
   const fieldText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
 
@@ -148,7 +122,7 @@
     <div class="row">
       <span class="meta">{draft.tags.join(', ')}</span>
       <span class="spacer"></span>
-      <span class="status {status}" aria-live="polite">{status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : status === 'waiting' ? 'Editing' : 'Not saved'}</span>
+      <span class="status {saver.status}" aria-live="polite">{said(saver.status)}</span>
       {#if placed.origin === 'engine'}
         {#if placed.reskinnedBy}
           <button type="button" class="tool" onclick={() => onOpen(placed.reskinnedBy!.key)}>Open the reskin</button>
@@ -161,7 +135,7 @@
         <button type="button" class="tool" onclick={() => onOpen(placed.base!.key)}>Open the core element</button>
       {/if}
     </div>
-    {#if status === 'problem'}<p class="problem" role="alert">{problem}</p>{/if}
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </header>
 
   {#if placed.origin === 'engine'}

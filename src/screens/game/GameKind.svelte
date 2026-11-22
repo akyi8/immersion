@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keepWord, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import type { Element, Kind } from '../../lib/game/elements';
   import Pick from '../Pick.svelte';
@@ -39,22 +40,10 @@
   } = $props();
 
   const SHOW = 'immersion.game.kind-view';
-  let show = $state<'list' | 'sheet'>(
-    (() => {
-      try {
-        return localStorage.getItem(SHOW) === 'sheet' ? 'sheet' : 'list';
-      } catch {
-        return 'list';
-      }
-    })(),
-  );
+  let show = $state<'list' | 'sheet'>(word(SHOW) === 'sheet' ? 'sheet' : 'list');
   function setShow(v: 'list' | 'sheet') {
     show = v;
-    try {
-      localStorage.setItem(SHOW, v);
-    } catch {
-      // Not remembering the choice is harmless.
-    }
+    keepWord(SHOW, v);
   }
   const sheet = $derived(show === 'sheet' && !!onSave);
   let fresh = $state('');

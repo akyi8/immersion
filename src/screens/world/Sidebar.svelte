@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keepWord, word } from '../../lib/prefs';
   import Pick from '../Pick.svelte';
   import { tick } from 'svelte';
   import type { WikiIndex, Folder } from '../../lib/index/wiki';
@@ -8,7 +9,7 @@
   import CategoryActions from './CategoryActions.svelte';
   import EntryActions from './EntryActions.svelte';
   import { contextMenu } from '../../lib/contextMenu.svelte';
-  import { openInWindow } from '../../lib/windows';
+  import { moveToWindow } from '../../lib/windows';
   import { titleFocus } from '../../lib/retitle';
   import { moveEntry } from '../../lib/index/manage';
   import { saveNow } from '../../lib/saves';
@@ -155,8 +156,7 @@
       {
         label: 'Open in a new window',
         run: () => {
-          openInWindow(id, index.get(id)?.name ?? id);
-          if (nav.panes.includes(id)) nav.close(id);
+          void moveToWindow(id, index.get(id)?.name ?? id, () => nav.panes.includes(id) && nav.close(id));
         },
       },
       'separator',
@@ -187,23 +187,14 @@
   ];
 
   function savedMode(): Mode {
-    try {
-      const m = localStorage.getItem('immersion.sidebar');
-      if (m === 'working' || m === 'tree') return m;
-    } catch {
-      // Storage can be unavailable; the default is fine.
-    }
-    return 'working';
+    const m = word('immersion.sidebar');
+    return m === 'working' || m === 'tree' ? m : 'working';
   }
 
   let mode = $state<Mode>(savedMode());
   function setMode(m: Mode) {
     mode = m;
-    try {
-      localStorage.setItem('immersion.sidebar', m);
-    } catch {
-      // Not remembering the choice is harmless.
-    }
+    keepWord('immersion.sidebar', m);
   }
 
   const current = $derived(nav.entry);

@@ -15,7 +15,7 @@
   import WorldHome from './WorldHome.svelte';
   import TimelineView from './TimelineView.svelte';
   import CreateDialog from './CreateDialog.svelte';
-  import { openInWindow } from '../../lib/windows';
+  import { moveToWindow } from '../../lib/windows';
   import { ui } from '../../lib/ui.svelte';
 
   let {
@@ -110,8 +110,7 @@
         return !!e?.imagePath && (e.picture ?? defaultShape(e.category, index.pictures)) === 'behind' && views.of(id).picture !== 'hide';
       }}
       onWindow={(id) => {
-        openInWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id));
-        nav.close(id);
+        void moveToWindow(id, id === TIMELINE ? 'Timeline' : (index.get(id)?.name ?? id), () => nav.close(id));
       }}>
       {#snippet pane(id, i, next)}
         {#if id === TIMELINE}
@@ -128,8 +127,7 @@
           onMakeEntry={(name) => (creating = { kind: 'entry', folder: likelyCategory(index), name, after: i })}
           onMoved={moved}
           onWindow={() => {
-            openInWindow(id, index.get(id)?.name ?? id);
-            nav.close(id);
+            void moveToWindow(id, index.get(id)?.name ?? id, () => nav.close(id));
           }} />
         {/if}
       {/snippet}

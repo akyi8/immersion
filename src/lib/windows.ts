@@ -1,4 +1,5 @@
 import { inDesktopApp } from './runtime';
+import { saveNow } from './saves';
 
 /**
  * Reading windows (October 25). A page opens in a bare window of its own,
@@ -40,4 +41,15 @@ export async function openInWindow(id: string, title: string): Promise<void> {
   // The window opens in the theme's background color, so it never flashes white first.
   const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#07090b';
   new WebviewWindow(label, { url: `index.html${query}`, title, width: 780, height: 900, minWidth: 420, minHeight: 360, backgroundColor: background, dragDropEnabled: false });
+}
+
+/**
+ * Moves a page out of the main window into a reading window of its own. What was typed
+ * in the page is saved first, so the new window reads the latest words, and the page
+ * then closes here through `close`, so it is never open in two places at once.
+ */
+export async function moveToWindow(id: string, title: string, close: () => void): Promise<void> {
+  await saveNow(id);
+  await openInWindow(id, title);
+  close();
 }

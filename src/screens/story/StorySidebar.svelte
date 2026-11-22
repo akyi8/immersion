@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { keep as remember, kept as remembered } from '../../lib/prefs';
   import { counted } from '../../lib/story/book';
   import { titleFocus } from '../../lib/retitle';
   import { tick } from 'svelte';
@@ -72,21 +73,6 @@
   ];
   const PLACE_NAMES: Record<Place, string> = { desk: 'the desk', drawer: 'the drawer', shelf: 'the shelf' };
 
-  function remembered<T>(key: string, fallback: T): T {
-    try {
-      const v = localStorage.getItem(key);
-      return v === null ? fallback : JSON.parse(v);
-    } catch {
-      return fallback;
-    }
-  }
-  function remember(key: string, value: unknown) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      // Not remembering the choice is harmless.
-    }
-  }
 
   let tab = $state<Place>(remembered<Place>('immersion.storyTab', 'desk'));
   function setTab(t: Place) {
