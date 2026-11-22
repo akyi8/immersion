@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { portal } from '../../lib/portal';
+  import { Dialog } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
   // The frame shared by the shelf's forms: a title, the fields, a problem line, and
@@ -36,53 +36,54 @@
     if (!busy) onCancel();
   };
 
-  /**
-   * Keeps the keyboard inside the form while it is open, and gives it back to whatever
-   * had it when the form closes.
-   */
-  function held(node: HTMLElement) {
-    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const stops = () => [...node.querySelectorAll<HTMLElement>('input, select, textarea, button, [tabindex], [contenteditable]')].filter((el) => !el.hasAttribute('disabled') && el.tabIndex >= 0 && el.offsetParent !== null);
-    queueMicrotask(() => {
-      if (!node.contains(document.activeElement)) stops()[0]?.focus();
-    });
-    const keys = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-      const all = stops();
-      if (!all.length) return;
-      const first = all[0];
-      const last = all[all.length - 1];
-      if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
-      else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
-    };
-    node.addEventListener('keydown', keys);
-    return {
-      destroy() {
-        node.removeEventListener('keydown', keys);
-        if (before?.isConnected) before.focus({ preventScroll: true });
-      },
-    };
-  }
-
   function submit(event: SubmitEvent) {
     event.preventDefault();
     if (ready && !busy) onSubmit();
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), cancel())} />
-
-<div class="backdrop" class:above role="presentation" onclick={cancel} use:portal></div>
-<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-<form use:portal use:held class="dialog" class:wide class:above role="dialog" aria-modal="true" aria-label={title} onsubmit={submit}>
-  <h2>{title}</h2>
-  {@render children()}
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-  <div class="actions">
-    <button type="button" class="cancel" disabled={busy} onclick={cancel}>Cancel</button>
-    <button type="submit" class="go" disabled={!ready || busy}>{busy ? 'Working…' : action}</button>
-  </div>
-</form>
+<!--
+  The form's behavior comes from Bits UI's Dialog: it keeps the keyboard inside the form,
+  hands it back to whatever had it when the form closes, answers Escape, and tells a
+  screen reader that the rest of the window is set aside. The look is this file's own.
+  The form is on screen for as long as this component is, so it is always open, and a
+  request to close it is passed to `onCancel`.
+-->
+<Dialog.Root open onOpenChange={(open) => !open && cancel()}>
+  <Dialog.Portal>
+    <Dialog.Overlay>
+      {#snippet child({ props })}
+        <div {...props} class="backdrop" class:above></div>
+      {/snippet}
+    </Dialog.Overlay>
+    <Dialog.Content
+      aria-label={title}
+      onEscapeKeydown={(e) => {
+        e.preventDefault();
+        cancel();
+      }}
+      onInteractOutside={(e) => {
+        e.preventDefault();
+        cancel();
+      }}>
+      {#snippet child({ props })}
+        <form {...props} class="dialog" class:wide class:above onsubmit={submit}>
+          <Dialog.Title>
+            {#snippet child({ props: heading })}
+              <h2 {...heading}>{title}</h2>
+            {/snippet}
+          </Dialog.Title>
+          {@render children()}
+          {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+          <div class="actions">
+            <button type="button" class="cancel" disabled={busy} onclick={cancel}>Cancel</button>
+            <button type="submit" class="go" disabled={!ready || busy}>{busy ? 'Working…' : action}</button>
+          </div>
+        </form>
+      {/snippet}
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
 
 <style>
   .backdrop {

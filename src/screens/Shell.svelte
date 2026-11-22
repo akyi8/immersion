@@ -1,5 +1,6 @@
 <script lang="ts">
   import { keepWord, word } from '../lib/prefs';
+  import { gone } from '../lib/gone.svelte';
   import Pick from './Pick.svelte';
   import { mod, onMac, onShortcut } from '../lib/shortcuts';
   import { onMount } from 'svelte';
@@ -150,6 +151,15 @@
       window.removeEventListener('mouseup', onMouse);
     };
   });
+
+  // A page whose file went away outside the app closes, in whichever module it is open.
+  $effect(() =>
+    gone.onClose((path) => {
+      if (!Object.values(nav.current.rows).some((row) => row?.includes(path))) return false;
+      nav.replace(path, null);
+      return true;
+    }),
+  );
 </script>
 
 <div class="shell">
@@ -233,6 +243,13 @@
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
 </div>
+
+{#if gone.notice}
+  <div class="gone" role="status">
+    <span>{gone.notice}</span>
+    <button type="button" aria-label="Dismiss" onclick={() => gone.dismiss()}>×</button>
+  </div>
+{/if}
 
 
 {#if finding && index}
@@ -374,5 +391,35 @@
     font-size: calc(10px * var(--type));
     letter-spacing: 0.04em;
     opacity: 0.8;
+  }
+  .gone {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: min(640px, calc(100vw - 48px));
+    padding: 10px 12px 10px 16px;
+    color: var(--text);
+    font-size: calc(13px * var(--type));
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: var(--round);
+    box-shadow: 0 10px 28px var(--scrim);
+  }
+  .gone button {
+    padding: 0 6px;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .gone button:hover {
+    color: var(--text);
   }
 </style>

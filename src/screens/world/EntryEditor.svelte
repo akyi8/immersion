@@ -6,6 +6,7 @@
   import type { WorldFs } from '../../lib/fs/types';
   import { createEditor, headingNear, jumpTo, refreshMentions, replaceDoc, type ScannerRef } from '../../lib/editor/editor';
   import { registerSaver } from '../../lib/saves';
+  import { gone } from '../../lib/gone.svelte';
   import { quiet } from '../../lib/view.svelte';
   import { Autosave, type SaveStatus } from '../../lib/editor/autosave';
 
@@ -82,7 +83,19 @@
       conflict = saver.conflict;
     },
     delay: SAVE_DELAY_MS,
+    gone: () => void fileGone(),
   });
+
+  // The file went away outside the app, and nothing typed here is waiting. A program that
+  // saves by swapping files makes a file vanish for an instant, and a rename made inside
+  // the app closes this page by itself, so the check waits a moment and looks again.
+  let mounted = true;
+  async function fileGone() {
+    await new Promise((r) => setTimeout(r, 600));
+    if (!mounted || !saver.clean || (await fs.exists(id).catch(() => true))) return;
+    const name = title || (id.split('/').pop() ?? id).replace(/(\.(log|plan))?\.md$/i, '');
+    if (gone.announce(id, name)) saver.stop();
+  }
 
   async function changedElsewhere(paths: string[]) {
     if (!view || !paths.includes(id)) return;
@@ -142,6 +155,7 @@
   });
 
   onDestroy(() => {
+    mounted = false;
     stopWatching();
     unregister();
     // Closing a page with a clash still open keeps what the writer typed (design: the player wins).

@@ -4,7 +4,7 @@ import { Autosave } from './autosave.ts';
 
 /** A file on disk and an editor over it, with a save delay too long to fire in a test. */
 function desk(text: string) {
-  const file = { text, writes: 0, failing: false, missing: false };
+  const file = { text, writes: 0, failing: false, missing: false, gone: 0 };
   const editor = { doc: text };
   const saver: Autosave = new Autosave({
     read: async () => {
@@ -25,6 +25,7 @@ function desk(text: string) {
     },
     delay: 60_000,
     retry: 60_000,
+    gone: () => file.gone++,
   });
   saver.start(text);
   const type = (next: string) => {
@@ -203,4 +204,25 @@ test('a page that closes with everything saved says so', async () => {
   d.type('one\n\ntwo more\n\nthree\n');
   assert.equal(await d.saver.close(), true);
   assert.equal(d.file.text, 'one\n\ntwo more\n\nthree\n');
+});
+
+test('a file that goes away under a page with nothing unsaved is reported, and nothing is written', async () => {
+  const d = desk(page);
+  d.file.missing = true;
+  await d.saver.changedElsewhere();
+  assert.equal(d.file.gone, 1);
+  d.saver.stop();
+  d.type(page + 'more\n');
+  assert.equal(await d.saver.save(), false);
+  assert.equal(d.file.writes, 0);
+});
+
+test('a file that goes away under unsaved typing is not reported, and the words are saved', async () => {
+  const d = desk(page);
+  d.type(page + 'more\n');
+  d.file.missing = true;
+  await d.saver.changedElsewhere();
+  assert.equal(d.file.gone, 0);
+  assert.equal(await d.saver.save(), true);
+  assert.equal(d.file.text, page + 'more\n');
 });

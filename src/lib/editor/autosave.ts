@@ -26,6 +26,8 @@ export interface AutosaveHost {
   delay?: number;
   /** How long after a failed save the next try runs. */
   retry?: number;
+  /** Called when the file is found missing while nothing typed is waiting to be saved. */
+  gone?(): void;
 }
 
 export class Autosave {
@@ -48,6 +50,11 @@ export class Autosave {
 
   constructor(host: AutosaveHost) {
     this.host = host;
+  }
+
+  /** True when everything typed is on disk and no clash is waiting on the writer. */
+  get clean(): boolean {
+    return !this.dirty && this.conflict === null && this.writing === null;
   }
 
   /** Begins with the text just read from disk. */
@@ -138,6 +145,7 @@ export class Autosave {
     try {
       disk = await this.host.read();
     } catch {
+      if (this.clean && !this.closed) this.host.gone?.();
       return false;
     }
     if (disk === this.seen || disk === this.writing) return false;
