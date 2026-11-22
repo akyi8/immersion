@@ -1,7 +1,7 @@
 import type { WorldFs } from '../fs/types';
 import { splitHeader, type World } from '../world';
 import { parseEntry, plainText } from './parse';
-import { MentionScanner, type Term } from './scanner';
+import { pluralOf, MentionScanner, type Term } from './scanner';
 import { parseWhen, type When } from '../time/when';
 import { readFrame, readShape, type Frame, type Shape } from './frame';
 
@@ -62,6 +62,10 @@ export class WikiIndex {
       terms.push({ text: e.name, id: e.id });
       for (const a of e.aliases) terms.push({ text: a, id: e.id });
     }
+    // Each name also links in its plural. The plurals come after every real name, so an
+    // entry's own name always wins over another entry's plural. A name that already ends
+    // in s, such as a surname, is left as it is.
+    for (const { text, id } of [...terms]) if (!/s$/i.test(text.trim())) terms.push({ text: pluralOf(text.trim()), id });
     this.scanner = new MentionScanner(terms);
 
     for (const e of entries.values()) {

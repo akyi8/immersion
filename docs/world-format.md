@@ -78,7 +78,7 @@ A smuggler who works the Salt Market and keeps a ledger of every favor owed to h
 
 An older form is also read: a bold line under the title, such as `**Aliases:** Rook, the Ledger-keeper`.
 
-Names link on their own. Wherever an entry's name or one of its aliases appears in any text in the world, the app links it, so `[[wiki links]]` are unnecessary. Capitals decide how strict the match is. A name or alias with a capital letter in it links only when written with those same capitals, so the nickname `Rook` does not link the word "rook". An alias written all in lowercase, such as `the basin`, links however it is capitalized. A name must stand as a whole word, a possessive such as "Wren's" still links, and where two names overlap the longer one wins. The first paragraph of prose is the entry's summary, which the app shows on hover and on the World home page, so an entry reads best when it opens with a sentence that says what the thing is.
+Names link on their own. Wherever an entry's name or one of its aliases appears in any text in the world, the app links it, so `[[wiki links]]` are unnecessary. Capitals decide how strict the match is. A name or alias with a capital letter in it links only when written with those same capitals, so the nickname `Rook` does not link the word "rook". An alias written all in lowercase, such as `the basin`, links however it is capitalized. A name also links in its plural, so `Storm Lamp` links "Storm Lamps". A name that already ends in s is left as it is. A name must stand as a whole word, a possessive such as "Wren's" still links, and where two names overlap the longer one wins. The first paragraph of prose is the entry's summary, which the app shows on hover and on the World home page, so an entry reads best when it opens with a sentence that says what the thing is.
 
 ### Narrator-only text
 
@@ -419,9 +419,21 @@ A dock knife with a cork grip, so it floats.
 ```
 
 - `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
-- `tags` says where the element belongs and what it is. A `core` tag marks an engine's element.
+- `tags` says where the element belongs and what it is. A `core` tag marks an engine's element. The tags `aspect` and `keyword` decide how the element's name links, as described under "How a game's names link".
 - `vendor` names the id of the vendor element that sells it, in the same world.
 - Every other key is one of the kind's fields.
+
+### How a game's names link
+
+One set of rules covers the three kinds of name a game's text can link, and each kind takes the rule that fits what it is.
+
+- **A wiki name** is a proper noun. It links where it is written with its capitals. An alias written all in lowercase links in any case.
+- **An aspect** is the name of an ability, which is a proper noun too. It links where it is written with its capitals, so an aspect named Tell does not link "tells you who". A one-word aspect that opens a sentence stays plain, unless it is written in bold or italics there.
+- **A mechanic** is a concept. It links however it is written, so "burned" in a rule links the keyword Burned.
+
+An element is a mechanic when it carries the label `keyword`, either in its `tags:` or as its kind. An element that also carries the label `aspect` is an aspect. An element with neither label links as an aspect does. Every name also links in its plural, and a name written as a plural links in its singular: Storm Lamp links "Storm Lamps", and Property links "properties". The names of divisions, sections, and rules never link.
+
+Which names link depends on where the text is. The wiki, the stories, and the boards link wiki names alone. A world's game text links all three. The base engine's text links the engine's own aspects and mechanics.
 
 ### The book
 

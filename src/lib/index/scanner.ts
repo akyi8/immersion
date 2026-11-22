@@ -27,6 +27,25 @@ export interface Mention {
 
 const MIN_LENGTH = 2;
 
+/**
+ * One rule for plurals, shared by wiki names and game terms (Cerys, November 22). A name
+ * also links in its plural, so "two Storm Lamps" links Storm Lamp and "properties" links
+ * Property. Only the last word changes.
+ */
+export function pluralOf(name: string): string {
+  if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`;
+  if (/(s|x|z|ch|sh)$/i.test(name)) return `${name}es`;
+  return `${name}s`;
+}
+
+/** The singular of a name that is written as a plural, or null when it is not one. */
+export function singularOf(name: string): string | null {
+  if (name.length > 4 && /[^aeiou]ies$/i.test(name)) return `${name.slice(0, -3)}y`;
+  if (/(ss|x|z|ch|sh)es$/i.test(name)) return name.slice(0, -2);
+  if (name.length > 3 && /[^s]s$/i.test(name)) return name.slice(0, -1);
+  return null;
+}
+
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

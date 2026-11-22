@@ -287,7 +287,7 @@
   $effect(() => spell.allow('game', (game?.elements ?? []).map((p) => p.element.name)));
   const linkScanner = $derived(
     gameScanner(
-      (game?.elements ?? []).map((p) => ({ key: p.key, name: p.element.name, kind: p.element.kind, origin: p.origin })),
+      (game?.elements ?? []).map((p) => ({ key: p.key, name: p.element.name, kind: p.element.kind, origin: p.origin, tags: p.element.tags })),
       [...(index?.entries.values() ?? [])].map((e) => ({ id: e.id, name: e.name, aliases: e.aliases })),
       bookOrigin === 'engine' ? 'engine' : 'world',
     ),
