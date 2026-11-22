@@ -44,6 +44,8 @@
 
   // What the books and their parts are called lives behind the pane's ⋯ (Cerys, October 31).
   let menu = $state(false);
+  // Two series pages can be open side by side, so each one's lists carry their own ids.
+  const uid = $props.id();
   let about = $state(false);
 
   const source = $derived(seriesSource(fs, root, series));
@@ -83,6 +85,9 @@
   }
 </script>
 
+<!-- Escape closes the small Names form first, and leaves the page open. -->
+<svelte:window onkeydown={(e) => menu && e.key === 'Escape' && (e.preventDefault(), (menu = false))} />
+
 {#snippet lead()}
   {#if words !== null}<span class="meta">{words.toLocaleString()} {words === 1 ? 'word' : 'words'}</span>{/if}
 {/snippet}
@@ -99,25 +104,25 @@
           <span class="label">Each one is called</span>
           <input
             type="text"
-            list="book-words"
+            list="book-words-{uid}"
             value={seriesWord}
             placeholder={seriesWords.length > 1 ? `Mixed: ${seriesWords.join(', ')}` : 'Story'}
             autocomplete="off"
             onchange={(e) => setSeriesWord((e.currentTarget as HTMLInputElement).value)}
             onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
-          <datalist id="book-words">{#each BOOK_WORDS as w}<option value={w}></option>{/each}</datalist>
+          <datalist id="book-words-{uid}">{#each BOOK_WORDS as w}<option value={w}></option>{/each}</datalist>
         </label>
         <label class="name">
           <span class="label">Its parts are called</span>
           <input
             type="text"
-            list="part-words"
+            list="part-words-{uid}"
             value={partWord}
             placeholder={partWords.length > 1 ? `Mixed: ${partWords.join(', ')}` : 'Chapter'}
             autocomplete="off"
             onchange={(e) => setPartWord((e.currentTarget as HTMLInputElement).value)}
             onkeydown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
-          <datalist id="part-words">{#each WORDS as w}<option value={w}></option>{/each}</datalist>
+          <datalist id="part-words-{uid}">{#each WORDS as w}<option value={w}></option>{/each}</datalist>
         </label>
         <button type="button" class="about-toggle" aria-expanded={about} onclick={() => (about = !about)}>About series boards</button>
         {#if about}<p class="about">Each book's beats on the series threads are kept in its title page file, under its title.</p>{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import { lastWords, setFacts, type Campaign, type Session } from '../../lib/table/index';
@@ -8,7 +9,8 @@
   import EntryEditor from '../world/EntryEditor.svelte';
   import type { EditorView } from '@codemirror/view';
   import { onDestroy } from 'svelte';
-  import { titleFocus, tray } from '../../lib/table/tray.svelte';
+  import { tray } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
 
   /**
    * One side of a session (Cerys, November 14). The log is what happened, and the plan is
@@ -60,7 +62,7 @@
       }
       await onChanged();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -110,9 +112,10 @@
     if (id) onOpen(id);
   }
 
-  // Rename in a menu puts the cursor in the title.
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(path, titleInput));
+  const rename = async (name: string) => {
+    await change({ name }, true);
+    return problem || null;
+  };
 
   // Where the last session ended, read when the page opens.
   let last = $state('');
@@ -143,7 +146,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="prose" onclick={follow}>{@html html}</div>
   {:else}
-    <input class="name" bind:this={titleInput} aria-label="The session's name" value={session.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() }, true)} />
+    <input class="name" aria-label="The session's name" use:retitle={{ id: path, name: session.name, rename }} />
     <div class="facts">
       <label>Played <input type="date" value={session.played} onchange={(e) => change({ played: e.currentTarget.value })} /></label>
       <label class="wide">In the game <input type="text" value={session.when} placeholder="The third week of the fog" onchange={(e) => change({ when: e.currentTarget.value.trim() })} /></label>

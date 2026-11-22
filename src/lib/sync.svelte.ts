@@ -1,3 +1,4 @@
+import { errorText } from './errors.ts';
 import type { Pending, SyncReport, WorldFs } from './fs/types';
 import { saveAll } from './saves';
 import { account } from './account.svelte';
@@ -95,7 +96,7 @@ class Sync {
       if (r.state === 'synced') await account.refresh().catch(() => {});
     } catch (e) {
       this.state = 'problem';
-      this.message = e instanceof Error ? e.message : String(e);
+      this.message = errorText(e);
     } finally {
       this.busy = false;
       this.quietUntil = Date.now() + ITS_OWN_MS;

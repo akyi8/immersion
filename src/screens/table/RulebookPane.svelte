@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onDestroy } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
   import { chaptersOf, drawPage, openBook, rememberPage, rememberedPage, shapeOf, type Book, type Chapter } from '../../lib/table/pdf';
 
   /**
@@ -65,7 +66,7 @@
         chapters = await chaptersOf(b);
       },
       (e) => {
-        problem = e instanceof Error ? e.message : String(e);
+        problem = errorText(e);
         busy = false;
       },
     );
@@ -122,7 +123,7 @@
     let stale = false;
     const fail = (e: unknown) => {
       if (stale) return;
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
       busy = false;
     };
     void Promise.all(
@@ -179,12 +180,6 @@
     return () => el.removeEventListener('wheel', wheel);
   });
 
-  async function rename(e: Event & { currentTarget: HTMLInputElement }) {
-    const next = e.currentTarget.value.trim();
-    if (!next || next === name) return void (e.currentTarget.value = name);
-    problem = (await onRename?.(next)) ?? '';
-    if (problem) e.currentTarget.value = name;
-  }
 
   function keys(e: KeyboardEvent) {
     if ((e.target as HTMLElement).closest('input, select')) return;
@@ -200,9 +195,7 @@
   const here = $derived(chapters.reduce((last, c, i) => (c.page <= (second || first) ? i : last), -1));
   const atEnd = $derived(!pages || (second || first) >= pages);
 
-  // Rename in a menu puts the cursor here.
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(path, titleInput));
+  const titled = $derived({ id: path, name, rename: onRename ?? null, problem: (text: string) => (problem = text) });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -220,7 +213,7 @@
   <div class="reading">
     <div class="head" class:away={!kind}>
       <div class="label kind">{kind}</div>
-      <input class="name" bind:this={titleInput} aria-label="The name" title={onRename ? 'Type a new name to rename it' : name} readonly={!onRename} value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+      <input class="name" aria-label="The name" title={onRename ? 'Type a new name to rename it' : name} use:retitle={titled} />
     </div>
     <div class="bar">
       <button type="button" aria-label="The page before" disabled={first <= 1} onclick={back}>‹</button>

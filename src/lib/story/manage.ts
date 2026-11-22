@@ -1,3 +1,4 @@
+import { freePath } from '../archive.ts';
 import type { WorldFs } from '../fs/types.ts';
 import { slugify } from '../slug.ts';
 import { splitHeader, withHeader } from '../world.ts';
@@ -52,8 +53,7 @@ export async function archivePiece(fs: WorldFs, path: string, root: string): Pro
   const rel = path.startsWith(root + '/') ? path.slice(root.length + 1) : path.slice(path.lastIndexOf('/') + 1);
   const stem = rel.replace(/\.md$/i, '');
   const ext = isFile(path) ? '.md' : '';
-  let target = `${root}/archive/${stem}${ext}`;
-  for (let n = 2; await fs.exists(target); n++) target = `${root}/archive/${stem}-${n}${ext}`;
+  const target = await freePath((p) => fs.exists(p), `${root}/archive/${stem}${ext}`);
   await fs.move(path, target);
   return target;
 }

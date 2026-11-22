@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { registerPanel } from '../../lib/saves';
   import { onMount, tick, untrack, type Snippet } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
@@ -81,7 +82,7 @@
       structureId = source.structure ? await source.structure() : null;
       problem = '';
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -95,7 +96,7 @@
     try {
       for (const [, e] of edits) await source.setBeat(e.i, e.thread, e.text);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
       await load();
     } finally {
       saving = false;
@@ -122,7 +123,7 @@
       await source.rename(i, trimmed);
       cards[i].title = trimmed;
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
       await load();
     }
   }
@@ -135,7 +136,7 @@
       await source.move(from, to);
       await load();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
       await load();
     }
   }
@@ -266,7 +267,7 @@
       guideOpen = null;
       overviewOpen = false;
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
     await load();
   }
@@ -280,7 +281,7 @@
       if ((bandOf(card)?.part?.id ?? null) !== part) await source.setStage?.(card, structure.id, part);
       if (order.some((c, k) => c !== k)) await source.reorder?.(order);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
     await load();
   }
@@ -446,7 +447,7 @@
       const fields = grid?.querySelectorAll<HTMLTextAreaElement>('.title');
       fields?.[fields.length - 1]?.select();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -477,7 +478,7 @@
       await run();
       problem = '';
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
     await load();
   }

@@ -1,3 +1,4 @@
+import { errorText } from './errors.ts';
 /**
  * Spelling (Cerys, November 21). A misspelled word is set a little greyer and nothing
  * else, and a right click on it offers what it might have been and adds it to the
@@ -96,7 +97,7 @@ class Spell {
       () => (this.status = 'page'),
       (e) => {
         this.status = 'failed';
-        this.problem = e instanceof Error ? e.message : String(e);
+        this.problem = errorText(e);
         noteTrouble('spelling', `The spelling dictionary could not be read at all: ${this.problem}`);
       },
     );
@@ -123,7 +124,7 @@ class Spell {
       try {
         this.worker = new Worker(new URL('./spell.worker.ts', import.meta.url), { type: 'module' });
       } catch (e) {
-        this.fallBack(e instanceof Error ? e.message : String(e));
+        this.fallBack(errorText(e));
         return this.answer(message);
       }
       this.worker.onmessage = (e: MessageEvent<Answer & { id: number; problem?: string }>) => {

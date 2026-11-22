@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -19,7 +20,7 @@
   import { pageActions, pictureActions } from '../../lib/pane.svelte';
   import { retitle } from '../../lib/retitle';
   import { room } from '../../lib/room.svelte';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { titleFocus } from '../../lib/retitle';
   import { renameEntry } from '../../lib/index/manage';
 
   let {
@@ -64,7 +65,7 @@
     try {
       await removePicture(fs, entry.imagePath, index.root.path);
     } catch (e) {
-      pictureProblem = String(e);
+      pictureProblem = errorText(e);
     }
   }
 
@@ -74,7 +75,7 @@
     try {
       await fs.setImage(id.replace(/\.md$/i, ''), image);
     } catch (e) {
-      pictureProblem = String(e);
+      pictureProblem = errorText(e);
     }
   }
 
@@ -133,7 +134,7 @@
       const value = next.join(' ');
       await fs.writeText(id, withHeader(await fs.readText(id), { spine: value.toLowerCase() === spine.guess.toLowerCase() ? undefined : value }));
     } catch (e) {
-      pictureProblem = e instanceof Error ? e.message : String(e);
+      pictureProblem = errorText(e);
     }
   }
   const spineSize = $derived(Math.round(Math.max(34, Math.min(64, 820 / Math.max(spine.main.length, 1)))));
@@ -150,7 +151,7 @@
       await fs.writeText(id, withHeader(await fs.readText(id), changes));
       framing = false;
     } catch (e) {
-      framingProblem = e instanceof Error ? e.message : String(e);
+      framingProblem = errorText(e);
     } finally {
       framingBusy = false;
     }
@@ -163,7 +164,7 @@
       await saveNow(id);
       await fs.writeText(id, withHeader(await fs.readText(id), { picture: to === defaultShape(entry.category, index.pictures) ? undefined : to }));
     } catch (e) {
-      pictureProblem = e instanceof Error ? e.message : String(e);
+      pictureProblem = errorText(e);
     }
   }
 
@@ -206,7 +207,7 @@
       onMoved(from, await renameEntry(fs, entry, name));
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
   const titled = $derived({ id, name: entry.name, rename: view === 'narrator' && onMoved ? renameTo : null, problem: (text: string) => (pictureProblem = text) });
@@ -281,7 +282,7 @@
 
 <!-- The entry's forms. Its menu is the ⋯ in the pane's corner. -->
 {#if view === 'narrator' && onMoved}
-  <EntryActions bind:this={actions} {fs} {index} {entry} {onMoved} button={false} />
+  <EntryActions bind:this={actions} {fs} {index} {entry} {onMoved} />
 {/if}
 
 {#if card}

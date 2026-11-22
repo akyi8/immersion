@@ -32,11 +32,14 @@
       event.preventDefault();
       return contextMenu.close();
     }
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    // Tab leaves a menu, as it does everywhere else on the computer.
+    if (event.key === 'Tab') return contextMenu.close();
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const buttons = [...menu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    buttons[(at + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length]?.focus();
+    const to = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (at + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length;
+    buttons[to]?.focus();
   }
 </script>
 

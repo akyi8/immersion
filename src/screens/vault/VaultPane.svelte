@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -51,7 +52,7 @@
     try {
       stories = await vault.stories(showing);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -74,7 +75,7 @@
     try {
       await work();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

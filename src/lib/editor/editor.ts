@@ -8,6 +8,7 @@ import {
   type DecorationSet,
   type ViewUpdate, highlightActiveLine } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertNewline } from '@codemirror/commands';
+import { forEditor } from '../shortcuts.ts';
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage, insertNewlineContinueMarkup } from '@codemirror/lang-markdown';
 import { livePreview } from './livepreview';
@@ -350,7 +351,7 @@ export function createEditor(options: {
       extensions: [
         history(),
         paragraphKeys,
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([...forEditor(defaultKeymap), ...historyKeymap]),
         markdown({ base: markdownLanguage }),
         livePreview(options.title, options.onOutline ?? null),
         syntaxHighlighting(markdownStyle),

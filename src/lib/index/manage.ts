@@ -1,3 +1,4 @@
+import { freePath } from '../archive.ts';
 import type { WorldFs } from '../fs/types.ts';
 import { IMAGE_EXTENSIONS } from '../fs/types.ts';
 import { slugify } from '../slug.ts';
@@ -118,8 +119,7 @@ export async function renameCategory(fs: WorldFs, path: string, newName: string)
 /** Archives a category with everything in it, into the wiki's archive folder. */
 export async function archiveCategory(fs: WorldFs, path: string, wikiRoot: string): Promise<string> {
   const rel = path.startsWith(wikiRoot + '/') ? path.slice(wikiRoot.length + 1) : path;
-  let target = `${wikiRoot}/archive/${rel}`;
-  for (let n = 2; await fs.exists(target); n++) target = `${wikiRoot}/archive/${rel}-${n}`;
+  const target = await freePath((p) => fs.exists(p), `${wikiRoot}/archive/${rel}`);
   await fs.move(path, target);
   return target;
 }
@@ -127,9 +127,7 @@ export async function archiveCategory(fs: WorldFs, path: string, wikiRoot: strin
 /** Takes an entry's picture away by moving it into the wiki's archive, where it is kept. */
 export async function removePicture(fs: WorldFs, picture: string, wikiRoot: string): Promise<string> {
   const rel = picture.startsWith(wikiRoot + '/') ? picture.slice(wikiRoot.length + 1) : picture.slice(picture.lastIndexOf('/') + 1);
-  const dot = rel.lastIndexOf('.');
-  let target = `${wikiRoot}/archive/${rel}`;
-  for (let n = 2; await fs.exists(target); n++) target = `${wikiRoot}/archive/${rel.slice(0, dot)}-${n}${rel.slice(dot)}`;
+  const target = await freePath((p) => fs.exists(p), `${wikiRoot}/archive/${rel}`);
   await fs.move(picture, target);
   return target;
 }

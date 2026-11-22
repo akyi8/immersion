@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
   import { renderBody } from '../../lib/render';
   import { splitHeader } from '../../lib/world';
   import { setFacts } from '../../lib/table/index';
   import { saveNow } from '../../lib/saves';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
   import EntryEditor from '../world/EntryEditor.svelte';
 
   /**
@@ -40,15 +41,14 @@
   } = $props();
 
   let problem = $state('');
-  async function rename(e: Event & { currentTarget: HTMLInputElement }) {
-    const to = e.currentTarget.value.trim();
-    if (!to || to === name) return void (e.currentTarget.value = name);
+  async function rename(to: string): Promise<string | null> {
     try {
       await saveNow(path);
       await setFacts(fs, path, { name: to });
       await onChanged?.();
+      return null;
     } catch (err) {
-      problem = err instanceof Error ? err.message : String(err);
+      return errorText(err);
     }
   }
 
@@ -59,7 +59,7 @@
     const show = () =>
       void fs.readText(path).then(
         (text) => (html = renderBody(splitHeader(text.replace(/\r\n?/g, '\n')).body, index, null, 'protagonist')),
-        (e) => (problem = String(e)),
+        (e) => (problem = errorText(e)),
       );
     show();
     return fs.onChange((paths) => paths.includes(path) && show());
@@ -70,9 +70,6 @@
     if (id) onOpen(id);
   }
 
-  // Rename in a menu puts the cursor here.
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(path, titleInput));
 </script>
 
 <article class="text-handout" class:reading>
@@ -82,7 +79,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="prose" onclick={follow}>{@html html}</div>
   {:else}
-    <input class="name" bind:this={titleInput} aria-label="The handout's name" value={name} onchange={rename} onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+    <input class="name" aria-label="The handout's name" use:retitle={{ id: path, name, rename, problem: (text) => (problem = text) }} />
     {#key path}
       <EntryEditor {fs} {index} id={path} title="" autofocus={fresh} {onOpen} {next} rumorTool narratorTool {onMakeEntry} />
     {/key}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
   import { onDestroy } from 'svelte';
   import type { Placed, SectionNode } from '../../lib/game/game';
   import type { Frame } from '../../lib/index/frame';
@@ -69,14 +69,17 @@
   let naming = $state(false);
   let newName = $state('');
 
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(titleId, titleInput));
+  const rename = async (next: string) => {
+    name = next;
+    saver.push(null);
+    return null;
+  };
 </script>
 
 <article class="section">
   <GameBanner url={picture?.url ?? null} frame={picture?.frame ?? null} {place} {choices} {onFrame}>
     {#snippet title()}
-      <input class="title" type="text" bind:this={titleInput} bind:value={name} oninput={() => saver.push(null)} aria-label="Section name" autocomplete="off" />
+      <input class="title" type="text" use:retitle={{ id: titleId, name, rename }} aria-label="Section name" autocomplete="off" />
     {/snippet}
   </GameBanner>
   <div class="status-row">

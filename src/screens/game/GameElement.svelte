@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { retitle } from '../../lib/retitle';
   import GameText from './GameText.svelte';
   import { onMount } from 'svelte';
@@ -59,7 +60,7 @@
     try {
       await onMove(origin);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
       status = 'problem';
     } finally {
       moving = false;
@@ -98,7 +99,7 @@
       started = structuredClone(next);
       status = 'saved';
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
       status = 'problem';
     }
   }

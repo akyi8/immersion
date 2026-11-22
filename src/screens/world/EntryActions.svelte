@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { outside } from '../../lib/outside';
+  import { errorText } from '../../lib/errors';
   import type { Entry, Folder, WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -13,30 +13,14 @@
     index,
     entry,
     onMoved,
-    onWindow,
-    button = true,
-    shape = null,
-    onShape,
-    onFrame,
-    onAddPicture,
   }: {
     fs: WorldFs;
     index: WikiIndex;
     entry: Entry;
     /** Called after the entry's file moves, with its new path, or null once archived. */
     onMoved: (from: string, to: string | null) => void;
-    /** Moves the entry into a reading window of its own. */
-    onWindow?: () => void;
-    /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
-    button?: boolean;
-    /** How the entry's picture shows now, so the menu can offer the other shape (Cerys, November 1). */
-    shape?: 'portrait' | 'banner' | null;
-    onShape?: (shape: 'portrait' | 'banner') => void;
-    onFrame?: () => void;
-    onAddPicture?: () => void;
   } = $props();
 
-  let open = $state(false);
   let doing = $state<'rename' | 'names' | 'move' | 'archive' | null>(null);
   let names = $state<string[]>([]);
   let newName = $state('');
@@ -58,7 +42,6 @@
   });
 
   export async function start(what: 'rename' | 'names' | 'move' | 'archive') {
-    open = false;
     problem = '';
     name = entry.name;
     folder = here;
@@ -93,41 +76,12 @@
       }
       doing = null;
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
   }
 </script>
-
-{#if button}
-<div class="actions" use:outside={() => (open = false)}>
-  <button type="button" class="more" aria-label="More for {entry.name}" aria-expanded={open} onclick={() => (open = !open)}>
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4" fill="currentColor" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="13" cy="8" r="1.4" fill="currentColor" /></svg>
-  </button>
-  {#if open}
-    <div class="menu" role="menu">
-      {#if onWindow}
-        <button type="button" role="menuitem" onclick={() => ((open = false), onWindow())}>Open in a new window</button>
-      {/if}
-      {#if entry.imagePath && shape && onShape}
-        <button type="button" role="menuitem" onclick={() => ((open = false), onShape(shape === 'banner' ? 'portrait' : 'banner'))}>
-          {shape === 'banner' ? 'Show the picture as a portrait' : 'Show the picture as a banner'}
-        </button>
-      {/if}
-      {#if entry.imagePath && onFrame}
-        <button type="button" role="menuitem" onclick={() => ((open = false), onFrame())}>Frame the picture…</button>
-      {:else if !entry.imagePath && onAddPicture}
-        <button type="button" role="menuitem" onclick={() => ((open = false), onAddPicture())}>Add a picture…</button>
-      {/if}
-      <button type="button" role="menuitem" onclick={() => start('rename')}>Rename</button>
-      <button type="button" role="menuitem" onclick={() => start('names')}>Other names</button>
-      <button type="button" role="menuitem" onclick={() => start('move')}>Move to another category</button>
-      <button type="button" role="menuitem" onclick={() => start('archive')}>Archive</button>
-    </div>
-  {/if}
-</div>
-{/if}
 
 {#if doing === 'rename'}
   <Dialog title="Rename" action="Rename" ready={!!name.trim() && name.trim() !== entry.name} {busy} {problem} onSubmit={run} onCancel={() => (doing = null)}>
@@ -195,50 +149,6 @@
 {/if}
 
 <style>
-  .actions {
-    position: relative;
-  }
-  .more {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    color: var(--muted);
-    background: none;
-    border: 1px solid transparent;
-  }
-  .more:hover,
-  .more[aria-expanded='true'] {
-    color: var(--text);
-    border-color: var(--edge);
-  }
-  .menu {
-    position: absolute;
-    top: 40px;
-    right: 0;
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    min-width: 220px;
-    background: var(--surface);
-    border: 1px solid var(--edge);
-    border-radius: var(--round);
-    box-shadow: 0 8px 24px var(--shadow);
-    padding: 4px;
-  }
-  .menu button {
-    text-align: left;
-    font-size: calc(14px * var(--type));
-    color: var(--text);
-    background: none;
-    border: 0;
-    padding: 9px 12px;
-    min-height: 38px;
-  }
-  .menu button:hover {
-    background: var(--structure-deep);
-    color: var(--structure-soft);
-  }
   .chips {
     display: flex;
     flex-wrap: wrap;

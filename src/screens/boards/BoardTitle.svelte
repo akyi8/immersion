@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   /**
    * A board's name, renamed where it stands (Cerys, October 27): click it, type, and press
    * Enter or click away. Escape puts the old name back.
@@ -17,7 +18,7 @@
     try {
       await onRename(value);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
       input.value = name;
     }
   }

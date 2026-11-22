@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { FolderShape, Library, ShelfWorld } from '../../lib/library/types';
   import type { ImageSource, Pending, SyncReport } from '../../lib/fs/types';
@@ -81,7 +82,7 @@
       await refresh();
     } catch (e) {
       libraryState = 'problem';
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       librarySyncing = false;
       fetchedAt = Date.now();
@@ -101,7 +102,7 @@
       await account.refresh();
       await refresh();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
   // Real World, the writer's journal (Cerys, October 26), is always on the Worlds page once
@@ -121,7 +122,7 @@
         throw e;
       }));
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -167,7 +168,7 @@
         adding = { path, shape };
       }
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -178,7 +179,7 @@
       await library.setCover(world.path, image);
       await refresh();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 

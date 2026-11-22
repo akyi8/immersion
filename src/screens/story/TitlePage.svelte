@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import { readTitlePage, seriesLine, withTitlePage, type TitlePage } from '../../lib/story/book';
@@ -59,7 +60,7 @@
     try {
       page = readTitlePage(await fs.readText(book), folder.split('/').pop() ?? '');
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -112,7 +113,7 @@
       editing = null;
       await load();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

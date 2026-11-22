@@ -1,4 +1,26 @@
-import { titleFocus } from './table/tray.svelte';
+import { errorText } from './errors.ts';
+/**
+ * "Rename" in a menu asks for the cursor in a page's title. The title's own action looks
+ * for the request, so a request made before the page exists is served once it does.
+ */
+export const titleFocus = {
+  ask: null as { id: string; at: number } | null,
+  /**
+   * Asks for the cursor in the title of the page with this id. Some pages have no title
+   * to type over, such as a card or a book's title page, so `otherwise` runs when no
+   * title has answered in a moment, and it opens the small form instead.
+   */
+  request(id: string, otherwise?: () => void) {
+    const ask = { id, at: Date.now() };
+    this.ask = ask;
+    if (!otherwise) return;
+    setTimeout(() => {
+      if (this.ask !== ask) return;
+      this.ask = null;
+      otherwise();
+    }, 900);
+  },
+};
 
 /**
  * A page's title is renamed by typing over it (Cerys, November 15). The title looks like
@@ -6,6 +28,9 @@ import { titleFocus } from './table/tray.svelte';
  * title, and Escape puts the old name back, so a stray key cannot rename a page: a rename
  * can move files and change every link to the page. "Rename" in a menu puts the cursor
  * here, through `titleFocus`.
+ *
+ * Every page's title uses this one action, whether it is drawn as a heading or as a
+ * field, so the three keys mean the same thing on every page.
  */
 export interface Retitle {
   /** The page's id, which a menu's Rename asks for. */
@@ -20,9 +45,17 @@ export interface Retitle {
 export function retitle(node: HTMLElement, given: Retitle) {
   let now = given;
   let busy = false;
+  const field = node instanceof HTMLInputElement ? node : null;
+  const read = () => (field ? field.value : (node.textContent ?? ''));
+  const write = (text: string) => (field ? (field.value = text) : (node.textContent = text));
 
   const show = () => {
-    if (document.activeElement !== node || !now.rename) node.textContent = now.name;
+    if (document.activeElement !== node || !now.rename) write(now.name);
+    if (field) {
+      field.readOnly = !now.rename;
+      field.spellcheck = false;
+      return;
+    }
     if (now.rename) {
       node.setAttribute('contenteditable', 'plaintext-only');
       node.setAttribute('role', 'textbox');
@@ -42,6 +75,7 @@ export function retitle(node: HTMLElement, given: Retitle) {
     if (!ask || ask.id !== now.id || !now.rename || Date.now() - ask.at > 4000) return;
     titleFocus.ask = null;
     node.focus();
+    if (field) return void field.select();
     const range = document.createRange();
     range.selectNodeContents(node);
     const sel = getSelection();
@@ -50,16 +84,16 @@ export function retitle(node: HTMLElement, given: Retitle) {
   };
 
   async function commit() {
-    const next = (node.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const next = read().replace(/\s+/g, ' ').trim();
     if (!now.rename || busy || !next || next === now.name) {
-      node.textContent = now.name;
+      if (!busy) write(now.name);
       return;
     }
     busy = true;
-    const problem = await now.rename(next).catch((e) => (e instanceof Error ? e.message : String(e)));
+    const problem = await now.rename(next).catch((e) => errorText(e));
     busy = false;
     now.problem?.(problem ?? '');
-    if (problem) node.textContent = now.name;
+    if (problem) write(now.name);
   }
 
   function keydown(e: KeyboardEvent) {
@@ -69,7 +103,7 @@ export function retitle(node: HTMLElement, given: Retitle) {
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      node.textContent = now.name;
+      write(now.name);
       node.blur();
     }
   }

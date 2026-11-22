@@ -9,6 +9,7 @@
   import EntryActions from './EntryActions.svelte';
   import { contextMenu } from '../../lib/contextMenu.svelte';
   import { openInWindow } from '../../lib/windows';
+  import { titleFocus } from '../../lib/retitle';
   import { moveEntry } from '../../lib/index/manage';
   import { saveNow } from '../../lib/saves';
 
@@ -159,7 +160,9 @@
         },
       },
       'separator',
-      { label: 'Rename', run: () => entryForm(id, 'rename') },
+      // Renaming is typing over the page's title, the same as from the page's own corner.
+      // A card has no title to type over, so it falls back to the small form.
+      { label: 'Rename', run: () => (nav.open(id), titleFocus.request(id, () => void entryForm(id, 'rename'))) },
       { label: 'Other names', run: () => entryForm(id, 'names') },
       { label: 'Move to another category', run: () => entryForm(id, 'move') },
       { label: 'Archive', run: () => entryForm(id, 'archive') },
@@ -321,10 +324,10 @@
 {/if}
 
 {#if entryTarget && index.get(entryTarget)}
-  <EntryActions bind:this={entryActions} {fs} {index} entry={index.get(entryTarget)!} button={false} onMoved={onEntryMoved} />
+  <EntryActions bind:this={entryActions} {fs} {index} entry={index.get(entryTarget)!} onMoved={onEntryMoved} />
 {/if}
 {#if categoryTarget}
-  <CategoryActions bind:this={categoryActions} {fs} {index} folder={categoryTarget} button={false} onMoved={onCategoryMoved} />
+  <CategoryActions bind:this={categoryActions} {fs} {index} folder={categoryTarget} onMoved={onCategoryMoved} />
 {/if}
 
 <style>

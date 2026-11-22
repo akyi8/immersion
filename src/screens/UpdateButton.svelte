@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import { installUpdate } from '../lib/updates';
   import { updates } from '../lib/updates.svelte';
 
@@ -14,7 +15,7 @@
     try {
       await installUpdate(update);
     } catch (e) {
-      updateError = String(e);
+      updateError = errorText(e);
       updating = false;
     }
   }

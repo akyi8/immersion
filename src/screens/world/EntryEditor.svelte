@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onDestroy, onMount } from 'svelte';
   import type { EditorView } from '@codemirror/view';
   import type { WikiIndex } from '../../lib/index/wiki';
@@ -91,7 +92,7 @@
       text = plain(await fs.readText(id));
     } catch (e) {
       status = 'error';
-      problem = String(e);
+      problem = errorText(e);
       return;
     }
     // svelte-ignore state_referenced_locally

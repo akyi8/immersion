@@ -11,6 +11,7 @@
 </script>
 
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { getContext, type Snippet } from 'svelte';
   import { PANE, pictureActions } from '../../lib/pane.svelte';
   import { views } from '../../lib/view.svelte';
@@ -50,7 +51,7 @@
     try {
       await job();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -88,7 +89,7 @@
       await onFrame(result.banner);
       framing = false;
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

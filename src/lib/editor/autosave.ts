@@ -1,3 +1,4 @@
+import { errorText } from '../errors.ts';
 import { merge3 } from './merge.ts';
 
 /**
@@ -124,7 +125,7 @@ export class Autosave {
       else this.set('saved');
     } catch (e) {
       this.dirty = true;
-      this.set('error', e instanceof Error ? e.message : String(e));
+      this.set('error', errorText(e));
       this.schedule(this.host.retry ?? 5000);
     } finally {
       this.writing = null;

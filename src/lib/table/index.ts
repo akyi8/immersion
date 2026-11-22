@@ -1,3 +1,4 @@
+import { freePath as freeInArchive } from '../archive.ts';
 import { splitHeader, withHeader } from '../world.ts';
 import type { WorldFs } from '../fs/types';
 
@@ -250,15 +251,10 @@ export async function archivePath(fs: WorldFs, path: string): Promise<string> {
   const at = path.lastIndexOf('/');
   const dir = `${path.slice(0, at)}/archive`;
   const name = path.slice(at + 1);
-  const dot = name.search(/(\.(log|plan))?\.[a-z0-9]+$/i);
-  const [stem, ending] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
   await fs.createDir(dir);
-  for (let n = 1; ; n++) {
-    const to = `${dir}/${n === 1 ? stem : `${stem}-${n}`}${ending}`;
-    if (await fs.exists(to)) continue;
-    await fs.move(path, to);
-    return to;
-  }
+  const to = await freeInArchive((p) => fs.exists(p), `${dir}/${name}`);
+  await fs.move(path, to);
+  return to;
 }
 
 /** Archives a session: its log and its plan together, under one name. */

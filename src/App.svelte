@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { errorText } from './lib/errors';
   import { fade } from 'svelte/transition';
+  import { onShortcut } from './lib/shortcuts';
   import { room } from './lib/room.svelte';
   import { noteTrouble, watchForTrouble } from './lib/trouble';
   import { onMount } from 'svelte';
@@ -118,7 +120,7 @@
       watchWorld(source);
       sync.start(source, world.name);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
       phase = 'error';
     }
   }
@@ -169,7 +171,7 @@
     try {
       await enter(await library.open(path));
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
       phase = 'error';
     }
   }
@@ -266,7 +268,7 @@
 
   onMount(async () => {
     // Ctrl or Cmd, Shift, L locks the vault at once, wherever the writer is.
-    window.addEventListener('keydown', (e) => {
+    onShortcut((e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
         void vault.lock();

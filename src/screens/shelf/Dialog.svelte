@@ -30,21 +30,56 @@
     above?: boolean;
   } = $props();
 
+  // A form that is partway through its work stays until the work ends, so nothing is
+  // left half done behind a closed form.
+  const cancel = () => {
+    if (!busy) onCancel();
+  };
+
+  /**
+   * Keeps the keyboard inside the form while it is open, and gives it back to whatever
+   * had it when the form closes.
+   */
+  function held(node: HTMLElement) {
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const stops = () => [...node.querySelectorAll<HTMLElement>('input, select, textarea, button, [tabindex], [contenteditable]')].filter((el) => !el.hasAttribute('disabled') && el.tabIndex >= 0 && el.offsetParent !== null);
+    queueMicrotask(() => {
+      if (!node.contains(document.activeElement)) stops()[0]?.focus();
+    });
+    const keys = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const all = stops();
+      if (!all.length) return;
+      const first = all[0];
+      const last = all[all.length - 1];
+      if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
+      else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
+    };
+    node.addEventListener('keydown', keys);
+    return {
+      destroy() {
+        node.removeEventListener('keydown', keys);
+        if (before?.isConnected) before.focus({ preventScroll: true });
+      },
+    };
+  }
+
   function submit(event: SubmitEvent) {
     event.preventDefault();
     if (ready && !busy) onSubmit();
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), onCancel())} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (e.preventDefault(), cancel())} />
 
-<div class="backdrop" class:above role="presentation" onclick={onCancel} use:portal></div>
-<form use:portal class="dialog" class:wide class:above aria-label={title} onsubmit={submit}>
+<div class="backdrop" class:above role="presentation" onclick={cancel} use:portal></div>
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
+<form use:portal use:held class="dialog" class:wide class:above role="dialog" aria-modal="true" aria-label={title} onsubmit={submit}>
   <h2>{title}</h2>
   {@render children()}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   <div class="actions">
-    <button type="button" class="cancel" onclick={onCancel}>Cancel</button>
+    <button type="button" class="cancel" disabled={busy} onclick={cancel}>Cancel</button>
     <button type="submit" class="go" disabled={!ready || busy}>{busy ? 'Working…' : action}</button>
   </div>
 </form>

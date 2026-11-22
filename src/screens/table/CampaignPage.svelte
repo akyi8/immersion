@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { WorldFs } from '../../lib/fs/types';
   import { setFacts, type Campaign, type Link } from '../../lib/table/index';
   import { inDesktopApp } from '../../lib/runtime';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
 
   /**
    * A campaign's own page (Cerys, November 14): its name, whether the writer runs it or
@@ -27,7 +28,7 @@
       await setFacts(fs, campaign.card, facts);
       await onChanged();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -51,7 +52,7 @@
       if (inDesktopApp) await (await import('@tauri-apps/plugin-opener')).openUrl(address);
       else window.open(address, '_blank', 'noopener');
     } catch (e) {
-      problem = `That link could not be opened. ${e instanceof Error ? e.message : String(e)}`;
+      problem = `That link could not be opened. ${errorText(e)}`;
     }
   }
 
@@ -68,14 +69,15 @@
 
   const sessions = $derived(campaign.adventures.reduce((n, a) => n + a.sessions.length, 0));
 
-  // Rename in a menu puts the cursor here.
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(campaign.card, titleInput));
+  const rename = async (name: string) => {
+    await change({ name });
+    return problem || null;
+  };
 </script>
 
 <article class="campaign">
   <div class="label kind">Campaign</div>
-  <input class="name" bind:this={titleInput} aria-label="The campaign's name" value={campaign.name} onchange={(e) => e.currentTarget.value.trim() && change({ name: e.currentTarget.value.trim() })} />
+  <input class="name" aria-label="The campaign's name" use:retitle={{ id: campaign.card, name: campaign.name, rename }} />
   <p class="count">{campaign.adventures.length} {campaign.adventures.length === 1 ? 'adventure' : 'adventures'} · {sessions} {sessions === 1 ? 'session' : 'sessions'}</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 

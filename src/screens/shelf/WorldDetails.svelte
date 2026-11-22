@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { Library, ShelfWorld } from '../../lib/library/types';
   import { withDetails } from '../../lib/world';
   import Dialog from './Dialog.svelte';
@@ -21,7 +22,7 @@
       await library.writeWorldMd(world.path, withDetails(world.worldMd ?? '', { name: name.trim(), tagline: tagline.trim() }));
       onSaved();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

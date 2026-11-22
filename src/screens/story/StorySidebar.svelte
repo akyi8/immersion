@@ -1,5 +1,6 @@
 <script lang="ts">
   import { counted } from '../../lib/story/book';
+  import { titleFocus } from '../../lib/retitle';
   import { tick } from 'svelte';
   import type { Manuscript, Place, Section, StoryIndex } from '../../lib/story/index';
   import type { Activity } from '../../lib/story/activity';
@@ -195,7 +196,12 @@
     } else items.push({ label: 'Make it a manuscript…', run: () => onMakeManuscript(m) });
     items.push('separator');
     for (const [p] of TABS) if (p !== m.place) items.push({ label: `Move to ${PLACE_NAMES[p]}`, run: () => onMoveTo(m, p) });
-    items.push('separator', { label: 'Rename', run: () => act('rename', m) }, { label: 'Archive', run: () => act('archive', m) });
+    items.push('separator', 
+      // A piece in one file is renamed by typing over its page's title. A manuscript in a
+      // folder opens on a title page, which shows no title of its own, so it asks in a form.
+      { label: 'Rename', run: () => (m.kind === 'file' ? (openManuscript(m), titleFocus.request(m.path, () => void act('rename', m))) : void act('rename', m)) },
+      { label: 'Archive', run: () => act('archive', m) },
+    );
     contextMenu.show(event, items, at);
   }
 
@@ -349,7 +355,7 @@
 </nav>
 
 {#if target && story}
-  <PieceActions bind:this={actions} {fs} path={target.path} title={target.title} root={story.root} button={false} {onMoved} />
+  <PieceActions bind:this={actions} {fs} path={target.path} title={target.title} root={story.root} {onMoved} />
 {/if}
 
 <style>

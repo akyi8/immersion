@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { freePath } from '../../lib/archive';
+  import { errorText } from '../../lib/errors';
   import type { View } from '../../lib/render';
+  import { titleFocus } from '../../lib/retitle';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -84,7 +87,7 @@
     try {
       story = await buildStoryIndex(fs, storiesDir);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -188,7 +191,7 @@
       if (m.kind === 'folder') nav.replacePrefix(m.path, to);
       else nav.replace(m.path, to);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -203,7 +206,7 @@
       if (at.offset === null) fresh = at.path;
       openPiece(at.path, at.offset);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -241,7 +244,7 @@
         for (const [from, to] of renamed) if (nav.panes.includes(from)) nav.replace(from, to);
       } else await refresh();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 
@@ -260,11 +263,7 @@
       const { m, s } = archivingChapter;
       for (const p of m.kind === 'file' ? [m.path] : m.sections.map((x) => x.path)) await saveNow(p);
       const book = slugify(m.title) || 'manuscript';
-      const free = async (stem: string) => {
-        let to = `${story!.root}/archive/${stem}.md`;
-        for (let n = 2; await fs.exists(to); n++) to = `${story!.root}/archive/${stem}-${n}.md`;
-        return to;
-      };
+      const free = (stem: string) => freePath((p) => fs.exists(p), `${story!.root}/archive/${stem}.md`);
       if (m.kind === 'folder') {
         const name = s.path.slice(s.path.lastIndexOf('/') + 1).replace(/\.md$/i, '');
         await fs.move(s.path, await free(`${book}/${name}`));
@@ -280,7 +279,7 @@
       archivingChapter = null;
       await refresh();
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
@@ -306,7 +305,7 @@
       await refresh();
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
 
@@ -324,7 +323,7 @@
       await refresh();
       renaming = null;
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
@@ -343,7 +342,7 @@
       makingEntry = null;
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
 
@@ -388,7 +387,7 @@
       newName = '';
       seriesName = '';
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
@@ -409,7 +408,7 @@
           .map((k) => /^#\s+(.+)$/m.exec(files[k])?.[1] ?? k);
       making = { note, title, subtitle: page.subtitle, series: seriesLine(page), author: page.author, chapters: titles(''), front: titles('front/'), back: titles('back/') };
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
   async function makeManuscript() {
@@ -423,7 +422,7 @@
       nav.replace(note.path, `${folder}/book.md`);
       making = null;
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
@@ -444,9 +443,15 @@
       onWindow={toWindow}
       onMoveChapter={moveChapter}
       onRenameChapter={(m, s) => {
-        renaming = { m, s };
-        chapterName = s.title;
-        problem = '';
+        const ask = () => {
+          renaming = { m, s };
+          chapterName = s.title;
+          problem = '';
+        };
+        // A chapter with a page of its own is renamed by typing over its title there.
+        if (m.kind !== 'folder') return ask();
+        openPiece(s.path, s.offset, s.title);
+        titleFocus.request(s.path, ask);
       }}
       onArchiveChapter={(m, s) => {
         archivingChapter = { m, s };

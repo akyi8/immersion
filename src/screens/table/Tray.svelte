@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import Pick from '../Pick.svelte';
   import type { WorldFs } from '../../lib/fs/types';
   import type { Campaign } from '../../lib/table/index';
@@ -162,7 +163,7 @@
     try {
       await writeDraws(fs, campaign.path, draws);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -174,7 +175,7 @@
     try {
       await writeDraws(fs, campaign.path, draws);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { retitle } from '../../lib/retitle';
   import { onDestroy } from 'svelte';
   import type { Placed } from '../../lib/game/game';
   import type { Frame } from '../../lib/index/frame';
@@ -69,14 +69,17 @@
     void world.flush(true);
   });
 
-  let titleInput = $state<HTMLInputElement>();
-  $effect(() => titleFocus.serve(titleId, titleInput));
+  const rename = async (next: string) => {
+    name = next;
+    own.push(null);
+    return null;
+  };
 </script>
 
 <article class="rule">
   <GameBanner url={picture?.url ?? null} frame={picture?.frame ?? null} {place} {choices} {onFrame}>
     {#snippet title()}
-      <input class="title" type="text" bind:this={titleInput} bind:value={name} oninput={() => own.push(null)} aria-label="Rule name" autocomplete="off" />
+      <input class="title" type="text" use:retitle={{ id: titleId, name, rename }} aria-label="Rule name" autocomplete="off" />
     {/snippet}
   </GameBanner>
   <div class="marks">

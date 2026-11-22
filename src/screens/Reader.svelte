@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import { onMount } from 'svelte';
   import type { WorldFs } from '../lib/fs/types';
   import { loadWorld, type World } from '../lib/world';
@@ -41,7 +42,7 @@
       index = await buildWikiIndex(fs, world);
       story = await buildStoryIndex(fs, world.storiesDir);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     }
   }
 

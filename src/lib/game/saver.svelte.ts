@@ -1,3 +1,4 @@
+import { errorText } from '../errors.ts';
 /**
  * Saves one piece of a page a moment after typing stops, and at once when the page
  * closes, so nothing typed is lost. `status` drives the page's Saved line.
@@ -52,7 +53,7 @@ export class Saver<T> {
     } catch (e) {
       // What failed to save is kept and tried again, so closing the page cannot lose it.
       this.waiting ??= job;
-      this.problem = e instanceof Error ? e.message : String(e);
+      this.problem = errorText(e);
       this.status = 'problem';
       if (last) waiting.delete(this as unknown as Saver<never>);
       else this.timer = setTimeout(() => void this.flush(), 5000);

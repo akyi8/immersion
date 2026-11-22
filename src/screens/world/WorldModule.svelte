@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { defaultShape } from '../../lib/index/frame';
   import { views } from '../../lib/view.svelte';
   import { markOpened } from '../../lib/recent';
@@ -74,7 +75,7 @@
         await rebuild();
       }
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
     creating = null;
     return null;

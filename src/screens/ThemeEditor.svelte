@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import Choice from './Pick.svelte';
   import { splitHeader, withHeader } from '../lib/world';
   import { contrast, HEADING_FONTS, isHex, NIGHT, palette, PROSE_FONTS, themeFrom, themeHeader, type FontChoice, type Mode, type SideOverrides, type ThemeSpec } from '../lib/theme';
@@ -128,7 +129,7 @@
       await onSave(withHeader(worldMd, { theme: spec ? themeHeader(spec) : undefined }));
       saved = JSON.stringify(spec);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

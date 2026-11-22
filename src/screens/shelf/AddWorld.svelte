@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { FolderShape, Library } from '../../lib/library/types';
   import { worldFile } from '../../lib/world';
   import Dialog from './Dialog.svelte';
@@ -53,7 +54,7 @@
       await library.add(path, text);
       onAdded(path);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

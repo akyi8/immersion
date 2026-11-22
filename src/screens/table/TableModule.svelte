@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -26,7 +27,7 @@
   import { saveAllUnder, saveNow } from '../../lib/saves';
   import { pageActions } from '../../lib/pane.svelte';
   import type { MenuEntry } from '../../lib/contextMenu.svelte';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { titleFocus } from '../../lib/retitle';
   import { openInWindow } from '../../lib/windows';
   import { movePage } from '../../lib/table/pdf';
   import { tray } from '../../lib/table/tray.svelte';
@@ -62,7 +63,7 @@
     try {
       campaigns = await readTable(fs);
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
     loaded = true;
   }
@@ -98,7 +99,7 @@
       nav.replace(id, to);
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
 
@@ -229,7 +230,7 @@
       }
       making = null;
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
     busy = false;
   }
@@ -246,7 +247,7 @@
       makingEntry = null;
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
 
@@ -267,7 +268,7 @@
       if (added.length) nav.open(added[0]);
     } catch (e) {
       await refresh();
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 

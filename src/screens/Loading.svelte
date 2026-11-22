@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import { onMount } from 'svelte';
   import { textColorOver } from '../lib/contrast';
   import type { World } from '../lib/world';
@@ -42,7 +43,7 @@
     try {
       await onSetCover(image);
     } catch (e) {
-      coverProblem = e instanceof Error ? e.message : String(e);
+      coverProblem = errorText(e);
     }
   }
 

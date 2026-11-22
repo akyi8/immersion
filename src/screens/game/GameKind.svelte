@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { Element, Kind } from '../../lib/game/elements';
   import Pick from '../Pick.svelte';
   import SheetRow from './SheetRow.svelte';
@@ -66,7 +67,7 @@
       await (onNewHere ?? onNew)(n);
       fresh = '';
     } catch (err) {
-      problem = err instanceof Error ? err.message : String(err);
+      problem = errorText(err);
     }
   }
 
@@ -94,7 +95,7 @@
       naming = false;
       name = '';
     } catch (err) {
-      problem = err instanceof Error ? err.message : String(err);
+      problem = errorText(err);
     }
   }
 </script>

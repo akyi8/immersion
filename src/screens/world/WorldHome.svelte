@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
   import type { Navigator } from '../../lib/nav.svelte';
@@ -46,7 +47,7 @@
     try {
       await fs.setImage(id.replace(/\.md$/i, ''), image);
     } catch (e) {
-      pictureProblem = e instanceof Error ? e.message : String(e);
+      pictureProblem = errorText(e);
     }
   }
 

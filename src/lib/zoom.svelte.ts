@@ -1,4 +1,5 @@
 import { inDesktopApp } from './runtime';
+import { onShortcut } from './shortcuts.ts';
 
 /**
  * How large everything is drawn (Cerys, October 31), from Ctrl or Cmd with plus, minus,
@@ -23,7 +24,7 @@ class Zoom {
   /** Applies the saved level, once at launch, and listens for the keys. */
   start() {
     void this.apply();
-    window.addEventListener('keydown', (e) => {
+    onShortcut((e) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       if (e.key === '=' || e.key === '+') this.step(1);
       else if (e.key === '-' || e.key === '_') this.step(-1);

@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { freePath } from '../../lib/archive';
+  import { errorText } from '../../lib/errors';
   import Dialog from '../shelf/Dialog.svelte';
   import { pageActions } from '../../lib/pane.svelte';
   import { contextMenu, type MenuEntry } from '../../lib/contextMenu.svelte';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { titleFocus } from '../../lib/retitle';
   import { saveAll } from '../../lib/saves';
   import type { View } from '../../lib/render';
   import { onMount, setContext, tick } from 'svelte';
@@ -138,7 +140,7 @@
       await load();
       await layOut();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       starting = false;
     }
@@ -176,14 +178,14 @@
             engine = { origin: 'engine', name: engineName, fs: efs, dir: '' };
           }
         } catch (e) {
-          problem = `This world's engine, ${engineRel}, could not be opened: ${e instanceof Error ? e.message : String(e)}`;
+          problem = `This world's engine, ${engineRel}, could not be opened: ${errorText(e)}`;
         }
       } else {
         await openEngine(null).catch(() => {});
       }
       game = await loadGame(engine, { origin: 'world', name: worldName, fs, dir: gameDir });
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 
@@ -434,10 +436,7 @@
 
   async function archive(src: Source, path: string) {
     const name = path.split('/').pop()!;
-    const dot = name.lastIndexOf('.');
-    let target = pathIn(src, `archive/${name}`);
-    for (let n = 2; await src.fs.exists(target); n++) target = pathIn(src, `archive/${name.slice(0, dot)}-${n}${name.slice(dot)}`);
-    await src.fs.move(pathIn(src, path), target);
+    await src.fs.move(pathIn(src, path), await freePath((p) => src.fs.exists(p), pathIn(src, `archive/${name}`)));
   }
 
   /**
@@ -461,7 +460,7 @@
       await save(p, { ...p.element, tags: tagText.split(',').map((t) => t.trim()).filter(Boolean) });
       tagging = null;
     } catch (e) {
-      tagProblem = e instanceof Error ? e.message : String(e);
+      tagProblem = errorText(e);
     } finally {
       tagBusy = false;
     }
@@ -508,19 +507,14 @@
       const src = sourceOf(game, p);
       const file = pathIn(src, p.element.path);
       await src.fs.writeText(file, withHeader(await src.fs.readText(file), { archived_from: stood.length ? stood : undefined }));
-      const free = async (path: string) => {
-        const dot = path.lastIndexOf('.');
-        let to = pathIn(src, `archive/${path}`);
-        for (let n = 2; await src.fs.exists(to); n++) to = pathIn(src, `archive/${path.slice(0, dot)}-${n}${path.slice(dot)}`);
-        return to;
-      };
+      const free = (path: string) => freePath((p) => src.fs.exists(p), pathIn(src, `archive/${path}`));
       await src.fs.move(file, await free(p.element.path));
       if (p.image) await src.fs.move(pathIn(src, p.image), await free(p.image));
       for (const id of [`${RULE}${p.key}`, `${SEC}${p.key}`, `${EL}${p.key}`]) if (nav.panes.includes(id)) nav.close(id);
       archiving = null;
       await load();
     } catch (e) {
-      archiveProblem = e instanceof Error ? e.message : String(e);
+      archiveProblem = errorText(e);
     } finally {
       archiveBusy = false;
     }
@@ -821,8 +815,8 @@
             {worldName}
             open={nav.panes}
             onOpen={(id) => nav.open(id)}
-            onMoveRule={(r, f, t, b) => void moveRule(r, f, t, b).catch((e) => (notice = String(e)))}
-            onMoveSection={(sec, f, t, b) => void moveSection(sec, f, t, b).catch((e) => (notice = String(e)))}
+            onMoveRule={(r, f, t, b) => void moveRule(r, f, t, b).catch((e) => (notice = errorText(e)))}
+            onMoveSection={(sec, f, t, b) => void moveSection(sec, f, t, b).catch((e) => (notice = errorText(e)))}
             names={originName}
             onAddRule={addRule}
             onAddSection={addSection}
@@ -1042,7 +1036,7 @@
         </div>
         {#if game.engine && !game.books.world && !game.elements.some((p) => p.origin === 'world')}
           <p class="hint">{worldName} is built on {engineName} and has no book of its own yet.</p>
-          <button type="button" class="start" disabled={starting} onclick={() => ((starting = true), layOut().catch((e) => (problem = String(e))).finally(() => (starting = false)))}>
+          <button type="button" class="start" disabled={starting} onclick={() => ((starting = true), layOut().catch((e) => (problem = errorText(e))).finally(() => (starting = false)))}>
             {starting ? 'Laying it out…' : `Lay out ${worldName}'s book from ${engineName}`}
           </button>
         {/if}

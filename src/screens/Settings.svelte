@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import { tumbling } from '../lib/table/tray.svelte';
   import { clearTroubles, troubleText, troubles } from '../lib/trouble';
   import { portal } from '../lib/portal';
@@ -151,7 +152,7 @@
     try {
       await work();
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }
@@ -389,7 +390,7 @@
         await roomPicture!.set(result.behind);
         framing = false;
       } catch (e) {
-        framingProblem = e instanceof Error ? e.message : String(e);
+        framingProblem = errorText(e);
       } finally {
         framingBusy = false;
       }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pick from './Pick.svelte';
+  import { mod, onMac, onShortcut } from '../lib/shortcuts';
   import { onMount } from 'svelte';
   import type { WikiIndex } from '../lib/index/wiki';
   import type { WorldFs } from '../lib/fs/types';
@@ -62,7 +63,7 @@
 
   // The quick finder (Cerys, October 31), from its button or Ctrl or Cmd and K anywhere.
   let finding = $state(false);
-  const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+  const mac = onMac;
 
   function worldMenu(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -130,15 +131,16 @@
   onMount(() => {
     // Back and forward from the keyboard and from the mouse's side buttons.
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+      // Ctrl K on a Mac belongs to the text, where it cuts to the end of the line.
+      if (mod(e) && !e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         finding = !finding;
         return;
       }
       // On a Mac, Option with an arrow moves the cursor by a word, so there Back and
       // Forward are Cmd with a bracket alone. Elsewhere Alt with an arrow is the custom.
-      const back = (!mac && e.altKey && e.key === 'ArrowLeft') || (e.metaKey && e.key === '[');
-      const forward = (!mac && e.altKey && e.key === 'ArrowRight') || (e.metaKey && e.key === ']');
+      const back = (!mac && e.altKey && e.key === 'ArrowLeft') || (mac && e.metaKey && e.key === '[');
+      const forward = (!mac && e.altKey && e.key === 'ArrowRight') || (mac && e.metaKey && e.key === ']');
       if (back) {
         e.preventDefault();
         nav.back();
@@ -151,10 +153,10 @@
       if (e.button === 3) nav.back();
       if (e.button === 4) nav.forward();
     };
-    window.addEventListener('keydown', onKey);
+    const offKeys = onShortcut(onKey);
     window.addEventListener('mouseup', onMouse);
     return () => {
-      window.removeEventListener('keydown', onKey);
+      offKeys();
       window.removeEventListener('mouseup', onMouse);
     };
   });

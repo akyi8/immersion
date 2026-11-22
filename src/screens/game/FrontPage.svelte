@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { retitle } from '../../lib/retitle';
   import { onDestroy } from 'svelte';
   import type { Frame } from '../../lib/index/frame';
   import { Saver, said } from '../../lib/game/saver.svelte';
@@ -42,12 +43,18 @@
     was = now;
   });
   onDestroy(() => void saver.flush(true));
+  // The title is taken on Enter or on leaving it, and Escape puts the old one back.
+  const rename = async (next: string) => {
+    heading = next;
+    saver.push(null);
+    return null;
+  };
 </script>
 
 <article class="front">
   <GameBanner url={picture?.url ?? null} frame={picture?.frame ?? null} {place} {choices} {onFrame}>
     {#snippet title()}
-      <input class="title" type="text" bind:value={heading} oninput={() => saver.push(null)} aria-label="Title" autocomplete="off" />
+      <input class="title" type="text" use:retitle={{ id: '', name: heading, rename }} aria-label="Title" autocomplete="off" />
     {/snippet}
   </GameBanner>
   <div class="status-row"><span class="status">{said(saver.status)}</span></div>

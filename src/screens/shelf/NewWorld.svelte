@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { onMount } from 'svelte';
   import type { Library } from '../../lib/library/types';
   import type { ImageSource } from '../../lib/fs/types';
@@ -49,7 +50,7 @@
       if (cover) await library.setCover(path, cover);
       onCreated(path);
     } catch (e) {
-      problem = String(e);
+      problem = errorText(e);
     } finally {
       busy = false;
     }

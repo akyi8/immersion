@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { tick } from 'svelte';
   import type { Entry } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -36,7 +37,7 @@
       await saveNow(entry.id);
       await fs.writeText(entry.id, withHeader(await fs.readText(entry.id), changes));
     } catch (e) {
-      problem = e instanceof Error ? e.message : String(e);
+      problem = errorText(e);
     }
   }
 

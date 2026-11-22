@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import { counted } from '../../lib/story/book';
   import type { WikiIndex } from '../../lib/index/wiki';
   import type { WorldFs } from '../../lib/fs/types';
@@ -9,7 +10,7 @@
   import PieceActions from './PieceActions.svelte';
   import { pageActions } from '../../lib/pane.svelte';
   import { retitle } from '../../lib/retitle';
-  import { titleFocus } from '../../lib/table/tray.svelte';
+  import { titleFocus } from '../../lib/retitle';
   import { renamePiece } from '../../lib/story/manage';
   import { saveAllUnder, saveNow } from '../../lib/saves';
   import OutlineAside from './OutlineAside.svelte';
@@ -177,7 +178,7 @@
       onMoved(path, await renamePiece(fs, path, name));
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorText(e);
     }
   }
   const titled = $derived({
@@ -232,7 +233,7 @@
 <!-- The piece's forms. Its menu is the ⋯ in the pane's corner (Cerys, November 10). -->
 {#snippet tail()}
   {#if about && onMoved && story && owner}
-    <PieceActions bind:this={pieceActions} {fs} path={owner.path} title={about.title} root={story.root} {onMoved} button={false} />
+    <PieceActions bind:this={pieceActions} {fs} path={owner.path} title={about.title} root={story.root} {onMoved} />
   {/if}
 {/snippet}
 
