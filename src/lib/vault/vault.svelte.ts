@@ -1,7 +1,8 @@
 import { account } from '../account.svelte';
 import { saveAll } from '../saves';
 import { deriveKey, fromBase64, importKey, keyFits, newParams, toBase64 } from './crypto';
-import { newEntryName, openEntry, sealEntry, type VaultEntry } from './entries';
+import { newEntryName, openEntry, sealEntry, sealedIn, type VaultEntry } from './entries';
+import { newWorldId, worldIdOf, withHeader } from '../world';
 
 /**
  * The vault's lock (Cerys, October 26). One passphrase opens every world's vault, and
@@ -23,6 +24,8 @@ class Vault {
   /** Why the vault did not lock when asked, shown on its page. */
   problem = $state('');
   private lockedByHand = false;
+  /** Each world's id, read once while the app runs. An id never changes. */
+  private ids = new Map<string, string>();
 
   /** True once a passphrase has been chosen for this library. */
   get ready(): boolean {
@@ -123,7 +126,7 @@ class Vault {
     const out: Story[] = [];
     for (const name of await lib.vaultList(world)) {
       try {
-        out.push({ name, entry: await openEntry(key, name, await lib.vaultRead(world, name)) });
+        out.push({ name, entry: await this.openHere(world, name, key) });
       } catch {
         // A story sealed with another passphrase, or damaged, stays where it is.
       }
@@ -132,11 +135,48 @@ class Vault {
   }
 
   async read(world: string, name: string): Promise<VaultEntry> {
-    return openEntry(this.need(), name, await account.library!.vaultRead(world, name));
+    return this.openHere(world, name, this.need());
+  }
+
+  /** The text of a shelf world's `world.md`. */
+  private async worldMd(world: string): Promise<string> {
+    const found = (await account.library!.list()).find((w) => w.path === world);
+    if (!found || found.worldMd === null) throw new Error('That world is not on this computer.');
+    return found.worldMd;
+  }
+
+  /**
+   * The world's id, which its stories are sealed to. A world made before ids has none, so
+   * it takes `given` or a new one, written into its `world.md` once.
+   */
+  private async worldId(world: string, given?: string): Promise<string> {
+    const known = this.ids.get(world);
+    if (known) return known;
+    const md = await this.worldMd(world);
+    let id = worldIdOf(md);
+    if (!id) {
+      id = given ?? newWorldId();
+      await account.library!.writeWorldMd(world, withHeader(md, { id }));
+    }
+    this.ids.set(world, id);
+    return id;
+  }
+
+  /**
+   * Opens one story, and checks it belongs here. A story names the world it was sealed
+   * in, and the seal proves that name was not changed. When this world has lost its id,
+   * it takes the story's back, so a deleted line never locks the vault.
+   */
+  private async openHere(world: string, name: string, key: CryptoKey): Promise<VaultEntry> {
+    const text = await account.library!.vaultRead(world, name);
+    const entry = await openEntry(key, name, text);
+    const from = sealedIn(text);
+    if (from && (await this.worldId(world, from)) !== from) throw new Error('This story was sealed in another world, so it does not open in this one.');
+    return entry;
   }
 
   async save(world: string, name: string, entry: VaultEntry) {
-    await account.library!.vaultWrite(world, name, await sealEntry(this.need(), name, entry));
+    await account.library!.vaultWrite(world, name, await sealEntry(this.need(), await this.worldId(world), name, entry));
   }
 
   async newStory(world: string, title: string): Promise<Story> {

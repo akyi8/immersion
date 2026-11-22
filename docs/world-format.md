@@ -39,6 +39,7 @@ stories: stories
 ```
 
 - `name:` is the world's name, and `tagline:` is the line shown under it.
+- `id:` is the world's own id: a short random string the app writes once and never changes. It names the same world whatever its folder is called and wherever it sits on each computer. A new world is given one when it is made, and an older world is given one the first time a story is saved in its vault. The vault seals each story to this id, so deleting or changing the line would stop that world's stories opening. The app puts a deleted id back from the stories themselves, and a changed one has to be changed back by hand.
 - `wiki:` is the folder that holds the wiki. It defaults to `wiki`.
 - `stories:` is the folder that holds the writing. It defaults to `stories`.
 - `theme:` holds the world's colors and fonts, which the app writes from Settings, under Theme.
@@ -307,7 +308,7 @@ Paragraphs are separated by one blank line, which the editor writes when the wri
 
 Some files belong to the app, and editing them by hand risks damaging what they hold:
 
-- **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable. Each story is sealed to its own file name, so a file that is renamed, or copied over another story's file, refuses to open. A story can be moved to another folder under the same name.
+- **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable. Each story is sealed to its own file name and to its world's `id:`, so a file that is renamed, copied over another story's file, or moved into another world's vault refuses to open.
 - **`immersion.md`** at the library root holds author profiles, the vault's key settings, the writer's own spelling dictionary, and the writer's layout choices. Its `vault:` field must never be changed by hand. The app refuses key settings outside a safe range (`memory` from 19456 to 1048576, `passes` from 1 to 10, `lanes` from 1 to 4) and keeps the vault locked until the line is put right.
 - **`draws.md`** inside a campaign's folder records the cards drawn from each deck, and the app rewrites it with every draw (see section 12).
 - **`archive/`** folders are deliberately left out of the app.

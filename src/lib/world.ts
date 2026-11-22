@@ -98,8 +98,23 @@ This folder is Immersion's journal. Its stories are kept in the vault, encrypted
 }
 
 /** The `world.md` the app writes for a new or newly added world. */
+/**
+ * A world's own id (Cerys, November 22): random, written once into `world.md` as `id:`,
+ * and never changed. The world's folder can be renamed or sit at a different path on
+ * each computer, and the id still names the same world. The vault seals stories to it.
+ */
+export function newWorldId(): string {
+  return [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** The id in a `world.md`, or null when it has none yet. */
+export function worldIdOf(worldMd: string): string | null {
+  const id = splitHeader(worldMd).header.id;
+  return typeof id === 'string' && id.trim() ? id.trim() : typeof id === 'number' ? String(id) : null;
+}
+
 export function worldFile(world: { name: string; tagline: string; wikiDir: string; storiesDir: string }): string {
-  const header = stringify({ name: world.name, tagline: world.tagline, wiki: world.wikiDir, stories: world.storiesDir }).trimEnd();
+  const header = stringify({ id: newWorldId(), name: world.name, tagline: world.tagline, wiki: world.wikiDir, stories: world.storiesDir }).trimEnd();
   return `---
 ${header}
 ---
