@@ -58,7 +58,14 @@
   let conflict = $state<string | null>(null);
   let ready = $state(false);
 
-  const plain = (text: string) => text.replace(/\r\n?/g, '\n');
+  // The editor works in plain line endings. A file that came with Windows line endings is
+  // saved with them again, so a save never rewrites every line of a file, which would
+  // make Git see two computers changing the same lines.
+  let windowsEndings = false;
+  const plain = (text: string) => {
+    windowsEndings = text.includes('\r\n');
+    return text.replace(/\r\n?/g, '\n');
+  };
 
   // The saving, and what happens when the file changes in another program meanwhile,
   // live in lib/editor/autosave.ts. Edits to different paragraphs are joined, and the
@@ -66,7 +73,7 @@
   // svelte-ignore state_referenced_locally
   const saver = new Autosave({
     read: async () => plain(await fs.readText(id)),
-    write: (text) => fs.writeText(id, text),
+    write: (text) => fs.writeText(id, windowsEndings ? text.replace(/\n/g, '\r\n') : text),
     doc: () => view?.state.doc.toString() ?? '',
     show: (text) => view && replaceDoc(view, text),
     changed: () => {

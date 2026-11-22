@@ -195,9 +195,28 @@ fn save_settings(app: &AppHandle, settings: &Settings) {
             let _ = fs::create_dir_all(dir);
         }
         if let Ok(text) = serde_json::to_string_pretty(settings) {
-            let _ = fs::write(file, text);
+            // Through a temporary file, as a world's pages are saved, so a crash or a power
+            // cut partway never leaves half a settings file, which would read as no settings.
+            let mut temp = file.clone().into_os_string();
+            temp.push(SAVING_SUFFIX);
+            let temp = PathBuf::from(temp);
+            if write_through(&temp, &text).is_ok() {
+                if fs::rename(&temp, &file).is_err() {
+                    let _ = fs::remove_file(&temp);
+                }
+            }
         }
     }
+}
+
+/// Writes a file and waits until the disk holds it. A save writes a temporary file and
+/// renames it over the real one. Without the wait, a power cut just after the rename can
+/// leave the real file empty, because the name changed before the words reached the disk.
+fn write_through(path: &Path, text: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut file = fs::File::create(path)?;
+    file.write_all(text.as_bytes())?;
+    file.sync_all()
 }
 
 fn remember(app: &AppHandle, path: &str) {
@@ -552,6 +571,10 @@ fn report(state: &str, message: impl Into<String>) -> SyncReport {
 /// Only one sync runs at a time, so two never trip over each other in the same repository.
 static SYNCING: Mutex<()> = Mutex::new(());
 
+/// Held by every save and move the app makes, and held alone by Git for the moment it
+/// joins another computer's changes into the files.
+static FILES: std::sync::RwLock<()> = std::sync::RwLock::new(());
+
 /// A pathspec for `file` from the top of the repository that `dir` is in, when the file
 /// exists and belongs to that same repository.
 fn repo_spec(dir: &Path, file: &Path) -> Option<String> {
@@ -782,6 +805,7 @@ fn engine_set_image(stem: String, source: String, state: State<OpenEngine>) -> R
 /// Moves a file inside the engine, such as a picture taken away into its archive.
 #[tauri::command]
 fn engine_move(from: String, to: String, state: State<OpenEngine>) -> Result<(), String> {
+    let _mine = FILES.read().unwrap_or_else(|e| e.into_inner());
     let root = engine_root(&state)?;
     let source = inside(&root, &from)?;
     let target = inside(&root, &to)?;
@@ -832,7 +856,18 @@ fn sync_paths(dir: &Path, specs: &[String], message: &str) -> SyncReport {
     if git_run(dir, &["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).is_err() {
         return report("local", "Saved in Git on this computer. This branch has nowhere to push to, so other computers will not see it yet.");
     }
-    if let Err(e) = git_run(dir, &["pull", "--no-rebase", "--no-edit"]) {
+    // A pull in two steps. Fetching talks to the network and can take a while, and changes
+    // no file. Joining the fetched changes in is quick and rewrites files, so it alone
+    // holds the app's own saves back. A save can then never land between Git's look at a
+    // file and Git's write to it, where the save would be lost.
+    if let Err(e) = git_run(dir, &["fetch", "--quiet"]) {
+        return report("problem", e);
+    }
+    let joined = {
+        let _held = FILES.write().unwrap_or_else(|e| e.into_inner());
+        git_run(dir, &["merge", "--no-edit", "@{u}"])
+    };
+    if let Err(e) = joined {
         if git_run(dir, &["rev-parse", "-q", "--verify", "MERGE_HEAD"]).is_ok() {
             let _ = git_run(dir, &["merge", "--abort"]);
             return report(
@@ -1024,10 +1059,11 @@ fn read_you(app: AppHandle) -> Result<Option<String>, String> {
 /// Saves the library's `immersion.md`, through a temporary file so a crash never leaves half of it.
 #[tauri::command]
 fn write_you(text: String, app: AppHandle) -> Result<(), String> {
+    let _mine = FILES.read().unwrap_or_else(|e| e.into_inner());
     let lib = load_settings(&app).library.ok_or("There is no library on this computer yet.")?;
     let target = Path::new(&lib).join(YOU_FILE);
     let temp = Path::new(&lib).join(format!("{YOU_FILE}{SAVING_SUFFIX}"));
-    fs::write(&temp, text).map_err(|e| format!("Could not save {YOU_FILE}: {e}"))?;
+    write_through(&temp, &text).map_err(|e| format!("Could not save {YOU_FILE}: {e}"))?;
     fs::rename(&temp, &target).map_err(|e| {
         let _ = fs::remove_file(&temp);
         format!("Could not save {YOU_FILE}: {e}")
@@ -1083,7 +1119,7 @@ fn vault_write(world: String, name: String, text: String, app: AppHandle) -> Res
     let target = vault_path(&app, &world, Some(&name))?;
     fs::create_dir_all(target.parent().unwrap()).map_err(|e| format!("Could not make the vault folder: {e}"))?;
     let temp = target.with_extension(format!("locked{SAVING_SUFFIX}"));
-    fs::write(&temp, text).map_err(|e| format!("Could not save to the vault: {e}"))?;
+    write_through(&temp, &text).map_err(|e| format!("Could not save to the vault: {e}"))?;
     fs::rename(&temp, &target).map_err(|e| {
         let _ = fs::remove_file(&temp);
         format!("Could not save to the vault: {e}")
@@ -1145,7 +1181,7 @@ fn write_world_md(path: String, text: String, app: AppHandle) -> Result<(), Stri
     let mut temp = file.clone().into_os_string();
     temp.push(SAVING_SUFFIX);
     let temp = PathBuf::from(temp);
-    fs::write(&temp, text).map_err(|e| format!("Could not save world.md: {e}"))?;
+    write_through(&temp, &text).map_err(|e| format!("Could not save world.md: {e}"))?;
     fs::rename(&temp, &file).map_err(|e| {
         let _ = fs::remove_file(&temp);
         format!("Could not save world.md: {e}")
@@ -1238,6 +1274,7 @@ fn write_text(rel: String, content: String, state: State<OpenWorld>) -> Result<(
 }
 
 fn save_file(path: &Path, rel: &str, content: String) -> Result<(), String> {
+    let _mine = FILES.read().unwrap_or_else(|e| e.into_inner());
     let path = path.to_path_buf();
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("Could not create the folder for {rel}: {e}"))?;
@@ -1245,7 +1282,7 @@ fn save_file(path: &Path, rel: &str, content: String) -> Result<(), String> {
     let mut temp = path.clone().into_os_string();
     temp.push(SAVING_SUFFIX);
     let temp = PathBuf::from(temp);
-    fs::write(&temp, content).map_err(|e| format!("Could not save {rel}: {e}"))?;
+    write_through(&temp, &content).map_err(|e| format!("Could not save {rel}: {e}"))?;
     fs::rename(&temp, &path).map_err(|e| {
         let _ = fs::remove_file(&temp);
         format!("Could not save {rel}: {e}")
@@ -1262,6 +1299,7 @@ fn create_dir(rel: String, state: State<OpenWorld>) -> Result<(), String> {
 /// Moves or renames a file or folder inside the world. Refuses to replace anything.
 #[tauri::command]
 fn move_path(from: String, to: String, state: State<OpenWorld>) -> Result<(), String> {
+    let _mine = FILES.read().unwrap_or_else(|e| e.into_inner());
     let root = root(&state)?;
     let source = inside(&root, &from)?;
     let target = inside(&root, &to)?;

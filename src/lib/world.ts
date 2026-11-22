@@ -34,12 +34,18 @@ export interface World {
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 
 /** Splits a markdown file into its YAML header (if any) and its body. */
+/**
+ * A file's YAML header: the lines between a first line of `---` and the next line of
+ * `---`. Two such lines with nothing between them are an empty header, not body text.
+ */
+const HEADER = /^---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
 export function splitHeader(text: string): { header: Record<string, unknown>; body: string } {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  const match = HEADER.exec(text);
   if (!match) return { header: {}, body: text };
   let header: Record<string, unknown> = {};
   try {
-    const parsed = parse(match[1]);
+    const parsed = parse(match[1] ?? '');
     if (parsed && typeof parsed === 'object') header = parsed as Record<string, unknown>;
   } catch {
     // A malformed header is treated as no header rather than blocking the world.
@@ -112,7 +118,7 @@ This folder is an Immersion world. The header above gives the world's name, the 
 export function withDetails(worldMd: string, details: { name: string; tagline: string }): string {
   const oldName = describeWorld(worldMd).name;
   const text = withHeader(worldMd, { name: details.name, tagline: details.tagline });
-  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(text)!;
+  const match = HEADER.exec(text)!;
   const body = text.slice(match[0].length).replace(/^#\s+(.+)$/m, (line, heading: string) => (heading.trim() === oldName ? `# ${details.name}` : line));
   return match[0] + body;
 }
@@ -123,8 +129,8 @@ export function withDetails(worldMd: string, details: { name: string; tagline: s
  * removes the key, and a header left empty is removed.
  */
 export function withHeader(text: string, changes: Record<string, unknown>): string {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
-  const doc: Document = match && match[1].trim() ? parseDocument(match[1]) : new Document({});
+  const match = HEADER.exec(text);
+  const doc: Document = match && match[1]?.trim() ? parseDocument(match[1]) : new Document({});
   for (const [key, value] of Object.entries(changes)) {
     if (value === undefined) doc.delete(key);
     else doc.set(key, value);

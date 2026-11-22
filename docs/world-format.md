@@ -185,7 +185,7 @@ A new chapter made in the app without a title of its own is named with the book'
 
 ### The title page
 
-`book.md` is the title page. It holds header fields and the title heading, and the app draws the page from those fields, so the series line and the copyright line are never typed into the body.
+`book.md` is the title page. It holds header fields and the title heading, and the app draws the page from those fields, so the series line and the copyright line are never typed into the body. The manuscript's title is the `# Title` heading. A `title:` in the header is read only when the file has no such heading.
 
 ```markdown
 ---

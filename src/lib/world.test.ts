@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { describeWorld, withDetails, worldFile } from './world.ts';
+import { describeWorld, splitHeader, withDetails, withHeader, worldFile } from './world.ts';
 
 test('changing the details keeps the rest of world.md', () => {
   const before = `---
@@ -45,4 +45,10 @@ test('a theme is read from and written to the header of world.md', async () => {
   assert.match(text, /theme:\n  base: "#1d3f8f"\n  highlight: "#f5c518"\n  headings: Oxanium\n/);
   assert.deepEqual(describeWorld(text).theme, { base: '#1d3f8f', highlight: '#f5c518', background: undefined, text: undefined, headings: 'Oxanium', prose: undefined, light: undefined });
   assert.equal(describeWorld(withHeader(text, { theme: undefined })).theme, null);
+});
+
+test('two header lines with nothing between them are an empty header, not body text', () => {
+  assert.deepEqual(splitHeader('---\n---\nBody'), { header: {}, body: 'Body' });
+  assert.equal(withHeader('---\n---\nBody', { name: 'Wren' }), '---\nname: Wren\n---\nBody');
+  assert.equal(withHeader('---\n---\nBody', {}), 'Body');
 });

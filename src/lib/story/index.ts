@@ -138,12 +138,16 @@ export function titleFromName(name: string): string {
     .join(' ');
 }
 
-/** A file's title: its header's `title`, else its first top heading, else its file name. */
-export function titleOf(text: string, fileName: string): string {
+/**
+ * A file's title: its header's `title`, else its first top heading, else its file name.
+ * A manuscript's `book.md` is the other way round, heading first, because its title page
+ * is drawn from the heading and the two must never disagree.
+ */
+export function titleOf(text: string, fileName: string, headingFirst = false): string {
   const { header, body } = splitHeader(text);
-  if (typeof header.title === 'string' && header.title.trim()) return header.title.trim();
-  const first = headingsOf(body).find((h) => h.level === 1);
-  return first?.title ?? titleFromName(fileName);
+  const named = typeof header.title === 'string' && header.title.trim() ? header.title.trim() : null;
+  const heading = headingsOf(body).find((h) => h.level === 1)?.title ?? null;
+  return (headingFirst ? (heading ?? named) : (named ?? heading)) ?? titleFromName(fileName);
 }
 
 /**
@@ -202,7 +206,7 @@ export async function buildStoryIndex(fs: WorldFs, root: string): Promise<StoryI
         } else if (folder === dir && /^book\.md$/i.test(e.name)) {
           m.book = path;
           const text = await fs.readText(path);
-          m.title = titleOf(text, dir.split('/').pop()!);
+          m.title = titleOf(text, dir.split('/').pop()!, true);
           const { header } = splitHeader(text);
           if (typeof header.series === 'string' && header.series.trim()) m.series = header.series.trim();
           if (typeof header.number === 'number') m.number = header.number;
