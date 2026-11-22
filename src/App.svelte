@@ -138,9 +138,23 @@
   }
   function watchWorld(source: WorldFs) {
     stopWatching();
-    stopWatching = source.onChange(() => {
+    // Only a change to the wiki or to the world's own card rebuilds the index (code review,
+    // November 21). Every save of a chapter, a board, or a session used to rebuild it too,
+    // which read every wiki file again and held the screen for a moment in a large world.
+    let wikiChanged = false;
+    stopWatching = source.onChange((paths) => {
+      const wiki = `${(world?.wikiDir ?? 'wiki').replace(/\/+$/, '')}/`;
+      const touches = (p: string) => {
+        const q = p.replace(/\\/g, '/');
+        return q.startsWith(wiki) || /^world\.(md|jpe?g|png|webp)$/i.test(q);
+      };
+      if (paths.some(touches)) wikiChanged = true;
+      if (!wikiChanged) return;
       if (rebuildTimer) clearTimeout(rebuildTimer);
-      rebuildTimer = setTimeout(rebuild, 250);
+      rebuildTimer = setTimeout(() => {
+        wikiChanged = false;
+        void rebuild();
+      }, 250);
     });
   }
 

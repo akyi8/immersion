@@ -57,11 +57,26 @@
   let activity = $state.raw<Activity | null>(null);
 
   // A year of history is read from git, so it refreshes less often than the word counts.
+  // The scan walks a year of commits and costs seconds of work in a long history (code
+  // review, November 21), so it never runs twice at once and no more than once in two
+  // minutes while the writing goes on. A change that arrives meanwhile is counted by the
+  // run that follows.
+  const ACTIVITY_REST = 120_000;
+  let scanning = false;
+  let scanned = 0;
+  let waiting: ReturnType<typeof setTimeout> | null = null;
   async function refreshActivity() {
+    if (scanning) return void (waiting ??= setTimeout(() => ((waiting = null), void refreshActivity()), 5000));
+    const rest = scanned + ACTIVITY_REST - Date.now();
+    if (rest > 0) return void (waiting ??= setTimeout(() => ((waiting = null), void refreshActivity()), rest));
+    scanning = true;
     try {
       activity = await fs.writingActivity(storiesDir, 371);
     } catch {
       activity = null;
+    } finally {
+      scanning = false;
+      scanned = Date.now();
     }
   }
 
@@ -101,7 +116,12 @@
       if (slow) clearTimeout(slow);
       slow = setTimeout(refreshActivity, 3000);
     });
-    return stop;
+    return () => {
+      stop();
+      if (timer) clearTimeout(timer);
+      if (slow) clearTimeout(slow);
+      if (waiting) clearTimeout(waiting);
+    };
   });
 
   /** A manuscript's chapters can show their beats beside the writing. Notes have none. */

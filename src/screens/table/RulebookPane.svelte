@@ -57,7 +57,7 @@
     problem = '';
     void openBook(url).then(
       async (b) => {
-        if (gone) return void b.destroy();
+        if (gone) return void b.loadingTask.destroy();
         book = b;
         pages = b.numPages;
         page = Math.min(Math.max(1, page), pages);
@@ -143,7 +143,7 @@
 
   onDestroy(() => {
     for (const d of drawings) d.cancel();
-    void book?.destroy();
+    void book?.loadingTask.destroy();
   });
 
   function go(to: number) {

@@ -63,7 +63,7 @@
     "hash-wasm": "4.12.0",
     "marked": "18.0.14",
     "nspell": "2.1.5",
-    "pdfjs-dist": "5.7.284",
+    "pdfjs-dist": "6.5.438",
     "yaml": "2.9.1"
   },
   "devDependencies": {
