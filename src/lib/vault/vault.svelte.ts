@@ -123,7 +123,7 @@ class Vault {
     const out: Story[] = [];
     for (const name of await lib.vaultList(world)) {
       try {
-        out.push({ name, entry: await openEntry(key, await lib.vaultRead(world, name)) });
+        out.push({ name, entry: await openEntry(key, name, await lib.vaultRead(world, name)) });
       } catch {
         // A story sealed with another passphrase, or damaged, stays where it is.
       }
@@ -132,11 +132,11 @@ class Vault {
   }
 
   async read(world: string, name: string): Promise<VaultEntry> {
-    return openEntry(this.need(), await account.library!.vaultRead(world, name));
+    return openEntry(this.need(), name, await account.library!.vaultRead(world, name));
   }
 
   async save(world: string, name: string, entry: VaultEntry) {
-    await account.library!.vaultWrite(world, name, await sealEntry(this.need(), entry));
+    await account.library!.vaultWrite(world, name, await sealEntry(this.need(), name, entry));
   }
 
   async newStory(world: string, title: string): Promise<Story> {

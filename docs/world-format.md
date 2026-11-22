@@ -307,8 +307,8 @@ Paragraphs are separated by one blank line, which the editor writes when the wri
 
 Some files belong to the app, and editing them by hand risks damaging what they hold:
 
-- **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable.
-- **`immersion.md`** at the library root holds author profiles, the vault's key settings, the writer's own spelling dictionary, and the writer's layout choices. Its `vault:` field must never be changed by hand.
+- **`.vault/`** inside a world holds encrypted stories. Each file is encrypted with AES-256-GCM under a key derived from the writer's passphrase with Argon2id, and each file has a random name, so the folder reveals only how many stories it holds. Any edit to these files makes them unreadable. Each story is sealed to its own file name, so a file that is renamed, or copied over another story's file, refuses to open. A story can be moved to another folder under the same name.
+- **`immersion.md`** at the library root holds author profiles, the vault's key settings, the writer's own spelling dictionary, and the writer's layout choices. Its `vault:` field must never be changed by hand. The app refuses key settings outside a safe range (`memory` from 19456 to 1048576, `passes` from 1 to 10, `lanes` from 1 to 4) and keeps the vault locked until the line is put right.
 - **`draws.md`** inside a campaign's folder records the cards drawn from each deck, and the app rewrites it with every draw (see section 12).
 - **`archive/`** folders are deliberately left out of the app.
 

@@ -18,7 +18,12 @@ export interface VaultEntry {
 /** What a vault file holds on disk. */
 interface VaultFile {
   immersion: 'vault';
-  v: 1;
+  /**
+   * 2 since November 22: the story is sealed to its own file name, so one story's file
+   * copied over another's refuses to open. 1 is the older form, sealed to nothing, which
+   * is still read, and is written in the newer form the next time the story is saved.
+   */
+  v: 1 | 2;
   sealed: Sealed;
 }
 
@@ -27,15 +32,17 @@ export function newEntryName(): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('') + '.locked';
 }
 
-export async function sealEntry(key: CryptoKey, entry: VaultEntry): Promise<string> {
-  const file: VaultFile = { immersion: 'vault', v: 1, sealed: await sealText(key, JSON.stringify(entry)) };
+/** Seals a story to the file name it will be saved under. */
+export async function sealEntry(key: CryptoKey, name: string, entry: VaultEntry): Promise<string> {
+  const file: VaultFile = { immersion: 'vault', v: 2, sealed: await sealText(key, JSON.stringify(entry), name) };
   return JSON.stringify(file) + '\n';
 }
 
-export async function openEntry(key: CryptoKey, text: string): Promise<VaultEntry> {
+/** Opens the story in the file by this name. A story sealed to another name refuses to open. */
+export async function openEntry(key: CryptoKey, name: string, text: string): Promise<VaultEntry> {
   const file = JSON.parse(text) as VaultFile;
-  if (file.immersion !== 'vault' || file.v !== 1) throw new Error('This is not a vault file Immersion can read.');
-  const e = JSON.parse(await openText(key, file.sealed)) as Partial<VaultEntry>;
+  if (file.immersion !== 'vault' || (file.v !== 1 && file.v !== 2)) throw new Error('This is not a vault file Immersion can read.');
+  const e = JSON.parse(await openText(key, file.sealed, file.v === 2 ? name : undefined)) as Partial<VaultEntry>;
   return {
     title: typeof e.title === 'string' ? e.title : 'Untitled',
     created: typeof e.created === 'number' ? e.created : 0,
