@@ -1,6 +1,7 @@
 import { stringify } from 'yaml';
 import { newElement, readElement, readGameFile, readKind, writeElement, type Element, type Kind } from './elements.ts';
 import { splitHeader, withHeader } from '../world.ts';
+import { hasLabel, readLabels, type Labels } from './labels.ts';
 import { IMAGE_EXTENSIONS, type DirEntry, type ImageSource } from '../fs/types.ts';
 
 /**
@@ -105,6 +106,10 @@ export interface Game {
   addOns: Map<string, Placed>;
   /** The world's expansions, each a folder in the game folder's `expansions/`, in name order. */
   expansions: Expansion[];
+  /** What each label means, from the engine's `labels.md` and then the world's. */
+  labels: Labels;
+  /** Entries in a labels file that could not be read, each with its reason. */
+  labelProblems: string[];
 }
 
 /** An expansion: its own folder of elements inside the world's game folder. */
@@ -266,7 +271,23 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
     if (book) book.image = imageBeside(await src.fs.readDir(src.dir), 'book');
     return book;
   };
-  return { engine, world, kinds, elements: placed, setAside, books: { engine: await bookOf(engine), world: await bookOf(world) }, addOns, expansions };
+  // The labels file is read once here, with the rest of the game, so nothing asks the
+  // disk about a label while the writer types.
+  const labelsFile = async (src: Source | null) => (src && (await src.fs.exists(join(src.dir, 'labels.md'))) ? await src.fs.readText(join(src.dir, 'labels.md')) : null);
+  const fromEngine = readLabels(await labelsFile(engine).catch(() => null));
+  const fromWorld = readLabels(await labelsFile(world).catch(() => null), fromEngine.labels);
+  return {
+    engine,
+    world,
+    kinds,
+    elements: placed,
+    setAside,
+    books: { engine: await bookOf(engine), world: await bookOf(world) },
+    addOns,
+    expansions,
+    labels: fromWorld.labels,
+    labelProblems: [...fromEngine.skipped, ...fromWorld.skipped],
+  };
 }
 
 /**
@@ -324,6 +345,11 @@ export interface SectionNode {
 export interface CatalogNode {
   kind: Kind;
   elements: Placed[];
+  /**
+   * True when the list gathers by a label that has no kind file of its own, such as a
+   * tag. Its elements are of several kinds, so the list shows them and adds none.
+   */
+  byLabel: boolean;
 }
 export interface DivisionNode {
   placed: Placed;
@@ -340,6 +366,15 @@ export interface BookTree {
   /** The front matter's sections, before the divisions, and the back matter's, after them. */
   front: SectionNode[];
   back: SectionNode[];
+}
+
+/** The parts of a book, which a list by label never gathers. */
+const STRUCTURAL = new Set(['division', 'chapter', 'module', 'add-on']);
+
+/** A stand-in kind for a list that gathers by a label with no kind file: a name and no fields. */
+function labelKind(label: string, plural?: string): Kind {
+  const name = label.replace(/(^|[\s-])\p{L}/gu, (c) => c.toUpperCase());
+  return { id: label, name, plural: plural ?? `${name}s`, fields: [], layout: [], about: '' };
 }
 
 /** A reference's key in the game: one without `engine:` or `world:` points into `origin`. */
@@ -388,13 +423,19 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
     .map((d): DivisionNode => ({
       placed: d,
       sections: sections(listField(d, 'sections'), d.origin),
+      // A catalog names labels (Cerys, November 22). A kind is a label, so a list by kind
+      // reads as it always did, and a list can now gather by a tag as well: every element
+      // that carries the label, whatever folder it sits in.
       catalog: listField(d, 'catalog')
-        .map((id) => game.kinds.get(id))
-        .filter((k): k is Kind & { origin: Origin } => !!k)
-        .map((kind) => ({
-          kind,
-          elements: game.elements.filter((p) => p.element.kind === kind.id && (inWorld ? inPlay(p) : p.origin === 'engine')),
-        }))
+        .map((id): CatalogNode => {
+          const label = id.trim().toLowerCase();
+          const kind = game.kinds.get(label);
+          return {
+            kind: kind ?? labelKind(label, game.labels.get(label)?.plural),
+            byLabel: !kind,
+            elements: game.elements.filter((p) => !STRUCTURAL.has(p.element.kind) && hasLabel(p.element, label, game.labels) && (inWorld ? inPlay(p) : p.origin === 'engine')),
+          };
+        })
         .filter((c) => c.elements.length > 0),
     }));
   return { origin, book, divisions, loose: sections(book.chapters, origin), front: sections(book.frontMatter, origin), back: sections(book.backMatter, origin) };

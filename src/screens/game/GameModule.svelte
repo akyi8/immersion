@@ -290,6 +290,7 @@
       (game?.elements ?? []).map((p) => ({ key: p.key, name: p.element.name, kind: p.element.kind, origin: p.origin, tags: p.element.tags })),
       [...(index?.entries.values() ?? [])].map((e) => ({ id: e.id, name: e.name, aliases: e.aliases })),
       bookOrigin === 'engine' ? 'engine' : 'world',
+      game?.labels,
     ),
   );
   // The front and back matter are notices and credits, so their pages link nothing.
@@ -530,7 +531,11 @@
       ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }] : []),
       ...(id.startsWith(RULE) ? [{ label: 'Tags…', run: () => ((tagProblem = ''), (tagText = p.element.tags.join(', ')), (tagging = p)) }] : []),
       ...(titled ? ['separator' as const] : []),
-      { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) },
+      // A core element belongs to the base game, so a world's book cannot archive it. The
+      // menu says where it can be archived and goes there, in place of a greyed-out word.
+      canArchive(p) || p.origin !== 'engine'
+        ? { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) }
+        : { label: `Archive from ${engineName}…`, run: () => ((chosen = 'engine'), (archiveProblem = ''), (archiving = p)) },
     ];
   }
   $effect(() => {
@@ -790,6 +795,9 @@
       {#if notice}
         <p class="notice" role="status">{notice} <button type="button" onclick={() => (notice = '')}>OK</button></p>
       {/if}
+      {#if game?.labelProblems.length}
+        <p class="notice" role="alert">Part of labels.md could not be read, so it was left out. {game.labelProblems.join(' ')}</p>
+      {/if}
       {#if filter.trim()}
         <h2 class="label">Found</h2>
         {#each results as p (p.key)}
@@ -973,11 +981,13 @@
             {@const c = catalogOf(keyIn(id))!}
             <GameKind
               kind={c.kind}
+              gathered={c.byLabel}
               where={tree?.book.name ?? worldName}
               {worldName}
               elements={c.elements}
               {engineName}
               onOpen={(key) => openElement(key, i)}
+              onMenu={(e, key) => contextMenu.show(e, menuFor(`${EL}${key}`))}
               onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)}
               onSave={(p, next, base) => save(p, next, base)}
               onNewHere={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i, true)} />
@@ -990,6 +1000,7 @@
               {worldName}
               elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
               onOpen={(key) => openElement(key, i)}
+              onMenu={(e, key) => contextMenu.show(e, menuFor(`${EL}${key}`))}
               {engineName}
               onNew={(name) => add(origin as Origin, kindId, name, i)}
               onSave={(p, next, base) => save(p, next, base)}
@@ -1067,6 +1078,7 @@
 {#if archiving}
   <Dialog title="Archive this {archiving.element.kind === 'chapter' ? 'section' : archiving.element.kind === 'module' ? 'rule' : archiving.element.kind}" action="Archive" ready busy={archiveBusy} problem={archiveProblem} onSubmit={() => archiving && archiveElement(archiving)} onCancel={() => (archiving = null)}>
     <p class="hint">“{archiving.element.name}” leaves the book and moves to the game's archive folder, with a note of where it stood. The file is kept, so nothing is lost.</p>
+    {#if archiving.origin === 'engine'}<p class="hint">It is part of {engineName}, so it leaves every game built on {engineName}, not this world's alone.</p>{/if}
   </Dialog>
 {/if}
 

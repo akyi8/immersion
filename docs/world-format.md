@@ -335,6 +335,7 @@ An engine is a folder anywhere in the library that holds an `engine.md`. It is n
 games/example-engine/
   engine.md                 the engine's name
   book.md                   the base game's book: its title page and divisions
+  labels.md                 what the game's labels mean, if it changes the built-in meanings
   kinds/
     gear.md                 the shape of a kind: its fields and their order
     need.md
@@ -431,9 +432,35 @@ One set of rules covers the three kinds of name a game's text can link, and each
 - **An aspect** is the name of an ability, which is a proper noun too. It links where it is written with its capitals, so an aspect named Tell does not link "tells you who". A one-word aspect that opens a sentence stays plain, unless it is written in bold or italics there.
 - **A mechanic** is a concept. It links however it is written, so "burned" in a rule links the keyword Burned.
 
-An element is a mechanic when it carries the label `keyword`, either in its `tags:` or as its kind. An element that also carries the label `aspect` is an aspect. An element with neither label links as an aspect does. Every name also links in its plural, and a name written as a plural links in its singular: Storm Lamp links "Storm Lamps", and Property links "properties". The names of divisions, sections, and rules never link.
+Which of the three an element is comes from its labels, described under "Labels" below. An element is a mechanic when it carries the label `keyword`, either in its `tags:` or as its kind. An element that also carries the label `aspect` is an aspect. An element with neither label links as an aspect does. Every name also links in its plural, and a name written as a plural links in its singular: Storm Lamp links "Storm Lamps", and Property links "properties". The names of divisions, sections, and rules never link.
 
 Which names link depends on where the text is. The wiki, the stories, and the boards link wiki names alone. A world's game text links all three. The base engine's text links the engine's own aspects and mechanics.
+
+### Labels
+
+A label is a lowercase word on an element. An element's labels are its kind and everything in its `tags:`, read as one set, so the kind `gear` and the tag `gear` are the same label. Most labels are plain tags that only the writer reads. A few mean something to the app.
+
+With no other instruction, the app knows six labels. `keyword` links in any case. `aspect` links with its capitals. `division`, `chapter`, `module`, and `add-on` never link.
+
+A `labels.md` file changes or adds to those meanings. The engine can have one beside `engine.md`, and a world's game folder can have one beside its `book.md`. The world's file is read after the engine's, so it adds labels and can change what an engine label means in that world. The file's header maps each label to its meaning, and its body is the writer's own notes:
+
+```markdown
+---
+condition:
+  links: any case
+  plural: Conditions
+gear:
+  is: aspect
+---
+
+What this game's labels mean, in the writer's words.
+```
+
+- `links` says how an element's name links: `any case`, `capitals`, or `never`.
+- `is` names other labels that every element with this label also has, so `is: aspect` on `gear` makes every piece of gear an aspect.
+- `plural` is the heading a list of these elements goes under.
+
+When an element's labels disagree about linking, the strictest wins: `never` over `capitals`, and `capitals` over `any case`. An element with no label that says how it links is treated as a name and links with its capitals. A game with no labels file works as the six built-in meanings say. An entry the app cannot read is left out, and the Game sidebar names the entry and the reason.
 
 ### The book
 
@@ -481,7 +508,7 @@ Each book lists its own, so a world's front matter is a section of the world's o
 
 A reference names an element by `engine:` or `world:`, then its kind and id, such as `engine:chapter/taking-risks`. A reference without `engine:` or `world:` points into the folder of the file that names it, so a world's `book.md` names the world's own divisions.
 
-A division is an element of kind `division`. Its body is its front page, and its `sections` list its rule sections in order. A division with a `catalog` lists every element of those kinds instead, by kind and by name, so the book's aspects print as lists:
+A division is an element of kind `division`. Its body is its front page, and its `sections` list its rule sections in order. A division with a `catalog` lists elements instead, so the book's aspects print as lists. The `catalog` names labels. A kind is a label, so `gear` lists every piece of gear. A tag is a label too, so `tool` lists every element tagged `tool`, whatever its kind, and an element can appear in more than one list. A list by a tag shows its elements and adds none, because a new element needs a kind:
 
 ```markdown
 ---

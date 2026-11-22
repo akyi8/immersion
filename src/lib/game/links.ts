@@ -1,4 +1,5 @@
 import { MentionScanner, pluralOf, singularOf, type Mention, type Term } from '../index/scanner.ts';
+import { builtIn, linkingOf, type Labels } from './labels.ts';
 
 /**
  * The names a game's text links. One set of rules covers the three kinds of name
@@ -10,6 +11,8 @@ import { MentionScanner, pluralOf, singularOf, type Mention, type Term } from '.
  *   written with its capitals.
  * - A mechanic, which is an element labelled `keyword`, is a concept. It links however
  *   it is written, so "burned" in a rule links the keyword Burned.
+ *
+ * Which rule an element takes is read from its labels, in `labels.ts`.
  *
  * Every kind links in its plural as well. The names of divisions, sections, and rules
  * never link, because a heading's words are ordinary words in the text.
@@ -44,20 +47,7 @@ export function nameForms(name: string): string[] {
   return [term, singularOf(term) ?? pluralOf(term)];
 }
 
-/** The parts of a book. Their names are headings, and a heading's words are ordinary words in the text. */
-const STRUCTURE = new Set(['division', 'chapter', 'module', 'add-on']);
-
-/**
- * Whether an element is one of the game's mechanics. A mechanic carries the label
- * `keyword`, in its `tags:` or as its kind. An element also labelled `aspect` is an
- * aspect, since an ability's name is a proper noun whatever else it is called.
- */
-export function isMechanic(p: Pick<Named, 'kind' | 'tags'>): boolean {
-  const labels = [p.kind, ...(p.tags ?? [])].map((t) => t.trim().toLowerCase());
-  return labels.includes('keyword') && !labels.includes('aspect');
-}
-
-export function gameTerms(elements: Named[], world: WorldName[], book: 'world' | 'engine'): Term[] {
+export function gameTerms(elements: Named[], world: WorldName[], book: 'world' | 'engine', labels: Labels = builtIn()): Term[] {
   const terms: Term[] = [];
   // The world's names come first, so a person who shares a name with an aspect links to the person.
   if (book === 'world') {
@@ -68,13 +58,14 @@ export function gameTerms(elements: Named[], world: WorldName[], book: 'world' |
     for (const { text, id } of [...terms]) if (!/s$/i.test(text.trim())) terms.push({ text: pluralOf(text.trim()), id });
   }
   for (const p of elements) {
-    // Divisions, sections, and rules never link by their names (Cerys, November 21).
-    if (STRUCTURE.has(p.kind)) continue;
     if (book === 'engine' && p.origin !== 'engine') continue;
+    const links = linkingOf(p, labels);
+    // Divisions, sections, and rules never link by their names (Cerys, November 21).
+    if (links === 'never') continue;
     // A mechanic is a concept, so it links however it is written: the scanner matches a
     // lowercase term in any case. An aspect is a name, so it links as it is named, capitals
     // and all. Both link in the singular and the plural.
-    for (const text of nameForms(p.name)) terms.push({ text: isMechanic(p) ? text.toLowerCase() : text, id: `${GAME_LINK}${p.key}` });
+    for (const text of nameForms(p.name)) terms.push({ text: links === 'any case' ? text.toLowerCase() : text, id: `${GAME_LINK}${p.key}` });
   }
   return terms;
 }
@@ -106,6 +97,7 @@ class GameScanner extends MentionScanner {
   }
 }
 
-export function gameScanner(elements: Named[], world: WorldName[], book: 'world' | 'engine'): MentionScanner {
-  return new GameScanner(gameTerms(elements, world, book), new Set(elements.filter(isMechanic).map((p) => `${GAME_LINK}${p.key}`)));
+export function gameScanner(elements: Named[], world: WorldName[], book: 'world' | 'engine', labels: Labels = builtIn()): MentionScanner {
+  const anyCase = elements.filter((p) => linkingOf(p, labels) === 'any case').map((p) => `${GAME_LINK}${p.key}`);
+  return new GameScanner(gameTerms(elements, world, book, labels), new Set(anyCase));
 }

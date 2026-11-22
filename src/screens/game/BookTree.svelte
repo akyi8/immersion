@@ -222,7 +222,7 @@
       </div>
       {#if expanded.has(ck)}
         {#each c.elements as p (p.key)}
-          <div class="row leaf" class:on={isOpen(`@el:${p.key}`)} style="--depth: 2" role="treeitem" aria-selected={isOpen(`@el:${p.key}`)} tabindex="-1">
+          <div class="row leaf" class:on={isOpen(`@el:${p.key}`)} style="--depth: 2" role="treeitem" aria-selected={isOpen(`@el:${p.key}`)} tabindex="-1" oncontextmenu={(e) => onMenu?.(e, `@el:${p.key}`)}>
             <button type="button" class="name" onclick={() => onOpen(`@el:${p.key}`)}>{p.element.name}</button>
             {#if tree.origin === 'world' && p.origin === 'world'}<span class="own" title="{worldName}'s own">◆</span>
             {:else if p.origin !== 'engine'}<span class="n" title="From the {names(p.origin)} expansion">{names(p.origin)}</span>{/if}

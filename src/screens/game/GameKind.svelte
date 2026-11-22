@@ -21,9 +21,11 @@
     elements,
     engineName = '',
     onOpen,
+    onMenu,
     onNew,
     onSave,
     onNewHere,
+    gathered = false,
   }: {
     kind: Kind;
     /** The engine's or the world's name. */
@@ -31,10 +33,17 @@
     worldName: string;
     elements: Placed[];
     onOpen: (key: string) => void;
+    /** Opens an element's menu, from a right click on its row. */
+    onMenu?: (e: MouseEvent, key: string) => void;
     onNew: (name: string) => Promise<void>;
     engineName?: string;
     /** Saves one element from its row of the sheet. Without it the page is a list only. */
     onSave?: (p: Placed, next: Element, base: Element) => Promise<void>;
+    /**
+     * True for a list gathered by a label that is not a kind, such as a tag. Its elements
+     * are of several kinds, so the page is a list alone and offers no new element.
+     */
+    gathered?: boolean;
     /** Adds an element and stays on this page, for the sheet's last row. */
     onNewHere?: (name: string) => Promise<void>;
   } = $props();
@@ -45,7 +54,7 @@
     show = v;
     keepWord(SHOW, v);
   }
-  const sheet = $derived(show === 'sheet' && !!onSave);
+  const sheet = $derived(show === 'sheet' && !!onSave && !gathered);
   let fresh = $state('');
   async function addHere(e: SubmitEvent) {
     e.preventDefault();
@@ -72,7 +81,9 @@
   });
 
   // A reskin takes its mechanics from another element, so it is edited in its own form.
-  const rows = $derived(shown.filter((p) => !p.base));
+  // An element of another kind that carries this kind's label is listed, and it is edited in
+  // its own form, since its fields are its own kind's.
+  const rows = $derived(shown.filter((p) => !p.base && p.element.kind === kind.id));
 
   async function add(e: SubmitEvent) {
     e.preventDefault();
@@ -91,14 +102,16 @@
 
 <article class="kind" class:wide={sheet}>
   <header>
-    <div class="label">{where} · Kind</div>
+    <div class="label">{where} · {gathered ? 'Label' : 'Kind'}</div>
     <h1>{kind.plural}</h1>
     <div class="row">
       <span class="meta">{elements.length} {elements.length === 1 ? 'element' : 'elements'}</span>
       <span class="spacer"></span>
-      {#if onSave}<Pick small label="Show {kind.plural} as" value={show} onpick={setShow} options={[['list', 'List'], ['sheet', 'Sheet']] as const} />{/if}
+      {#if onSave && !gathered}<Pick small label="Show {kind.plural} as" value={show} onpick={setShow} options={[['list', 'List'], ['sheet', 'Sheet']] as const} />{/if}
       <input class="filter" type="search" placeholder="Filter by name or tag" bind:value={filter} aria-label="Filter {kind.plural}" />
-      {#if naming}
+      {#if gathered}
+        <span class="meta">Everything tagged {kind.id}</span>
+      {:else if naming}
         <form class="naming" onsubmit={add}>
           <!-- svelte-ignore a11y_autofocus -->
           <input type="text" bind:value={name} placeholder="Name" aria-label="New {kind.name}'s name" autofocus autocomplete="off" />
@@ -139,7 +152,7 @@
   <ul>
     {#each shown as p (p.key)}
       <li>
-        <button type="button" class:dim={p.setAside || !!p.reskinnedBy} onclick={() => onOpen(p.key)}>
+        <button type="button" class:dim={p.setAside || !!p.reskinnedBy} onclick={() => onOpen(p.key)} oncontextmenu={(e) => onMenu?.(e, p.key)}>
           <span class="name">{p.element.name}</span>
           <span class="tags">{p.element.tags.filter((t) => t.toLowerCase() !== kind.id).join(', ')}</span>
           {#if p.setAside}<span class="flag">Set aside in {worldName}</span>{/if}

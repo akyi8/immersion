@@ -70,7 +70,9 @@ export const SAMPLE_GAME: Record<string, string> = {
   'game/book.md': '---\nname: Harrowgate\nfront_matter: [ chapter/front-matter ]\nback_matter: [ chapter/back-matter ]\ndivisions:\n  - division/the-protagonist\n  - division/the-harbor\n  - division/the-aspects\n---\n\nA game of salt, debt, and fog on the Harrowgate docks.\n',
   'game/elements/division/the-protagonist.md': '---\nname: The Protagonist\nkind: division\ntags: [ harbor, division ]\nsections:\n  - engine:chapter/taking-risks\n---\n\nWho you play on the docks.\n',
   'game/elements/division/the-harbor.md': '---\nname: The Harbor\nkind: division\ntags: [ harbor, division ]\nsections:\n  - chapter/the-tides\n---\n\nThe city, its water, and its weather.\n',
-  'game/elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ harbor, division ]\ncatalog: [ need, gear, vendor ]\n---\n',
+  'game/elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ harbor, division ]\ncatalog: [ need, gear, vendor, tool ]\n---\n',
+  // A list by a tag: every element tagged `tool`, whatever its kind.
+  'game/labels.md': '---\ntool:\n  plural: Tools\n---\n\nWhat Harrowgate\'s labels mean.\n',
   'game/elements/chapter/the-tides.md': '---\nname: The Tides\nkind: chapter\ntags: [ harbor, chapter ]\nitems:\n  - module/low-water\n---\n\nThe harbor empties twice a day.\n',
   'game/elements/module/low-water.md': '---\nname: Low Water\nkind: module\ntags: [ harbor, module ]\n---\n\nAt low water the mudflats open, and anything dropped in the harbor can be found.\n',
   'game/elements/add-on/when-to-roll.md': '---\nname: When to Roll\nkind: add-on\ntags: [ add-on ]\nextends: module/when-to-roll\n---\n\n*Wren wants to cross the pier in the fog. The narrator calls for a roll, because the guard is listening.*\n',
