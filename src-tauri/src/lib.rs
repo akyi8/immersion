@@ -1305,7 +1305,6 @@ fn serve_cover(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
     match found {
         Some((path, bytes)) => Response::builder()
             .header(header::CONTENT_TYPE, mime_for(&path))
-            .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .body(bytes)
             .unwrap(),
         None => Response::builder().status(StatusCode::NOT_FOUND).body(Vec::new()).unwrap(),
@@ -1330,7 +1329,6 @@ fn serve_world_file(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
     match found {
         Ok((path, bytes)) => Response::builder()
             .header(header::CONTENT_TYPE, mime_for(&path))
-            .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .body(bytes)
             .unwrap(),
         Err(()) => Response::builder()
@@ -1338,6 +1336,32 @@ fn serve_world_file(app: &AppHandle, uri_path: &str) -> Response<Vec<u8>> {
             .body(Vec::new())
             .unwrap(),
     }
+}
+
+/// The addresses the app's own pages are served from: the bundled app on each platform,
+/// and the development server.
+const OWN_ORIGINS: [&str; 4] = ["tauri://localhost", "http://tauri.localhost", "https://tauri.localhost", "http://localhost:1420"];
+
+/// Whether an address is one of the app's own pages, which is all a window may show.
+fn own_page(url: &tauri::Url) -> bool {
+    match url.scheme() {
+        "tauri" | "about" | "blob" | "data" => true,
+        "http" | "https" => matches!(url.host_str(), Some("tauri.localhost") | Some("localhost") | Some("127.0.0.1")),
+        _ => false,
+    }
+}
+
+/// Lets the app's own pages read a served file, and no page from anywhere else. Every
+/// origin was allowed before (code review, November 21), so a page loaded from elsewhere
+/// could have read the open world's files.
+fn with_origin(mut response: Response<Vec<u8>>, request: &tauri::http::Request<Vec<u8>>) -> Response<Vec<u8>> {
+    if let Some(origin) = request.headers().get(header::ORIGIN) {
+        if origin.to_str().map(|o| OWN_ORIGINS.contains(&o)).unwrap_or(false) {
+            response.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, origin.clone());
+            response.headers_mut().insert(header::VARY, tauri::http::HeaderValue::from_static("Origin"));
+        }
+    }
+    response
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1372,11 +1396,15 @@ pub fn run() {
         .manage(OpenWorld::default())
         .manage(OpenEngine::default())
         .manage(WorldWatcher::default())
+        // A page from anywhere else is never loaded in one of the app's windows (code review,
+        // November 21). A link is opened in the computer's browser by the page itself, and
+        // this refuses whatever slips past that.
+        .plugin(tauri::plugin::Builder::<tauri::Wry>::new("stay-home").on_navigation(|_webview, url| own_page(url)).build())
         .register_uri_scheme_protocol("world", |ctx, request| {
-            serve_world_file(ctx.app_handle(), request.uri().path())
+            with_origin(serve_world_file(ctx.app_handle(), request.uri().path()), &request)
         })
         .register_uri_scheme_protocol("shelf", |ctx, request| {
-            serve_cover(ctx.app_handle(), request.uri().path())
+            with_origin(serve_cover(ctx.app_handle(), request.uri().path()), &request)
         })
         .invoke_handler(tauri::generate_handler![
             open_world,
