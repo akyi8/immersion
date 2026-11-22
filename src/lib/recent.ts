@@ -1,5 +1,5 @@
 /**
- * When each entry was last opened on this computer (Mike, October 31), so the faces on
+ * When each entry was last opened on this computer (Cerys, October 31), so the faces on
  * a world's home page start with the people the writer has been living with. Kept per
  * world in the app's own storage, like other things the app remembers about layout.
  */

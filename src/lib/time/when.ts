@@ -1,5 +1,5 @@
 /**
- * Dates as writers write them (Mike, October 25). An entry's `when:` line says when it
+ * Dates as writers write them (Cerys, October 25). An entry's `when:` line says when it
  * happened, in whatever form suits it, and the timeline sorts by it while showing it as
  * written:
  *
@@ -45,7 +45,7 @@ function point(raw: string): [number, number] | null {
     const at = y + month / 12 + (day ?? 0) / 365;
     return [at, day === null ? y + (month + 1) / 12 : at + 1 / 365];
   }
-  // 10/14/1066, month first (Mike, October 26)
+  // 10/14/1066, month first (Cerys, October 26)
   if ((m = /^(\d{1,2})\/(\d{1,2})\/(-?\d{1,6})$/.exec(s))) {
     const month = Number(m[1]) - 1;
     const day = Number(m[2]) - 1;

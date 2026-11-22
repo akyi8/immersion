@@ -3,7 +3,7 @@
   import GameText from './GameText.svelte';
 
   /**
-   * A rule's text as the book prints it (Mike, November 21): the rule, then, in a world's
+   * A rule's text as the book prints it (Cerys, November 21): the rule, then, in a world's
    * book, what that world adds after a core rule, which is its examples and clarifications
    * and never a change to the rule. A core rule with nothing added shows a small control
    * to add it, and no empty box.

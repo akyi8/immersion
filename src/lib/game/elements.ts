@@ -1,8 +1,8 @@
-import { Document } from 'yaml';
-import { splitHeader } from '../world.ts';
+import { Document, parseDocument } from 'yaml';
+import { splitHeader, withHeader } from '../world.ts';
 
 /**
- * The Game module's data (Mike, November 7). A game's rules are kept as separate
+ * The Game module's data (Cerys, November 7). A game's rules are kept as separate
  * elements, one markdown file each. An element is one aspect, such as a piece of gear or
  * a need, or one rule, such as a keyword. Its structured fields live in the file's YAML
  * header and its flavor text is the body, so the same file reads well in any editor and
@@ -181,4 +181,55 @@ export function readGameFile(source: string | null): { setAside: string[] } {
   const { header } = splitHeader(source);
   const list = Array.isArray(header.set_aside) ? header.set_aside.map(text).filter(Boolean) : [];
   return { setAside: list };
+}
+
+const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameValue = (a: string | string[] | undefined, b: string | string[] | undefined) =>
+  Array.isArray(a) || Array.isArray(b) ? Array.isArray(a) && Array.isArray(b) && sameList(a, b) : (a ?? '') === (b ?? '');
+const emptyValue = (v: string | string[] | undefined) => v === undefined || (Array.isArray(v) ? v.length === 0 : v === '');
+
+/**
+ * An element's file with the writer's changes applied (code review, November 21). The
+ * file is taken as it stands on disk, and only what differs between `base`, which is the
+ * element as the page had it, and `next`, which is what the page holds now, is written.
+ * Every other key, comment, and line stays as it was. A page therefore cannot undo a
+ * change that reached the file from another computer or another program, and cannot drop
+ * a key it does not know.
+ *
+ * The body is joined with whatever the file's body became meanwhile, as an open chapter's
+ * is. Where both changed the same lines, the writer's lines are kept. A header that
+ * cannot be read stops the save with an error, where rewriting it would lose every key.
+ */
+export function withChanges(source: string, base: Element, next: Element, merge: (base: string, mine: string, theirs: string) => string | null): string {
+  const header: Record<string, unknown> = {};
+  if (next.name !== base.name) header.name = next.name;
+  if (!sameList(next.tags, base.tags)) header.tags = next.tags;
+  if (next.vendor !== base.vendor) header.vendor = next.vendor || undefined;
+  if (next.reskins !== base.reskins) header.reskins = next.reskins || undefined;
+  for (const key of new Set([...Object.keys(base.fields), ...Object.keys(next.fields)])) {
+    if (RESERVED.has(key) || sameValue(base.fields[key], next.fields[key])) continue;
+    header[key] = emptyValue(next.fields[key]) ? undefined : next.fields[key];
+  }
+  let out = source;
+  if (Object.keys(header).length) {
+    const split = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(source);
+    if (split && split[1].trim()) {
+      const errors = parseDocument(split[1]).errors;
+      if (errors.length) throw new Error(`The header of ${next.path} cannot be read, so nothing was saved to it: ${errors[0].message.split('\n')[0]}`);
+    }
+    out = withHeader(out, header);
+  }
+  if (next.flavor !== base.flavor) {
+    const onDisk = readElement(next.path, source).flavor;
+    const flavor = onDisk === base.flavor ? next.flavor : (merge(base.flavor, next.flavor, onDisk) ?? next.flavor);
+    out = withBodyOf(out, flavor);
+  }
+  return out;
+}
+
+/** A file's text with a new body under the header it already has. */
+function withBodyOf(source: string, body: string): string {
+  const head = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(source)?.[0] ?? '';
+  if (!head) return body.trim() ? `${body.replace(/\n+$/, '')}\n` : '';
+  return `${head.replace(/\n?$/, '\n')}${body.trim() ? `\n${body.replace(/\n+$/, '')}\n` : ''}`;
 }

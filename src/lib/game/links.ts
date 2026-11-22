@@ -1,11 +1,11 @@
 import { MentionScanner, type Mention, type Term } from '../index/scanner.ts';
 
 /**
- * The names a game's text links (Mike, November 10). A world with a game has two kinds
+ * The names a game's text links (Cerys, November 10). A world with a game has two kinds
  * of names: the world's own, such as its people and places, and the game's terms, which
  * are its aspects and keywords. Game text links both. A game term links where it is
  * written with its capital, and the names of divisions, sections, and rules never link,
- * because a game's terms are often ordinary words (Mike, November 21). The wiki and the
+ * because a game's terms are often ordinary words (Cerys, November 21). The wiki and the
  * stories link only the world's names.
  *
  * The base engine belongs to every world built on it, so its text links game terms
@@ -59,7 +59,7 @@ export function gameTerms(elements: Named[], world: WorldName[], book: 'world' |
     }
   }
   for (const p of elements) {
-    // Divisions, sections, and rules never link by their names (Mike, November 21).
+    // Divisions, sections, and rules never link by their names (Cerys, November 21).
     if (STRUCTURE.has(p.kind)) continue;
     if (book === 'engine' && p.origin !== 'engine') continue;
     // An aspect or a keyword links where it is written as it is named, capitals and all,

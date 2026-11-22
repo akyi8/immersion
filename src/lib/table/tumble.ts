@@ -1,5 +1,5 @@
 /**
- * Dice that tumble across the screen (Mike, November 14), drawn and thrown by Dice-Box,
+ * Dice that tumble across the screen (Cerys, November 14), drawn and thrown by Dice-Box,
  * a 3D dice library with its own physics. The dice land where the physics puts them, so
  * the numbers come from the throw itself. The library loads the first time dice are
  * thrown, and a computer that cannot draw them falls back to the plain roll.

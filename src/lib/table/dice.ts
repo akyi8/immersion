@@ -1,5 +1,5 @@
 /**
- * Dice for the table (Mike, November 14). A roll is written the way players say it:
+ * Dice for the table (Cerys, November 14). A roll is written the way players say it:
  * `d20`, `3d6`, `2d6+3`, `d100`, `4d6 - 1`. Dice and plain numbers are joined by plus
  * and minus. The numbers come from a source of chance the caller passes in, so a test
  * can roll the same dice twice.

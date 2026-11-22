@@ -7,7 +7,7 @@
   import { saveNow } from '../../lib/saves';
 
   /**
-   * An entry's date (Mike, October 26). Any entry can be given one with "+ Date", which
+   * An entry's date (Cerys, October 26). Any entry can be given one with "+ Date", which
    * puts it on the timeline. A date that covers a stretch of time, such as `2045 to 2060`,
    * can also make the entry an era, so everything dated inside it falls under it.
    */

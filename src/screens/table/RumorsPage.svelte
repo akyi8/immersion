@@ -7,7 +7,7 @@
   import type { View } from '../../lib/render';
 
   /**
-   * Every rumor in a campaign's sessions and in the wiki, in one list (Mike, November 14).
+   * Every rumor in a campaign's sessions and in the wiki, in one list (Cerys, November 14).
    * Nobody keeps this page by hand. A rumor is settled here or where it is written.
    */
   let {

@@ -2,7 +2,7 @@ import { splitHeader, withHeader } from '../world.ts';
 import type { WorldFs } from '../fs/types';
 
 /**
- * The Table module's files (Mike, November 14). A world's `table` folder holds campaigns.
+ * The Table module's files (Cerys, November 14). A world's `table` folder holds campaigns.
  * A campaign is a folder with a `campaign.md` card. It holds adventures, each a folder
  * with an `adventure.md` card, and an adventure holds sessions. A session is two files
  * that share a name: `<name>.log.md` is what happened, and `<name>.plan.md` is what the

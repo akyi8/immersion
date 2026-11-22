@@ -2,7 +2,7 @@ import { EditorSelection, Prec, StateField, type EditorState, type Extension } f
 import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view';
 
 /**
- * The selection toolbar (Mike, October 25). Selecting text shows a small bar above it
+ * The selection toolbar (Cerys, October 25). Selecting text shows a small bar above it
  * with the few things a writer does to a phrase: bold, italic, underline, narrator-only text in a
  * wiki entry, and making a new entry from a name. The markdown marks are written for
  * the writer, so nobody has to know them.
@@ -10,7 +10,7 @@ import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view'
 export interface ToolbarOptions {
   /** Offer "Narrator only", which only means something in the wiki. */
   narrator: boolean;
-  /** Offer "Rumor", for something suspected and not known (Mike, November 14). */
+  /** Offer "Rumor", for something suspected and not known (Cerys, November 14). */
   rumor?: boolean;
   /** Called with the selected name when the writer chooses "Make an entry". */
   onMakeEntry?: (name: string) => void;
@@ -19,7 +19,7 @@ export interface ToolbarOptions {
 /**
  * Wraps the selection in `mark`, or removes the mark when the selection already has it.
  * Underline has no markdown of its own, so it is written `<u>` and `</u>`, which the
- * reading view and other markdown editors understand (Mike, November 1).
+ * reading view and other markdown editors understand (Cerys, November 1).
  */
 export function toggleMark(view: EditorView, mark: string, close: string = mark): boolean {
   const { state } = view;
@@ -28,7 +28,7 @@ export function toggleMark(view: EditorView, mark: string, close: string = mark)
   view.dispatch(
     state.changeByRange((range) => {
       // A selection that runs over several paragraphs is marked one paragraph at a time,
-      // because a mark cannot cross a blank line (Mike, November 11). Each piece leaves out
+      // because a mark cannot cross a blank line (Cerys, November 11). Each piece leaves out
       // the space around it and any heading, list, or quote marker in front of it.
       type Side = 'outside' | 'inside' | null;
       const pieces: { from: number; to: number; start: Side; end: Side }[] = [];
@@ -170,7 +170,7 @@ export function selectionToolbar(options: ToolbarOptions): Extension {
   return [
     bar,
     // Ahead of the editor's own keys, where Mod-i selects the surrounding block and
-    // Mod-u undoes a selection, so these always format (Mike, November 1).
+    // Mod-u undoes a selection, so these always format (Cerys, November 1).
     Prec.high(
       keymap.of([
         { key: 'Mod-b', run: (view) => toggleMark(view, '**') },

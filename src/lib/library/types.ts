@@ -23,7 +23,7 @@ export interface ShelfWorld {
   journal: boolean;
 }
 
-/** Where the library is on this computer, and how it syncs (Mike, October 26). */
+/** Where the library is on this computer, and how it syncs (Cerys, October 26). */
 export interface LibraryInfo {
   path: string | null;
   /** True once the writer has said where the library is, or chosen "Not now". */
@@ -47,7 +47,7 @@ export interface Library {
   open(path: string): Promise<WorldFs>;
   /**
    * Opens the engine a world's game is built on, named by its path from the library's top,
-   * or closes it with null (Mike, November 7). Returns null when there is no engine.
+   * or closes it with null (Cerys, November 7). Returns null when there is no engine.
    */
   openEngine(rel: string | null): Promise<GameFs | null>;
   /** Closes the open world. It stays on the shelf. */
@@ -83,10 +83,10 @@ export interface Library {
   syncYou(): Promise<SyncReport>;
   /** What waits to sync across every world in the library and `immersion.md`. */
   pending(fetch: boolean): Promise<Pending>;
-  /** Syncs every world in the library and `immersion.md` at once (Mike, October 28). */
+  /** Syncs every world in the library and `immersion.md` at once (Cerys, October 28). */
   syncLibrary(): Promise<SyncReport>;
 
-  /** The encrypted stories in a world's vault, by their random file names (Mike, October 26). */
+  /** The encrypted stories in a world's vault, by their random file names (Cerys, October 26). */
   vaultList(world: string): Promise<string[]>;
   vaultRead(world: string, name: string): Promise<string>;
   vaultWrite(world: string, name: string, text: string): Promise<void>;

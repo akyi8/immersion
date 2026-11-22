@@ -12,11 +12,11 @@
   import { counted, plural } from '../../lib/story/book';
 
   /**
-   * Outline view (Mike, October 23 and 25): every chapter as a card, three to a row with
+   * Outline view (Cerys, October 23 and 25): every chapter as a card, three to a row with
    * tall fields. The cards are the manuscript's chapters, so typing in a card writes that
    * chapter's outline, renaming a card renames the chapter, and adding a card adds one.
    *
-   * With more than one thread it becomes the plot grid (Mike, October 25): chapters run
+   * With more than one thread it becomes the plot grid (Cerys, October 25): chapters run
    * along When and threads along Threads, each cell is one thread's beat in one chapter,
    * and Flip swaps which runs across and which runs down.
    */
@@ -42,22 +42,22 @@
     onAdded: (at: { path: string; offset: number | null }) => void;
     /** What runs along When: a manuscript's chapters, or a series' books. */
     unit?: 'chapter' | 'book';
-    /** What a manuscript's parts are called, such as Chapter or Part (Mike, October 31). */
+    /** What a manuscript's parts are called, such as Chapter or Part (Cerys, October 31). */
     partWord?: string;
-    /** The wiki, so names in the board's text are lit and linked (Mike, October 31). */
+    /** The wiki, so names in the board's text are lit and linked (Cerys, October 31). */
     index?: WikiIndex | null;
     /** Opens a named entry beside the board. */
     onOpenEntry?: (id: string) => void;
     /**
      * The pane's own actions, such as Write and Board and the counts, at the start of the
-     * board's row, and its ⋯ at the end, so a pane has one row of actions (Mike, October 31).
+     * board's row, and its ⋯ at the end, so a pane has one row of actions (Cerys, October 31).
      */
     lead?: Snippet;
     tail?: Snippet;
   } = $props();
 
   // A series board names its books by the series' word, such as Story or Episode, and a
-  // manuscript board names its parts by the book's word (Mike, October 31).
+  // manuscript board names its parts by the book's word (Cerys, October 31).
   const Unit = $derived(partWord);
   /** The unit in a sentence, such as "chapter" or "episode". */
   const noun = $derived(partWord.toLowerCase());
@@ -144,7 +144,7 @@
   let dragging = $state<number | null>(null);
   let over = $state<number | null>(null);
 
-  // Names on the board (Mike, October 31). A board cell shows its text as written, with
+  // Names on the board (Cerys, October 31). A board cell shows its text as written, with
   // the names of wiki entries lit and linked, as the wiki and the writing view do. A click
   // on a name opens the entry beside the board, and a click anywhere else turns the cell
   // into the field to type in, with the cursor where the click was.
@@ -204,7 +204,7 @@
     void flush();
   }
 
-  // Column widths on the plot grid (Mike, October 31): a story column can be dragged
+  // Column widths on the plot grid (Cerys, October 31): a story column can be dragged
   // wider by the bar on its right edge, and a double click sets it back. Widths are kept
   // by each chapter's or book's file, on this computer only, like the app's other layout.
   const WIDTHS_KEY = 'immersion.columnWidths';
@@ -245,7 +245,7 @@
     keepWidths();
   }
 
-  // Story structures (Mike, October 28). With a structure on, the cards sit in one band
+  // Story structures (Cerys, October 28). With a structure on, the cards sit in one band
   // per part, in story order, with the Unassigned band last. Placing a card in a part
   // records the part in the card's file and moves the card in reading order.
   let structureId = $state<string | null>(null);
@@ -301,7 +301,7 @@
   }
 
   // While a card is dragged, holding it near the edge of the board or its pane scrolls
-  // that way, so a part off the screen can still be reached (Mike, October 31).
+  // that way, so a part off the screen can still be reached (Cerys, October 31).
   const EDGE = 70;
   let dragPoint: { x: number; y: number } | null = null;
   let scrolling = 0;
@@ -339,7 +339,7 @@
     if (!scrolling) scrolling = requestAnimationFrame(edgeScroll);
   }
 
-  // Right-click a card for its moves, including Move to, which places it by name (Mike, October 31).
+  // Right-click a card for its moves, including Move to, which places it by name (Cerys, October 31).
   function cardMenu(e: MouseEvent, i: number) {
     if (!cards) return;
     const card = cards[i];
@@ -450,7 +450,7 @@
     }
   }
 
-  // Threads (Mike, October 25).
+  // Threads (Cerys, October 25).
   function savedFlip(): boolean {
     try {
       return localStorage.getItem('immersion.boardFlip') === 'down';
@@ -495,7 +495,7 @@
    * Grows a field to fit its text, so a long outline never hides inside a scroll box.
    * Measuring collapses the field for a moment, so the pane's scroll position is kept
    * across it, and after typing or pasting the pane follows the cursor, which can
-   * otherwise end up below the bottom of the screen (Mike, October 31).
+   * otherwise end up below the bottom of the screen (Cerys, October 31).
    */
   function grow(el: HTMLTextAreaElement, least: number) {
     const fit = (follow: boolean) => {
@@ -1127,7 +1127,7 @@
   }
   .grid {
     display: grid;
-    /* Three to a row at most (Mike, October 23), fewer when the pane is narrow. */
+    /* Three to a row at most (Cerys, October 23), fewer when the pane is narrow. */
     grid-template-columns: repeat(auto-fill, minmax(max(250px, calc((100% - 36px) / 3)), 1fr));
     gap: 18px;
     align-items: start;
@@ -1459,7 +1459,7 @@
   .problem {
     color: var(--danger);
   }
-  /* The writer's board font, when one is chosen in Settings (Mike, October 31). */
+  /* The writer's board font, when one is chosen in Settings (Cerys, October 31). */
   .body,
   .beat {
     font-family: var(--board-font, inherit);

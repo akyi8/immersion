@@ -87,13 +87,13 @@
     story?.manuscripts.find((m) => m.path === id || m.book === id || [...m.sections, ...m.front, ...m.back].some((s) => s.path === id)) ?? null,
   );
 
-  // Writing and outline are two views of the same chapters (Mike, October 25).
+  // Writing and outline are two views of the same chapters (Cerys, October 25).
   let mode = $state<'write' | 'outline'>('write');
   let outlineFocus = $state<number | null>(null);
 
-  // The beats beside the writing, switched from the document toolbar (Mike, October 26).
+  // The beats beside the writing, switched from the document toolbar (Cerys, October 26).
   // A narrow pane has no room beside the writing, so there Beats opens the beats as a
-  // panel over the writing's edge, closed until asked for (Mike, November 1).
+  // panel over the writing's edge, closed until asked for (Cerys, November 1).
   let roomWidth = $state(1000);
   const narrow = $derived(roomWidth <= 760);
   let peek = $state(false);
@@ -107,7 +107,7 @@
 
   /** The chapters behind outline view: this file's headings, or the files of its folder. */
   const source = $derived.by((): OutlineSource | null => {
-    // A note is a single page, so it has no board (Mike, October 26).
+    // A note is a single page, so it has no board (Cerys, October 26).
     if (!owner || owner.kind === 'file') return null;
     return id === owner.book || owner.sections.some((s) => s.path === id) ? folderSource(fs, owner) : null;
   });
@@ -216,7 +216,7 @@
       </div>
     {/if}
     <span class="meta">{about.meta}</span>
-    <!-- Beats sit in the pane's own row, beside what they describe (Mike, October 31). -->
+    <!-- Beats sit in the pane's own row, beside what they describe (Cerys, October 31). -->
     {#if about.kind === 'chapter' && source && mode === 'write'}
       <button type="button" class="beats" class:on={aside} aria-pressed={aside} title="This chapter's beats, beside the writing" onclick={toggleBeats}>Beats</button>
     {/if}
@@ -229,7 +229,7 @@
   {/if}
 {/snippet}
 
-<!-- The piece's forms. Its menu is the ⋯ in the pane's corner (Mike, November 10). -->
+<!-- The piece's forms. Its menu is the ⋯ in the pane's corner (Cerys, November 10). -->
 {#snippet tail()}
   {#if about && onMoved && story && owner}
     <PieceActions bind:this={pieceActions} {fs} path={owner.path} title={about.title} root={story.root} {onMoved} button={false} />
@@ -279,7 +279,7 @@
       <div class="room" bind:clientWidth={roomWidth}>
       <div class="writing" class:with-aside={aside && !!source}>
         <!-- The page runs on below the writing, and a click anywhere under it starts typing at
-             the end, so a chapter with only its beat is never a sliver (Mike, November 1). -->
+             the end, so a chapter with only its beat is never a sliver (Cerys, November 1). -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="book"
@@ -353,7 +353,7 @@
     cursor: text;
   }
   /* In a narrow pane there is no room beside the writing, so the beats open as a panel
-     over its right edge, and Beats closes it again (Mike, November 1). */
+     over its right edge, and Beats closes it again (Cerys, November 1). */
   @container (max-width: 760px) {
     .writing.with-aside {
       grid-template-columns: minmax(0, 1fr);

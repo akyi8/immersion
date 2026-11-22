@@ -1,4 +1,4 @@
-/* The curated fonts a world's theme can choose from (Mike, October 25). They are
+/* The curated fonts a world's theme can choose from (Cerys, October 25). They are
    bundled with the app, so a theme looks the same on every computer and offline.
    Heading faces come at the one weight that suits headings. Prose faces come with
    italic and bold. Bebas Neue, Atkinson Hyperlegible, and IBM Plex Mono load in
@@ -35,7 +35,7 @@
 @import '@fontsource/jetbrains-mono/400-italic.css';
 @import '@fontsource/jetbrains-mono/700.css';
 @import '@fontsource/jetbrains-mono/700-italic.css';
-/* Added by Mike, October 25. */
+/* Added by Cerys, October 25. */
 @import '@fontsource/oswald/400.css';
 @import '@fontsource/josefin-slab/600.css';
 @import '@fontsource/vollkorn-sc/600.css';
@@ -70,7 +70,7 @@
 @import '@fontsource/im-fell-english/400.css';
 @import '@fontsource/im-fell-english/400-italic.css';
 
-/* Condensed faces for the text on boards (Mike, October 31), so more fits on a card. */
+/* Condensed faces for the text on boards (Cerys, October 31), so more fits on a card. */
 @import '@fontsource/cabin-condensed/400.css';
 @import '@fontsource/cabin-condensed/600.css';
 @import '@fontsource/ibm-plex-sans-condensed/400.css';

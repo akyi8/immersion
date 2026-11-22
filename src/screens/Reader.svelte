@@ -60,7 +60,7 @@
     applyTheme(world?.theme ?? null, mode.current);
   });
 
-  // A rulebook or a handout shows alone and fills the window, so it can be shared on a call (Mike, November 14).
+  // A rulebook or a handout shows alone and fills the window, so it can be shared on a call (Cerys, November 14).
   const media = $derived(isPdf(id) ? 'pdf' : isPicture(id) ? 'picture' : null);
   const words = $derived(isTextHandout(id));
   let wordsName = $state('');

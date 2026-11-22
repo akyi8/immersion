@@ -21,16 +21,16 @@ export interface Entry {
   imagePath: string | null;
   /** When it happened, from its `when:` line, which puts it on the timeline. */
   when: When | null;
-  /** An era: a span of time whose events belong to it (Mike, October 25). */
+  /** An era: a span of time whose events belong to it (Cerys, October 25). */
   era: boolean;
   /** Whether the picture shows as a portrait or a banner, when the entry overrides its category. */
   picture?: Shape | null;
-  /** How the picture is framed as a portrait and as a banner (Mike, November 1). */
+  /** How the picture is framed as a portrait and as a banner (Cerys, November 1). */
   portraitFrame?: Frame | null;
   bannerFrame?: Frame | null;
-  /** How the picture is framed when it lies behind the page (Mike, November 10). */
+  /** How the picture is framed when it lies behind the page (Cerys, November 10). */
   behindFrame?: Frame | null;
-  /** The word of the name that stands large on a card's spine, when the writer chose one (Mike, November 15). */
+  /** The word of the name that stands large on a card's spine, when the writer chose one (Cerys, November 15). */
   spine?: string | null;
 }
 

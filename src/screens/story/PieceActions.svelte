@@ -6,7 +6,7 @@
   import Dialog from '../shelf/Dialog.svelte';
 
   // Rename and archive for a manuscript or a drawer piece, from a small menu by its
-  // title or from a right-click (Mike, October 25).
+  // title or from a right-click (Cerys, October 25).
   let {
     fs,
     path,

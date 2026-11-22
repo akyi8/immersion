@@ -1,7 +1,7 @@
 import { inDesktopApp } from './runtime';
 
 /**
- * How large everything is drawn (Mike, October 31), from Ctrl or Cmd with plus, minus,
+ * How large everything is drawn (Cerys, October 31), from Ctrl or Cmd with plus, minus,
  * and zero, or from Settings. Each computer keeps its own, because screens differ. The
  * desktop app zooms the page the way a browser does, so pointers and dragging stay true.
  */

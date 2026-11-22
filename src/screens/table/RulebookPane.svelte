@@ -5,7 +5,7 @@
   import { chaptersOf, drawPage, openBook, rememberPage, rememberedPage, shapeOf, type Book, type Chapter } from '../../lib/table/pdf';
 
   /**
-   * A rulebook beside the session (Mike, November 14). In a pane it shows one page, sized
+   * A rulebook beside the session (Cerys, November 14). In a pane it shows one page, sized
    * so the whole page and its controls stay on screen. In full screen it shows two pages
    * side by side as an open book, with the book's contents list always open beside them.
    * It opens on the page it was left on. The arrow keys and Page Up and Page Down turn
@@ -156,7 +156,7 @@
   const on = () => go(first + step);
 
   // The wheel turns pages while a whole page is on screen, where there is nothing to scroll
-  // (Mike, November 14). One turn of the wheel is one turn of the page.
+  // (Cerys, November 14). One turn of the wheel is one turn of the page.
   let wheeled = 0;
   let travel = 0;
   function wheel(e: WheelEvent) {

@@ -5,7 +5,7 @@
   import { mode } from '../lib/mode.svelte';
 
   /**
-   * The theme editor (Mike, October 25). For the open world it is the Theme group of the
+   * The theme editor (Cerys, October 25). For the open world it is the Theme group of the
    * Settings page (November 18), which stands to one side while it is open. On the Worlds
    * page it is a panel at the side of the window. Either way the app behind it shows the
    * theme while it is being chosen. A theme is two colors and

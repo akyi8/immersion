@@ -80,7 +80,7 @@
 
 
   // A picture is framed rather than cropped, and an entry outside People shows it as a
-  // banner across its top, with its name over it (Mike, November 1).
+  // banner across its top, with its name over it (Cerys, November 1).
   const shape = $derived<Shape>(entry.picture ?? defaultShape(entry.category, index.pictures));
   // The page's own view can put the picture away, for reading with nothing but text.
   const picture = $derived(views.of(id).picture);
@@ -93,7 +93,7 @@
     return () => room.withdraw(mine);
   });
 
-  // Behind the page (Mike, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
+  // Behind the page (Cerys, November 10), chosen where the picture is framed: the page is set like a card from the Radiance
   // Adventure Engine. The name runs up the spine with its category above it, the entry's
   // first sentence sits top right as a card's storyline does, and the picture stands down
   // the page's left side, behind the name, fading toward the text.
@@ -240,7 +240,7 @@
 
 {#snippet details()}
   <!-- What the entry is called, then when it is, then the small buttons that add to either
-       (Mike, November 10). Each is added and changed here, so the file's own header is never edited by hand (Mike, November 10). -->
+       (Cerys, November 10). Each is added and changed here, so the file's own header is never edited by hand (Cerys, November 10). -->
   <div class="facts pane-actions">
     {#if entry.aliases.length}
       <div class="names" aria-label="Other names">
@@ -364,7 +364,7 @@
       {:else}
         <Portrait url={entry.imagePath ? fs.imageUrl(entry.imagePath) : null} name={entry.name} size="large" frame={entry.portraitFrame} />
       {/if}
-      <!-- Like every pane: where it lives, its name, then one row of actions ending in ⋯ (Mike, October 31). -->
+      <!-- Like every pane: where it lives, its name, then one row of actions ending in ⋯ (Cerys, October 31). -->
       <div class="title">
         <div class="label">{folderLabel(entry.category)}</div>
         <!-- svelte-ignore a11y_missing_content -->

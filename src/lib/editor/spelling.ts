@@ -5,7 +5,7 @@ import { contextMenu, type MenuEntry } from '../contextMenu.svelte';
 import { spell, wordsIn, type Word } from '../spell';
 
 /**
- * Spelling in the editor (Mike, November 21). A misspelled word is drawn a little greyer.
+ * Spelling in the editor (Cerys, November 21). A misspelled word is drawn a little greyer.
  * A word is looked up only after the typing pauses, and the word the cursor is in is
  * left alone, so nothing turns grey under the hand. A right click on a greyed word
  * offers what it might have been, adds it to the writer's dictionary, and switches the

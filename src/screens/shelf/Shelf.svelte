@@ -18,7 +18,7 @@
   import realWorld from '../../assets/real-world.jpg';
 
   /**
-   * The world shelf (Mike, October 24): every world this machine knows, shown as covers,
+   * The world shelf (Cerys, October 24): every world this machine knows, shown as covers,
    * with a card for making a new world and one for adding a folder that already holds
    * writing. Choosing a cover opens that world.
    */
@@ -50,7 +50,7 @@
     worlds = await library.list();
   }
 
-  // The whole library's sync (Mike, October 28): what waits to go out from every world
+  // The whole library's sync (Cerys, October 28): what waits to go out from every world
   // and immersion.md, what other computers have that has not come in, and a button that
   // syncs it all and brings in new worlds. Asking the remote needs the network, so it
   // happens at most every two minutes; counting what is here is instant.
@@ -89,7 +89,7 @@
     }
   }
 
-  // The library (Mike, October 26): asked once on each computer, and never again after
+  // The library (Cerys, October 26): asked once on each computer, and never again after
   // an answer or "Not now".
   const info = $derived(account.info);
   async function chooseLibrary() {
@@ -104,7 +104,7 @@
       problem = String(e);
     }
   }
-  // Real World, the writer's journal (Mike, October 26), is always on the Worlds page once
+  // Real World, the writer's journal (Cerys, October 26), is always on the Worlds page once
   // there is a library. Its folder is made the first time it is opened.
   const hasJournal = $derived(!!worlds?.some((w) => w.journal));
   async function openJournal() {
@@ -135,8 +135,8 @@
     refresh();
     void countLibrary().then(() => countLibrary(true));
     // Worlds arrive from other computers and from Claude sessions while the app is open,
-    // so the page looks again whenever the app comes back to the front (Mike, October 28),
-    // and syncs the library then too, unless it did so in the last two minutes (Mike, October 31).
+    // so the page looks again whenever the app comes back to the front (Cerys, October 28),
+    // and syncs the library then too, unless it did so in the last two minutes (Cerys, October 31).
     const again = () => {
       void refresh();
       if (libraryCounts?.state === 'git' && Date.now() - librarySynced > 2 * 60 * 1000) void syncLibrary(true);
@@ -155,7 +155,7 @@
 
   async function add() {
     problem = '';
-    // The picker starts in the library, where most worlds live (Mike, October 26).
+    // The picker starts in the library, where most worlds live (Cerys, October 26).
     const path = await library.pickFolder('Choose a folder that holds a world', account.info?.path);
     if (!path) return;
     try {
@@ -187,7 +187,7 @@
     await refresh();
   }
 
-  // A world not in use is archived (Mike, November 15): it moves below the others, under
+  // A world not in use is archived (Cerys, November 15): it moves below the others, under
   // its own heading, and nothing else about it changes. The world's own `world.md` says
   // so, which carries the choice to every computer.
   const isArchived = (world: ShelfWorld) => !!world.worldMd && splitHeader(world.worldMd).header.archived === true;

@@ -32,7 +32,7 @@
   import { tray } from '../../lib/table/tray.svelte';
 
   /**
-   * The Table module (Mike, November 14): where a tabletop campaign is planned and
+   * The Table module (Cerys, November 14): where a tabletop campaign is planned and
    * recorded, by the game master who runs it or by a player in it. A campaign holds
    * adventures, an adventure holds sessions, and a session is a plan beside a log. The
    * files are described in `lib/table/index.ts`.
@@ -272,7 +272,7 @@
   }
 
   /**
-   * What can be done to a thing in the Table module, as one menu (Mike, November 15). The
+   * What can be done to a thing in the Table module, as one menu (Cerys, November 15). The
    * same menu opens from a right click on its row, from the row's hover button, and from
    * its page's corner. Renaming is typing over the page's title, so Rename opens the page
    * with the cursor there. An adventure has no page, so it is renamed in a small form.
@@ -555,7 +555,7 @@
     min-height: 0;
   }
   /* In full screen the tree is put away and the tray stays, in a corner, so a roll is
-     always one click off (Mike's design pass, November 15). */
+     always one click off (Cerys's design pass, November 15). */
   .side.floating {
     position: fixed;
     right: 18px;

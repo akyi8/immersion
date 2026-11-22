@@ -11,7 +11,7 @@
   import Dialog from '../shelf/Dialog.svelte';
 
   /**
-   * The wiki's timeline (Mike, October 25). Every entry with a `when:` line is an event,
+   * The wiki's timeline (Cerys, October 25). Every entry with a `when:` line is an event,
    * laid out in order, not to scale. Eras are entries with `era: true` and a span, and
    * they show as bands beside every moment they cover. Flip turns dates down the page
    * into dates across it.
@@ -124,7 +124,7 @@
         {timeline.eras.length === 1 ? 'era' : 'eras'}
       </span>
       <span class="spacer"></span>
-      <!-- Outlined like every pane's buttons; amber fill is for a home page's main act (Mike, October 31). -->
+      <!-- Outlined like every pane's buttons; amber fill is for a home page's main act (Cerys, October 31). -->
       <button type="button" class="tool" onclick={() => startMaking('event')}>+ New event</button>
       <button type="button" class="tool" onclick={() => startMaking('era')}>+ New era</button>
       <button type="button" class="tool" onclick={flip} title="Turn the dates {across ? 'down the page' : 'across the page'}">Flip</button>

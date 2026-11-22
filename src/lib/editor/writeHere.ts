@@ -1,7 +1,7 @@
 import type { EditorView } from '@codemirror/view';
 
 /**
- * Where typing starts in a chapter (Mike, November 1). Clicking the empty page below the
+ * Where typing starts in a chapter (Cerys, November 1). Clicking the empty page below the
  * writing, or the "Start writing here" line in a chapter that has only its beat, puts
  * the cursor at the end of the chapter. Typing must land on a line of its own, never
  * inside the beat's quote or a heading, so a blank line is added first when needed.

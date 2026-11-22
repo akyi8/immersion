@@ -9,7 +9,7 @@
   import { outside } from '../../lib/outside';
 
   /**
-   * A series board (Mike, October 25): the books of one series along When, in the order
+   * A series board (Cerys, October 25): the books of one series along When, in the order
    * their title pages number them, with threads that run across the whole series.
    */
   let {
@@ -42,16 +42,16 @@
     words?: number | null;
   } = $props();
 
-  // What the books and their parts are called lives behind the pane's ⋯ (Mike, October 31).
+  // What the books and their parts are called lives behind the pane's ⋯ (Cerys, October 31).
   let menu = $state(false);
   let about = $state(false);
 
   const source = $derived(seriesSource(fs, root, series));
 
-  // What every book in the series calls its parts (Mike, October 31), such as Part for
+  // What every book in the series calls its parts (Cerys, October 31), such as Part for
   // short stories told in four movements.
   const WORDS = ['Chapter', 'Part', 'Section', 'Episode', 'Movement', 'Act'];
-  // And what each book of the series is called, such as Episode (Mike, October 31).
+  // And what each book of the series is called, such as Episode (Cerys, October 31).
   const BOOK_WORDS = ['Story', 'Book', 'Novel', 'Tale', 'Episode', 'Volume'];
   // Each field shows the word every book uses, or "Mixed" with the words in use when the
   // books disagree, and a word typed there is written to every book that differs.

@@ -1,5 +1,5 @@
 /**
- * Rumors (Mike, November 14). A rumor is a paragraph a player suspects and the game
+ * Rumors (Cerys, November 14). A rumor is a paragraph a player suspects and the game
  * master knows the answer to. It is written as a callout, the way narrator-only text is:
  *
  *     > [!rumor]

@@ -1,7 +1,7 @@
 import { argon2id } from 'hash-wasm';
 
 /**
- * The vault's encryption (Mike, October 26). One passphrase unlocks every world's vault.
+ * The vault's encryption (Cerys, October 26). One passphrase unlocks every world's vault.
  * It becomes a key through Argon2id, which is slow and memory-hard on purpose so that
  * guessing passphrases is expensive, and the key encrypts with AES-256-GCM, which also
  * detects any tampering. The key lives only in memory, unless the writer asks a computer

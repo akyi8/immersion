@@ -6,7 +6,7 @@ import { blankPage, fileToFolder, newBook, readTitlePage, withTitlePage, type Pa
 
 /**
  * Renaming, archiving, and moving pieces of writing between the desk, the drawer, and
- * the shelf (Mike, October 25). The files follow the titles, so nobody has to.
+ * the shelf (Cerys, October 25). The files follow the titles, so nobody has to.
  */
 
 const isFile = (path: string) => /\.md$/i.test(path);
@@ -79,7 +79,7 @@ export async function makeFolder(fs: WorldFs, path: string, dir: string, root: s
 
 /**
  * Moves a note or a manuscript to the desk, the drawer, or the shelf. Moving never changes
- * what it is (Mike, October 26): a note stays a note, and a manuscript stays a folder with
+ * what it is (Cerys, October 26): a note stays a note, and a manuscript stays a folder with
  * its title page. Returns its new path.
  */
 export async function moveToPlace(fs: WorldFs, m: Manuscript, root: string, place: Place): Promise<string> {
@@ -129,7 +129,7 @@ export async function newManuscript(
 }
 
 /**
- * Renames a series (Mike, October 27): every book that names it takes the new name on its
+ * Renames a series (Cerys, October 27): every book that names it takes the new name on its
  * title page, wherever the book sits, and the series' threads in `world.md` move with it.
  */
 export async function renameSeries(fs: WorldFs, root: string, from: string, to: string): Promise<void> {
@@ -163,7 +163,7 @@ export function retitledPart(text: string, from: string, to: string): string {
 
 /**
  * Renames a manuscript's parts that still carry their default titles, such as "Chapter 3"
- * becoming "Part 3", after the book's part word changes (Mike, October 31). Titles the
+ * becoming "Part 3", after the book's part word changes (Cerys, October 31). Titles the
  * writer gave are left as they are. Front and back pages are not parts.
  */
 export async function retitleParts(fs: WorldFs, folder: string, from: string, to: string): Promise<void> {

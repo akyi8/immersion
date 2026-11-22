@@ -1,7 +1,7 @@
 import type { Mode } from './theme';
 
 /**
- * Light or dark, for the whole app (Mike, October 25). One switch beside the Worlds
+ * Light or dark, for the whole app (Cerys, October 25). One switch beside the Worlds
  * button picks the side every theme shows: dark, light, or whatever the computer is set
  * to. The choice is remembered on this computer.
  */

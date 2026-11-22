@@ -18,7 +18,7 @@ const bare = (w: string) => w.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
 
 /**
  * Reads the word list for one kind of English, and with `spanish` the Mexican Spanish
- * list beside it (Mike, November 21, whose city speaks both). A word is then well spelled
+ * list beside it (Cerys, November 21, whose city speaks both). A word is then well spelled
  * if either language has it. What a misspelled word might have been comes from both,
  * with a missing accent first, so that pequena offers pequeña before anything else. The
  * lists are large files, so each is only fetched when asked for.

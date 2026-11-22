@@ -1,6 +1,6 @@
 /**
  * A short record of things that went wrong on this computer, so a problem that cannot be
- * made to happen again still leaves something to read (Mike, November 13: typing stopped
+ * made to happen again still leaves something to read (Cerys, November 13: typing stopped
  * in a game page and nothing said why). It keeps the last sixty notes in this computer's
  * own storage. Nothing here leaves the computer unless the writer copies it from Settings.
  */
@@ -91,7 +91,7 @@ function placeOf(el: Element | null): string {
 
 /**
  * Notes when the keyboard leaves a field in the middle of typing with no click, Tab, or
- * Escape to explain it, and when the row of pages moves on its own (Mike, November 21).
+ * Escape to explain it, and when the row of pages moves on its own (Cerys, November 21).
  * Both are things the writer never asked for, and the note says what took the keyboard
  * and whether the field typed in was thrown away and made again.
  */

@@ -9,8 +9,11 @@
   import SectionRule from './SectionRule.svelte';
   import CoreMark from './CoreMark.svelte';
 
+  /** A title and a text, with what each was when the page last read or saved them. */
+  type Typed = { name: string; text: string; was: { name: string; text: string } };
+
   /**
-   * A rule section as one continuous page, which is where a game is written (Mike,
+   * A rule section as one continuous page, which is where a game is written (Cerys,
    * November 21). It reads the way the book prints: the introduction, then every rule
    * under its heading in book order, each written in place, with what the world adds
    * after each core rule. A rule can still be opened alone.
@@ -41,8 +44,8 @@
     picture: { url: string; frame: Frame | null } | null;
     choices: PictureChoice[];
     onFrame: (frame: Frame) => Promise<void>;
-    onSave: (changes: { name: string; intro: string }) => Promise<void>;
-    onSaveRule: (rule: Placed, changes: { name: string; text: string }) => Promise<void>;
+    onSave: (changes: Typed) => Promise<void>;
+    onSaveRule: (rule: Placed, changes: Typed) => Promise<void>;
     /** Saves what the world adds after a core rule. */
     onSaveWorld: (rule: Placed, text: string) => Promise<void>;
     /** Adds a rule at the foot of this section, and stays on this page. */
@@ -54,7 +57,12 @@
   let name = $state((() => section.placed.element.name)());
   let intro = $state((() => section.placed.element.flavor)());
   // svelte-ignore state_referenced_locally
-  const saver = new Saver(() => onSave({ name: name.trim() || section.placed.element.name, intro }));
+  let was = (() => ({ name: section.placed.element.name, text: section.placed.element.flavor }))();
+  const saver = new Saver(async () => {
+    const now = { name: name.trim() || was.name, text: intro };
+    await onSave({ ...now, was });
+    was = now;
+  });
   onDestroy(() => void saver.flush(true));
   const rules = $derived(section.items.filter((i) => i.type === 'rule').length);
 

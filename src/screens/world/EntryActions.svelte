@@ -7,7 +7,7 @@
   import Dialog from '../shelf/Dialog.svelte';
   import { saveNow } from '../../lib/saves';
 
-  // Rename, move, and archive for one entry (Mike, October 25), from a small menu by its name.
+  // Rename, move, and archive for one entry (Cerys, October 25), from a small menu by its name.
   let {
     fs,
     index,
@@ -29,7 +29,7 @@
     onWindow?: () => void;
     /** Show the ⋯ button. Without it, a right-click menu opens the forms through `start`. */
     button?: boolean;
-    /** How the entry's picture shows now, so the menu can offer the other shape (Mike, November 1). */
+    /** How the entry's picture shows now, so the menu can offer the other shape (Cerys, November 1). */
     shape?: 'portrait' | 'banner' | null;
     onShape?: (shape: 'portrait' | 'banner') => void;
     onFrame?: () => void;
@@ -46,7 +46,7 @@
   let problem = $state('');
 
   const here = $derived(entry.id.slice(0, entry.id.lastIndexOf('/')));
-  /** Every category and every folder inside one, in tree order (Mike, October 25). */
+  /** Every category and every folder inside one, in tree order (Cerys, October 25). */
   const places = $derived.by(() => {
     const out: { path: string; label: string; depth: number }[] = [{ path: index.root.path, label: 'Unfiled', depth: 0 }];
     const walk = (f: Folder, depth: number) => {

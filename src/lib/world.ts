@@ -13,13 +13,13 @@ export interface World {
   theme: ThemeSpec | null;
   /** Path of the loading-screen image, relative to the world folder, if there is one. */
   imagePath: string | null;
-  /** True for Real World, the writer's journal (Mike, October 26). */
+  /** True for Real World, the writer's journal (Cerys, October 26). */
   journal: boolean;
   /** True when the journal keeps a page for each day. Off unless the writer turns it on. */
   daily: boolean;
   /** The engine this world's game is built on, as a path from the library's top, or ''. */
   engine: string;
-  /** The folder that holds this world's own game elements (Mike, November 7). */
+  /** The folder that holds this world's own game elements (Cerys, November 7). */
   gameDir: string;
   /** How every entry's picture shows unless the entry says otherwise, or null to let the category decide. */
   pictures: Shape | null;
@@ -72,7 +72,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
   };
 }
 
-/** The folder in the library that holds Real World, the writer's journal (Mike, October 26). */
+/** The folder in the library that holds Real World, the writer's journal (Cerys, October 26). */
 export const JOURNAL_FOLDER = 'immersion-journal';
 
 /** The `world.md` of a new Real World. */

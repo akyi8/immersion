@@ -3,7 +3,7 @@
   import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
-   * A handout that is a picture (Mike, November 14): a map, a letter, a portrait. It shows
+   * A handout that is a picture (Cerys, November 14): a map, a letter, a portrait. It shows
    * whole, as large as the page allows. In a window of its own it fills the window, so it
    * can be shared on a call.
    */

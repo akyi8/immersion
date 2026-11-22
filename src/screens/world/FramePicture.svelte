@@ -3,7 +3,7 @@
   import { BANNER_RATIO, BEHIND_FADE, BEHIND_RATIO, BEHIND_TOP, ROOM_FADE, CENTERED, MAX_ZOOM, defaultShape, dragged, frameStyle, tidy, type Frame, type Shape } from '../../lib/index/frame';
 
   /**
-   * Framing an entry's picture (Mike, November 1). The picture is dragged inside a fixed
+   * Framing an entry's picture (Cerys, November 1). The picture is dragged inside a fixed
    * frame and zoomed with the slider or the scroll wheel, once as a banner and once as a
    * portrait, and the entry chooses which of the two shows at its top. The picture file
    * itself is never changed.

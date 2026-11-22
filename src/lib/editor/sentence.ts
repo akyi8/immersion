@@ -1,7 +1,7 @@
 /**
  * The sentence around a place in a paragraph. While the writer types, the sentence being
  * written stays at full strength and the rest of its paragraph steps back a little
- * (Mike, November 11).
+ * (Cerys, November 11).
  *
  * A sentence ends at a period, a question mark, an exclamation mark, or an ellipsis,
  * with any closing quote or bracket after it, followed by a space. A place just past the

@@ -1,11 +1,11 @@
 /**
- * The outline lives inside the manuscript (Mike, October 25): each chapter's heading is
+ * The outline lives inside the manuscript (Cerys, October 25): each chapter's heading is
  * followed by a folded `> [!outline]-` callout holding what happens in that chapter.
  * The outline and the manuscript are therefore one list of chapters, and an outline can
  * never point at a chapter that is gone. Obsidian shows the callout folded shut, the
  * writing view hides it, and outline view shows each chapter as a card.
  *
- * A chapter can hold one outline beat per thread (Mike, October 25), such as the main
+ * A chapter can hold one outline beat per thread (Cerys, October 25), such as the main
  * plot and a character's arc. Each beat is its own callout under the heading, labelled
  * with its thread: `> [!outline]- Mara's arc`. A callout with no label belongs to the
  * main thread, so an outline written before threads existed is the main plot's beat.
@@ -246,7 +246,7 @@ export function withFirstChapter(text: string): { text: string; offset: number }
 
 /**
  * Moves the chapter at `from` to position `to`, carrying its heading, its outline, and
- * its prose with it (Mike, October 25). Whatever comes before the first chapter, such as
+ * its prose with it (Cerys, October 25). Whatever comes before the first chapter, such as
  * the title, stays where it is.
  */
 export function moveChapter(text: string, from: number, to: number): string {

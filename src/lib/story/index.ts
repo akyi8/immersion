@@ -3,7 +3,7 @@ import { splitHeader } from '../world.ts';
 import { withoutOutlines } from './outline.ts';
 
 /**
- * The Story module's view of a world's stories folder (Mike, October 25). Where a piece
+ * The Story module's view of a world's stories folder (Cerys, October 25). Where a piece
  * sits says how active it is, so the folders are the whole of the bookkeeping:
  *
  * - the desk is the stories folder itself, and holds the manuscripts being worked on;
@@ -13,7 +13,7 @@ import { withoutOutlines } from './outline.ts';
  * A manuscript is a folder. Its `book.md` holds the title page, its files are its
  * chapters in name order, and its `front/` and `back/` folders hold the pages before
  * and after the story, such as a dedication. A folder inside it is a part. A loose file
- * is a note (Mike, October 26): one page, wherever it sits, until the writer chooses to
+ * is a note (Cerys, October 26): one page, wherever it sits, until the writer chooses to
  * make it a manuscript.
  * `export/` and `archive/` are kept out of the app. Like the wiki index, this can be
  * thrown away and rebuilt from the files at any time.
@@ -67,7 +67,7 @@ export interface Manuscript {
   /** The series its title page names, and its number in that series. */
   series: string | null;
   number: number | null;
-  /** What its parts are called, Chapter unless its title page says otherwise (Mike, October 31). */
+  /** What its parts are called, Chapter unless its title page says otherwise (Cerys, October 31). */
   partWord: string;
   /** What one book of its series is called, such as Story or Episode, from `series_word`. */
   seriesWord: string;

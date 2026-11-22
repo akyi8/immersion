@@ -1,5 +1,5 @@
 /**
- * Picture framing for wiki entries (Mike, November 1). A picture file is never changed.
+ * Picture framing for wiki entries (Cerys, November 1). A picture file is never changed.
  * Instead, the entry's header remembers how it is framed: the point of the picture that
  * sits in view, as percentages across and down, and how far it is zoomed in. A portrait
  * (3 by 4) and a banner (wide, across the top of the entry) are framed separately, so
@@ -9,7 +9,7 @@
  * across, down, and zoom. `picture: banner` or `picture: portrait` overrides the
  * category's default, which is a portrait for people and a banner for everything else.
  *
- * A third shape lays the picture behind the page (Mike, November 10): `picture: behind`,
+ * A third shape lays the picture behind the page (Cerys, November 10): `picture: behind`,
  * framed by `behind_frame:`. The page is then set like a card from the Radiance Adventure
  * Engine, with its name up the spine, over the picture, which stands down the page's left side and fades toward the text.
  */
@@ -33,13 +33,13 @@ export const BANNER_RATIO = 16 / 7;
 
 /**
  * The shape of the picture behind a page, as width over height: a tall strip down the
- * page's left side, behind the name on the spine (Mike, November 10). It is the same on
+ * page's left side, behind the name on the spine (Cerys, November 10). It is the same on
  * every page.
  */
 export const BEHIND_RATIO = 10 / 17;
 
 /**
- * How the picture behind a page fades (Mike, November 10). It stands clear along the
+ * How the picture behind a page fades (Cerys, November 10). It stands clear along the
  * page's left edge, where the name runs up the spine over it, and goes out quickly toward
  * the text. The name and the picture share one side, which leaves the rest to the words. Its top and its outer edge are softened so it has no hard edge.
  * The page and the framing dialog use these same two values, and so show the same fade.
@@ -85,7 +85,7 @@ export const isPerson = (category: string) => category.toLowerCase() === 'people
 
 /** The shape a category's pictures take unless an entry says otherwise. */
 /**
- * A world can say how all its pictures show (Mike, November 10), in `world.md` as
+ * A world can say how all its pictures show (Cerys, November 10), in `world.md` as
  * `pictures: behind`, `banner`, or `portrait`. An entry's own `picture:` still wins, and
  * without either the category decides.
  */
@@ -93,7 +93,7 @@ export const defaultShape = (category: string, world: Shape | null = null): Shap
 
 /**
  * How a name stands on a card's spine: one word large, and the rest small beside it.
- * Which word is the large one is the writer's choice (Mike, November 15), because no rule
+ * Which word is the large one is the writer's choice (Cerys, November 15), because no rule
  * can tell that Ada Varga wants the surname and Sister Agnes wants Agnes. The
  * writer clicks a word on the spine to choose it, and the entry's `spine:` line keeps the
  * choice. Until then the app guesses: a nickname in quotes first, and otherwise the first
@@ -135,7 +135,7 @@ export function spineName(name: string, chosen: string | null = null): Spine {
   const nickname = raw.findIndex((w) => QUOTED.test(w) && bare(w).length > 0);
   const firstReal = raw.findIndex((w) => !plain(w) && !TITLE.test(bare(w)));
   const guessAt = nickname >= 0 ? nickname : firstReal >= 0 ? firstReal : Math.max(0, raw.findIndex((w) => !plain(w)));
-  // The writer may choose more than one word, such as Salt Market (Mike, November 15).
+  // The writer may choose more than one word, such as Salt Market (Cerys, November 15).
   const wanted = (chosen ?? '').trim().split(/\s+/).filter(Boolean);
   const picked = new Set<number>();
   for (const word of wanted) {

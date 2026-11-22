@@ -1,5 +1,5 @@
 /**
- * What a page offers about its picture, shown in the page's view menu (Mike, November 10).
+ * What a page offers about its picture, shown in the page's view menu (Cerys, November 10).
  * Everything about how a page looks sits behind one button: its column, its text, and its
  * picture, including changing, framing, and removing the picture. A page says what it
  * offers here, and the view menu in `Panes.svelte` shows it.
@@ -43,7 +43,7 @@ class ActionList<T> {
 export const pictureActions = new ActionList<PaneAction>();
 
 /**
- * What can be done to a page as a whole, such as renaming or archiving it (Mike,
+ * What can be done to a page as a whole, such as renaming or archiving it (Cerys,
  * November 10). The page says what it offers, and the pane shows it behind the ⋯ in its
  * corner, beside the view menu, full screen, and close. Every page's actions are then in
  * one place, in the app's one menu.

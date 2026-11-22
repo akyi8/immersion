@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 env:
-  # 1.0 and the number of this build (Mike, November 21). The number is what tells two
+  # 1.0 and the number of this build (Cerys, November 21). The number is what tells two
   # builds apart, and the updater only asks that each be higher than the last.
   VERSION: 1.0.${{ github.run_number }}
 

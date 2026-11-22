@@ -8,7 +8,7 @@
    * Every element of one kind from one place, the engine or the world, as a list to open
    * and to add to. Core elements a world sets aside or reskins stay listed, marked.
    *
-   * The same elements also show as a sheet (Mike, November 21): one row for each, one
+   * The same elements also show as a sheet (Cerys, November 21): one row for each, one
    * column for each of the kind's fields, typed in place. The list and each element's own
    * form stay as they were, and the page remembers which of the two was last used.
    */
@@ -32,7 +32,7 @@
     onNew: (name: string) => Promise<void>;
     engineName?: string;
     /** Saves one element from its row of the sheet. Without it the page is a list only. */
-    onSave?: (p: Placed, next: Element) => Promise<void>;
+    onSave?: (p: Placed, next: Element, base: Element) => Promise<void>;
     /** Adds an element and stays on this page, for the sheet's last row. */
     onNewHere?: (name: string) => Promise<void>;
   } = $props();
@@ -134,7 +134,7 @@
         </thead>
         <tbody>
           {#each rows as p (p.key)}
-            <SheetRow placed={p} {kind} {engineName} onSave={(next) => onSave!(p, next)} onOpen={() => onOpen(p.key)} />
+            <SheetRow placed={p} {kind} {engineName} onSave={(next, base) => onSave!(p, next, base)} onOpen={() => onOpen(p.key)} />
           {:else}
             <tr><td class="none" colspan={kind.fields.length + 2}>{filter ? 'Nothing matches.' : `No ${kind.plural.toLowerCase()} yet.`}</td></tr>
           {/each}

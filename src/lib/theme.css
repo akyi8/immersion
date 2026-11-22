@@ -1,10 +1,10 @@
 /* The Night theme. Every color and font in the app comes from these tokens
    (architecture decision 10). A world's own theme replaces the color tokens and the
    display and body fonts while the world is open (src/lib/theme.ts).
-   The colors come from the Absent Gods brand guide (Mike, October 24): amber marks
+   The colors come from the Absent Gods brand guide (Cerys, October 24): amber marks
    names and primary actions, and teal carries structure only: labels, quiet actions,
    focus, and game terms. What is selected is a grey wash, and text that steps back is a
-   warm grey (Mike, November 17). */
+   warm grey (Cerys, November 17). */
 @import '@fontsource/bebas-neue/400.css';
 @import '@fontsource/atkinson-hyperlegible/400.css';
 @import '@fontsource/atkinson-hyperlegible/400-italic.css';
@@ -34,13 +34,13 @@
   /* Colors every theme shares: problems, shadows, and the dimming behind dialogs. */
   --danger: #ff9a9a;
 
-  /* Where the highlight falls (Mike, October 25): the names of things, both page
+  /* Where the highlight falls (Cerys, October 25): the names of things, both page
      titles and names in the prose. */
   --title: var(--accent);
   /* Names in the prose sit a little paler than the highlight, so a paragraph full of
-     them stays calm (Mike, October 25). */
+     them stays calm (Cerys, October 25). */
   --name: color-mix(in oklab, var(--accent) 85%, white);
-  /* What is selected is a quiet wash of the text's own color (Mike, November 15), so the
+  /* What is selected is a quiet wash of the text's own color (Cerys, November 15), so the
      highlight keeps to names and to the one main action on a page. The thin bar beside a
      selected row is still the highlight. */
   --selected-fg: var(--text);
@@ -64,7 +64,7 @@
   color-scheme: dark;
 }
 
-/* Ink and Paper, Night's light side (Mike, October 25): a warm page, near-black ink,
+/* Ink and Paper, Night's light side (Cerys, October 25): a warm page, near-black ink,
    oxblood for names and what is selected, and deep ink teal for structure, with
    Playfair Display headings and Literata prose. */
 :root[data-mode='light'] {
@@ -90,7 +90,7 @@
   --scrim: rgb(40 30 20 / 0.35);
 
   /* On a pale page too, names sit a little lighter than the highlight, so a deep
-     highlight such as navy still reads as a name and not as ink (Mike, October 25). */
+     highlight such as navy still reads as a name and not as ink (Cerys, October 25). */
   --name: color-mix(in oklab, var(--accent) 80%, white);
   --selected-bg: color-mix(in oklab, var(--text) 9%, transparent);
 
@@ -100,7 +100,7 @@
   color-scheme: light;
 }
 
-/* The layout (Mike, October 27), the writer's own and separate from any world's theme.
+/* The layout (Cerys, October 27), the writer's own and separate from any world's theme.
    Components draw their lines, corners, fields, and type through these tokens. Classic
    keeps the app as it was first drawn, ruled with lines. */
 :root {
@@ -131,7 +131,7 @@
   --ease: ease;
 }
 
-/* Soft (Mike, October 27): clean, spacious, cozy. Lines become space, the work lies on
+/* Soft (Cerys, October 27): clean, spacious, cozy. Lines become space, the work lies on
    rounded sheets of paper on a desk, controls are soft fills with no outline, the type
    is a step smaller so the extra air costs no information, and things settle into
    place slowly, like honey finding its level. */
@@ -383,7 +383,7 @@ button {
 }
 
 /* While the writer types, the page falls back in layers around the sentence being
-   written (Mike, November 11, and deeper since November 21). The rest of its paragraph
+   written (Cerys, November 11, and deeper since November 21). The rest of its paragraph
    loses a fifth, the other paragraphs lose nearly half, and the other open pages lose
    three quarters. Pictures step back too, on the page and in the Radiance room. All of
    it returns with the pointer. */
@@ -405,7 +405,7 @@ html.typing .pane:not(:focus-within) > .body {
   transition: opacity 900ms ease;
 }
 /* The names and terms marked in the text being typed in go plain while the typing lasts
-   (Mike, November 21), and take their color back with the pointer. Their shape stays, so
+   (Cerys, November 21), and take their color back with the pointer. Their shape stays, so
    no line of the text moves. */
 .cm-mention,
 .cm-term,
@@ -439,7 +439,7 @@ html.typing .room-picture {
 }
 
 /* While the writer types, everything but the page steps back, and it returns with the
-   pointer (Mike, November 10). The parts are named here so each screen need not know. */
+   pointer (Cerys, November 10). The parts are named here so each screen need not know. */
 .shell > header,
 .sidebar,
 .tray,
@@ -464,7 +464,7 @@ html.typing .pane-actions {
   }
 }
 
-/* Scroll bars stay out of the way (Mike, November 10): thin, with no track, and a thumb
+/* Scroll bars stay out of the way (Cerys, November 10): thin, with no track, and a thumb
    that shows only while the pointer is over the thing that scrolls. */
 * {
   scrollbar-width: thin;
@@ -492,7 +492,7 @@ html.typing .pane-actions {
   background: color-mix(in oklab, var(--text) 38%, transparent);
 }
 
-/* Where the dice tumble (Mike, November 14): over everything, and out of the pointer's way. */
+/* Where the dice tumble (Cerys, November 14): over everything, and out of the pointer's way. */
 #dice-stage {
   position: fixed;
   inset: 0;
@@ -509,7 +509,7 @@ html.typing .pane-actions {
   pointer-events: none;
 }
 
-/* A title that is renamed by typing over it (Mike, November 15). It looks like the
+/* A title that is renamed by typing over it (Cerys, November 15). It looks like the
    heading it is, and shows a faint edge only when the pointer or the cursor is on it. */
 .retitle {
   outline: none;
@@ -547,7 +547,7 @@ html.typing .pane-actions {
   }
 }
 
-/* The Radiance layout (Mike, November 17). One picture belongs to the room and stands down
+/* The Radiance layout (Cerys, November 17). One picture belongs to the room and stands down
    its right edge. It is whole at the edge and fades toward the pages into their own ground,
    black on the dark side and white on the light. The paper runs all the way under it, so
    the picture has no edge of the work area drawn down it, and the last page keeps its text
@@ -556,7 +556,7 @@ html.typing .pane-actions {
 :root {
   --room-strip: 0px;
   --room-picture: clamp(220px, 27vw, 520px);
-  /* A page's title is 60 when the page stands alone and 40 when it shares the row with another (Mike, November 17). */
+  /* A page's title is 60 when the page stands alone and 40 when it shares the row with another (Cerys, November 17). */
   --title-size: 60px;
 }
 :root[data-room='radiance'] {

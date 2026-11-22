@@ -12,7 +12,7 @@
   const NO_LINKS = { find: () => [] } as unknown as MentionScanner;
 
   /**
-   * A piece of a game's book, written in the same editor as a chapter (Mike, November 9):
+   * A piece of a game's book, written in the same editor as a chapter (Cerys, November 9):
    * the markdown shows formatted as it is typed, Ctrl or Cmd I and U italicize and
    * underline, and the selection bar offers the rest. The page around it saves.
    */

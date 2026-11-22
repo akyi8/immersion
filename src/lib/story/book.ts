@@ -3,7 +3,7 @@ import { splitHeader, withHeader } from '../world.ts';
 import { headingsOf, titleFromName } from './index.ts';
 
 /**
- * A manuscript's title page (Mike, October 25). It is kept as fields in the header of
+ * A manuscript's title page (Cerys, October 25). It is kept as fields in the header of
  * the manuscript's `book.md`, and the app draws the page from them, so the series line
  * and the copyright line are never typed by hand.
  */
@@ -17,12 +17,12 @@ export interface TitlePage {
   /** What one installment of the series is called: Story, Book, Novel, or Tale. */
   seriesWord: string;
   /**
-   * What the book's parts are called, such as Chapter, Part, or Episode (Mike, October
+   * What the book's parts are called, such as Chapter, Part, or Episode (Cerys, October
    * 31). A series board sets it for every book in the series at once.
    */
   partWord: string;
   /**
-   * The author profile the book is linked to (Mike, October 26), by its id in the
+   * The author profile the book is linked to (Cerys, October 26), by its id in the
    * library's `immersion.md`. While it is set, the profile's names are the book's, and
    * `author` and `copyright` are not kept in the book.
    */
@@ -136,7 +136,7 @@ const MACHINE = ['manuscript', 'shelved'];
 const SUBTITLE_WORDS = 15;
 
 /**
- * Turns a manuscript kept as one file into the files of a manuscript folder (Mike,
+ * Turns a manuscript kept as one file into the files of a manuscript folder (Cerys,
  * October 25): `book.md` with the title page, a file for each chapter, and pages such as
  * a dedication in `front/` and `back/`. A title page typed out as text under the title
  * becomes the title page's fields. Paths are relative to the new folder.

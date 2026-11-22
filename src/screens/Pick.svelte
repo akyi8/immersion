@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
   /**
-   * The one control for choosing between two or three things (Mike, November 17): a soft
+   * The one control for choosing between two or three things (Cerys, November 17): a soft
    * track with the chosen part raised, in the same grey as a selected row. Every such
    * choice in the app is drawn with it, so the idea has one look.
    */

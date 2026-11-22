@@ -4,7 +4,7 @@ import { fileTitle, readOutline, type OutlineChapter, setBeat } from './outline'
 
 /**
  * Reading and changing chapter outlines through an open editor, for the outline panel
- * beside the writing (Mike, October 25). Changes go into the editor's own document, so
+ * beside the writing (Cerys, October 25). Changes go into the editor's own document, so
  * the editor stays the only thing that writes the file and its autosave never races a
  * second writer.
  */

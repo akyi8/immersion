@@ -4,7 +4,7 @@
   import { folderLabel } from '../../lib/index/wiki';
 
   // One small form for a new entry or a new category. Categories are chosen as chips,
-  // so nobody has to think about folders (Mike, October 25).
+  // so nobody has to think about folders (Cerys, October 25).
   let {
     index,
     kind,

@@ -6,7 +6,7 @@
   import GameText from './GameText.svelte';
 
   /**
-   * A front page (Mike, November 9): the book's own, or one division's, like a
+   * A front page (Cerys, November 9): the book's own, or one division's, like a
    * manuscript's title page but simpler. A title, a picture, and some text, then what
    * the book or division holds, each a click away.
    */
@@ -26,14 +26,21 @@
     picture: { url: string; frame: Frame | null } | null;
     choices: PictureChoice[];
     onFrame: (frame: Frame) => Promise<void>;
-    onSave: (changes: { name: string; body: string }) => Promise<void>;
+    onSave: (changes: { name: string; text: string; was: { name: string; text: string } }) => Promise<void>;
     contents: { label: string; note?: string; open: () => void }[];
   } = $props();
 
   let heading = $state((() => name)());
   let text = $state((() => body)());
   // svelte-ignore state_referenced_locally
-  const saver = new Saver(() => onSave({ name: heading.trim() || name, body: text }));
+  // What the title and the text were when this page last read or saved them, so a save
+  // writes only what the writer changed here and never undoes a change made elsewhere.
+  let was = (() => ({ name, text: body }))();
+  const saver = new Saver(async () => {
+    const now = { name: heading.trim() || was.name, text };
+    await onSave({ ...now, was });
+    was = now;
+  });
   onDestroy(() => void saver.flush(true));
 </script>
 

@@ -30,7 +30,7 @@ export function renderBody(markdown: string, index: WikiIndex, selfId: string | 
   const doc = new DOMParser().parseFromString(`<div id="root">${html}</div>`, 'text/html');
   const root = doc.getElementById('root')!;
   // A rule drawn straight under the title only repeats the edge the page already has
-  // (Mike, November 10), so it is left out. The file keeps it.
+  // (Cerys, November 10), so it is left out. The file keeps it.
   const first = root.firstElementChild?.tagName === 'H1' ? root.firstElementChild.nextElementSibling : root.firstElementChild;
   if (first?.tagName === 'HR') first.remove();
 
@@ -49,7 +49,7 @@ export function renderBody(markdown: string, index: WikiIndex, selfId: string | 
     label.className = 'callout-label';
     label.textContent = kind === 'narrator' ? 'Narrator only' : kind;
     if (kind === 'rumor') {
-      // A rumor says how it stands on its tag line (Mike, November 14).
+      // A rumor says how it stands on its tag line (Cerys, November 14).
       const word = /^(\w+)[^\S\n]*(?:<br>|\n|$)\s*/.exec(first.innerHTML);
       const standing = word ? standingOf(word[1]) : 'open';
       if (standing !== 'open') {

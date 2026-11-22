@@ -1,5 +1,5 @@
 /**
- * Rulebooks (Mike, November 14). A campaign keeps its rulebooks as PDF files in its
+ * Rulebooks (Cerys, November 14). A campaign keeps its rulebooks as PDF files in its
  * `rules` folder, and a rulebook opens in a pane beside the session. The pages are drawn
  * by PDF.js, Mozilla's PDF library, which is loaded only when a book is first opened.
  */

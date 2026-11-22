@@ -60,7 +60,7 @@
 
   const nav = new Navigator();
 
-  // The quick finder (Mike, October 31), from its button or Ctrl or Cmd and K anywhere.
+  // The quick finder (Cerys, October 31), from its button or Ctrl or Cmd and K anywhere.
   let finding = $state(false);
   const mac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
 
@@ -105,7 +105,7 @@
     }
   }
 
-  // The header shows the modules the writer has turned on in Settings (Mike, November 7).
+  // The header shows the modules the writer has turned on in Settings (Cerys, November 7).
   const TABS = $derived(MODULES.filter(([id]) => account.look.modules.includes(id)).map(([id, label]) => [id, label] as [Module, string]));
   const COMING: Record<Module, string> = {
     character: 'The Character module gets its own design session first.',
@@ -122,7 +122,7 @@
     if (shown.length && !shown.includes(nav.current.module) && !(journal && nav.current.module === 'story')) nav.show(shown[0]);
   });
 
-  // Real World opens on its journal (Mike, October 26).
+  // Real World opens on its journal (Cerys, October 26).
   onMount(() => {
     if (journal) nav.openIn('story', '@vault');
   });
@@ -173,7 +173,7 @@
         </button>
       </div>
       <!-- The world's name opens the world's menu, which also leads back to every world
-           (Mike, October 31). The arrow says it can be clicked. -->
+           (Cerys, October 31). The arrow says it can be clicked. -->
       <button type="button" class="world-name" title="All worlds, this world's details, theme, and loading screen" aria-haspopup="menu" onclick={worldMenu} oncontextmenu={worldMenu}>
         {worldName}
         <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
@@ -203,7 +203,7 @@
             ['protagonist', 'Protagonist', 'Protagonist puts plans and narrator-only text away, to show the screen to players.'],
           ]} />
       {/if}
-      <!-- Settings have a place of their own in the corner, where a cog is looked for (Mike, November 19). -->
+      <!-- Settings have a place of their own in the corner, where a cog is looked for (Cerys, November 19). -->
       <button type="button" class="gear" aria-label="Settings" title="Settings" onclick={() => (ui.settings = 'look')}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.97 6.46 L14.90 6.82 L14.90 9.18 L12.97 9.54 L12.60 10.43 L13.72 12.04 L12.04 13.72 L10.43 12.60 L9.54 12.97 L9.18 14.90 L6.82 14.90 L6.46 12.97 L5.57 12.60 L3.96 13.72 L2.28 12.04 L3.40 10.43 L3.03 9.54 L1.10 9.18 L1.10 6.82 L3.03 6.46 L3.40 5.57 L2.28 3.96 L3.96 2.28 L5.57 3.40 L6.46 3.03 L6.82 1.10 L9.18 1.10 L9.54 3.03 L10.43 3.40 L12.04 2.28 L13.72 3.96 L12.60 5.57 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
       </button>

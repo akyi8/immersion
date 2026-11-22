@@ -9,7 +9,7 @@
   import EntryEditor from '../world/EntryEditor.svelte';
 
   /**
-   * A handout made of words (Mike, November 14), such as a message from the game master
+   * A handout made of words (Cerys, November 14), such as a message from the game master
    * pasted in from a chat. It is written like any other page, and names in it link. In a
    * window of its own it is shown for reading, with narrator-only text left out, so it
    * can be shared on a call.

@@ -1,6 +1,6 @@
 /**
  * Calls `close` when a press lands outside `node`, so an open menu closes when the writer
- * clicks anywhere else (Mike, October 25).
+ * clicks anywhere else (Cerys, October 25).
  */
 export function outside(node: HTMLElement, close: () => void) {
   let handler = close;

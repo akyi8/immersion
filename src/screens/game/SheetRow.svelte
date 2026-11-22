@@ -6,7 +6,7 @@
   import CoreMark from './CoreMark.svelte';
 
   /**
-   * One aspect as a row of a sheet (Mike, November 21): its name, each of its kind's
+   * One aspect as a row of a sheet (Cerys, November 21): its name, each of its kind's
    * fields, and its flavor, each typed in place. The row saves itself a moment after
    * typing stops, as its form does.
    */
@@ -20,13 +20,19 @@
     placed: Placed;
     kind: Kind;
     engineName: string;
-    onSave: (next: Element) => Promise<void>;
+    onSave: (next: Element, base: Element) => Promise<void>;
     onOpen: () => void;
   } = $props();
 
   // Seeded once from the file; the row then holds the writer's own copy.
   let draft = $state<Element>((() => structuredClone($state.snapshot(placed.element)) as Element)());
-  const saver = new Saver(() => onSave({ ...($state.snapshot(draft) as Element), name: draft.name.trim() || placed.element.name }));
+  // Where this row started, so a save writes only what was changed in it.
+  let started = (() => structuredClone($state.snapshot(placed.element)) as Element)();
+  const saver = new Saver(async () => {
+    const next = { ...($state.snapshot(draft) as Element), name: draft.name.trim() || started.name };
+    await onSave(next, started);
+    started = structuredClone(next);
+  });
   onDestroy(() => void saver.flush(true));
 
   const textOf = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));

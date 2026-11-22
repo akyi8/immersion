@@ -2,7 +2,7 @@ import type { Update } from '@tauri-apps/plugin-updater';
 import { findUpdate } from './updates';
 
 /**
- * Whether a newer build is waiting (Mike, October 31). The app asks GitHub when it
+ * Whether a newer build is waiting (Cerys, October 31). The app asks GitHub when it
  * starts, and again whenever it has been open six hours since it last asked, so a build
  * that arrives during a long day still shows its button. One small request each time.
  */

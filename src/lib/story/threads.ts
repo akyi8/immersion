@@ -1,7 +1,7 @@
 import { splitHeader, withHeader } from '../world.ts';
 
 /**
- * Threads (Mike, October 25): the plotlines, character arcs, or timeline branches that
+ * Threads (Cerys, October 25): the plotlines, character arcs, or timeline branches that
  * run alongside a manuscript's chapters. A manuscript's header keeps their order as
  * `threads:`, and the first name there is the main thread's, whose beats carry no label.
  * A thread found in the chapters but missing from the header joins the end of the list.

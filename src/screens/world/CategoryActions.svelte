@@ -8,7 +8,7 @@
   import { saveAllUnder } from '../../lib/saves';
   import Dialog from '../shelf/Dialog.svelte';
 
-  // Rename and archive for a category in the tree (Mike, October 25).
+  // Rename and archive for a category in the tree (Cerys, October 25).
   let {
     fs,
     index,

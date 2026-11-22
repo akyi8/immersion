@@ -11,7 +11,7 @@
   import { titleFocus, tray } from '../../lib/table/tray.svelte';
 
   /**
-   * One side of a session (Mike, November 14). The log is what happened, and the plan is
+   * One side of a session (Cerys, November 14). The log is what happened, and the plan is
    * what the game master prepared. They are two files that share a name, and they open
    * side by side. The session's facts are kept in the log's header and shown on both.
    */

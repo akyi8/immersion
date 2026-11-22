@@ -1,7 +1,7 @@
 /**
  * Back and forward across everything the app shows (design: back and forward buttons).
  * A location is a module plus, for each module, the row of things open side by side as
- * sliding panes (Mike, October 24): wiki entries in World, and a manuscript with the
+ * sliding panes (Cerys, October 24): wiki entries in World, and a manuscript with the
  * entries opened from it in Story. Every change to a row is one step of history, so
  * Back after following a name closes the pane it opened.
  */
@@ -49,7 +49,7 @@ export class Navigator {
 
   /**
    * Shows another module with something opened in it, as one step of history, such as a
-   * timeline opened from the World home page in Boards (Mike, October 26).
+   * timeline opened from the World home page in Boards (Cerys, October 26).
    */
   openIn(module: Module, id: string) {
     const row = this.current.rows[module] ?? [];
@@ -65,7 +65,7 @@ export class Navigator {
 
   /**
    * Opens something in the module on screen. Followed from the pane at `from`, it opens
-   * just to the right of that pane, and the panes beyond it move one place right (Mike,
+   * just to the right of that pane, and the panes beyond it move one place right (Cerys,
    * October 24). Nothing closes unless the writer closes it. Opened from anywhere else,
    * such as the sidebar, it opens beside the last pane. Something already open is
    * brought into view instead.

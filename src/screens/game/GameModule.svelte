@@ -14,7 +14,9 @@
   import type { WorldFs, ImageSource } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import { splitHeader, withHeader } from '../../lib/world';
-  import { newElement, writeElement, type Element } from '../../lib/game/elements';
+  import { newElement, readElement, withChanges, writeElement, type Element } from '../../lib/game/elements';
+  import { merge3 } from '../../lib/editor/merge';
+  import { sync } from '../../lib/sync.svelte';
   import {
     bookTree,
     gameFileWith,
@@ -51,7 +53,7 @@
   import type { PictureChoice } from './GameBanner.svelte';
 
   /**
-   * The Game module (Mike, November 7 and 9, reshaped November 21): a tabletop game's
+   * The Game module (Cerys, November 7 and 9, reshaped November 21): a tabletop game's
    * rules, kept as separate elements and written as a book. The files are stored by
    * owner, the engine's and the world's, and the pages do not show that layout. In a
    * world, the book on screen is the world's. The sidebar shows it as a tree: its title
@@ -91,7 +93,7 @@
   } = $props();
 
   /**
-   * A world with no game yet starts one here (Mike, November 21). The engines on offer
+   * A world with no game yet starts one here (Cerys, November 21). The engines on offer
    * are the ones the library's other worlds already build on. Choosing one names it in
    * the world's `world.md` and lays the world's book out over the engine's, so the game
    * opens with the base game's shape and its core rules in place.
@@ -195,11 +197,20 @@
     });
   });
 
+  // A sync can change the engine's files, which nothing watches (code review, November 21),
+  // so the game is read again once each sync has finished.
+  let synced = sync.at;
+  $effect(() => {
+    if (sync.at === synced) return;
+    synced = sync.at;
+    void load();
+  });
+
   const byKey = $derived(new Map((game?.elements ?? []).map((p) => [p.key, p])));
   const expansionOf = (origin: Origin) => game?.expansions.find((x) => x.origin === origin) ?? null;
   /** The engine's, the world's, or an expansion's name. */
   const originName = (origin: Origin) => (origin === 'engine' ? engineName : origin === 'world' ? worldName : (expansionOf(origin)?.name ?? origin));
-  // Where a world's own element can live: the world itself or one of its expansions (Mike, November 9).
+  // Where a world's own element can live: the world itself or one of its expansions (Cerys, November 9).
   const homes = $derived([{ origin: 'world', name: worldName }, ...(game?.expansions ?? []).map((x) => ({ origin: x.origin, name: x.name }))]);
   const MOVABLE = (kind: string) => !['module', 'chapter', 'division', 'add-on'].includes(kind);
 
@@ -267,7 +278,7 @@
 
   const openElement = (key: string, from?: number) => nav.open(`${EL}${key}`, from);
 
-  // Game text links the game's terms and, in a world's book, the world's names (Mike,
+  // Game text links the game's terms and, in a world's book, the world's names (Cerys,
   // November 10). A term opens its rule, section, or aspect here, and a name opens its
   // wiki entry in the World module.
   // A game's own names are never misspelled: its aspects, keywords, rules, and sections.
@@ -292,7 +303,7 @@
   });
 
   function openLink(id: string) {
-    // A world's name opens its entry beside the page, as it does beside a chapter (Mike, November 11).
+    // A world's name opens its entry beside the page, as it does beside a chapter (Cerys, November 11).
     if (!isGameLink(id)) return nav.open(id);
     const key = id.slice(GAME_LINK.length);
     if (!byKey.has(key)) return;
@@ -319,12 +330,26 @@
     game = { ...game, elements: [...game.elements] };
   }
 
-  async function save(p: Placed, next: Element) {
+  /**
+   * Saves an element. The file is read as it stands on disk, and only what differs
+   * between `base` and `next` is written onto it (code review, November 21), so a page
+   * can neither undo a change that reached the file from elsewhere nor drop a key it does
+   * not know. `base` is the element as the page that asks had it. A page that holds its
+   * own copy while the writer types passes that copy's starting point.
+   */
+  async function save(p: Placed, next: Element, base: Element = p.element) {
     if (!game) return;
     const src = sourceOf(game, p);
-    await src.fs.writeText(pathIn(src, next.path), writeElement(next, game.kinds.get(next.kind) ?? null));
-    swap(p, next);
+    const file = pathIn(src, next.path);
+    const onDisk = (await src.fs.exists(file)) ? await src.fs.readText(file) : null;
+    const text = onDisk === null ? writeElement(next, game.kinds.get(next.kind) ?? null) : withChanges(onDisk, base, next, merge3);
+    if (text !== onDisk) await src.fs.writeText(file, text);
+    // The page is shown what the file now holds, which may be more than it wrote.
+    swap(p, { ...readElement(next.path, text), path: next.path });
   }
+  /** A page's title and text, with what each was when the page last read or saved them. */
+  type Typed = { name: string; text: string; was: { name: string; text: string } };
+  const saveTyped = (p: Placed, c: Typed) => save(p, { ...p.element, name: c.name, flavor: c.text }, { ...p.element, name: c.was.name, flavor: c.was.text });
 
   const list = (p: Placed, field: string): string[] => {
     const v = p.element.fields[field];
@@ -350,7 +375,7 @@
     await load();
   }
 
-  /** Moves a world's own element into an expansion, or back (Mike, November 9). */
+  /** Moves a world's own element into an expansion, or back (Cerys, November 9). */
   async function moveTo(p: Placed, origin: Origin, from: number) {
     if (!game || origin === p.origin) return;
     const src = sourceOf(game, p);
@@ -416,13 +441,13 @@
   }
 
   /**
-   * Archives a rule, a section, or any other element (Mike, November 15). It leaves every
+   * Archives a rule, a section, or any other element (Cerys, November 15). It leaves every
    * list that named it, in sections, divisions, and the books, and its file moves into the
    * game's `archive` folder with a note of where it stood, so it can be put back by hand.
    * Nothing is deleted. A section's rules stay in the game, under every element by kind.
    */
   const canArchive = (p: Placed) => !!game && (bookOrigin === 'engine' ? p.origin === 'engine' : p.origin !== 'engine');
-  // A rule's tags are kept in its menu, out of the writing (Mike, November 21).
+  // A rule's tags are kept in its menu, out of the writing (Cerys, November 21).
   let tagging = $state<Placed | null>(null);
   let tagText = $state('');
   let tagBusy = $state(false);
@@ -581,7 +606,7 @@
 
   /**
    * Moves the old front page's text into the front matter as a page named Introduction
-   * (Mike, November 10), and then clears it from `book.md`. The text is written into its
+   * (Cerys, November 10), and then clears it from `book.md`. The text is written into its
    * new page before it is taken from the old one, so a failure part way loses nothing.
    */
   async function textToFrontMatter(text: string) {
@@ -701,7 +726,7 @@
 
   /**
    * Adds a section at the book's top level, after its front matter and before its
-   * divisions (Mike, November 21), such as an introduction. It is listed with the front
+   * divisions (Cerys, November 21), such as an introduction. It is listed with the front
    * matter in `book.md`, and its `links: yes` says it is written like any other section,
    * where the notices of the front matter link nothing.
    */
@@ -781,7 +806,7 @@
           <p class="hint">Nothing by that name or tag.</p>
         {/each}
       {:else}
-        <!-- In a world, the book on screen is the world's (Mike, November 21). Core is a
+        <!-- In a world, the book on screen is the world's (Cerys, November 21). Core is a
              mark on a rule and not a second book to visit. The base game's own book is
              still reached from the foot of this list, for its title page and its order. -->
         {#if game?.books.world && bookOrigin === 'engine'}
@@ -896,7 +921,7 @@
               picture={shown(id, pictureFor(p))}
               choices={choicesFor(p)}
               onFrame={(frame) => saveFrame(p, frame)}
-              onSave={(c) => save(p, { ...p.element, name: c.name, flavor: c.body })}
+              onSave={(c) => saveTyped(p, c)}
               contents={d
                 ? d.catalog.length
                   ? d.catalog.map((c) => ({ label: c.kind.plural, note: `${c.elements.length}`, open: () => nav.open(`${CAT}${c.kind.id}`, i) }))
@@ -914,8 +939,8 @@
               picture={shown(id, pictureFor(s.placed))}
               choices={choicesFor(s.placed)}
               onFrame={(frame) => saveFrame(s.placed, frame)}
-              onSave={(c) => save(s.placed, { ...s.placed.element, name: c.name, flavor: c.intro })}
-              onSaveRule={(r, c) => save(r, { ...r.element, name: c.name, flavor: c.text })}
+              onSave={(c) => saveTyped(s.placed, c)}
+              onSaveRule={(r, c) => saveTyped(r, c)}
               onSaveWorld={(r, text) => saveWorldPiece(r, text)}
               onAddRule={(name) => addRule(s.placed.key, name, true)}
               onOpen={(key, type) => nav.open(`${type === 'rule' ? RULE : EL}${key}`, i)} />
@@ -933,7 +958,7 @@
               picture={shown(id, pictureFor(r))}
               choices={choicesFor(r)}
               onFrame={(frame) => saveFrame(r, frame)}
-              onSave={(c) => save(r, { ...r.element, name: c.name, flavor: c.text })}
+              onSave={(c) => saveTyped(r, c)}
               onSaveWorld={(text) => saveWorldPiece(r, text)} />
           {:else if id.startsWith(EXP)}
             {@const x = expansionOf(keyIn(id))!}
@@ -944,7 +969,7 @@
               picture={null}
               choices={[]}
               onFrame={async () => {}}
-              onSave={(c) => saveExpansion(x, c)}
+              onSave={(c) => saveExpansion(x, { name: c.name, body: c.text })}
               contents={[...game!.kinds.values()]
                 .filter((k) => k.id !== 'add-on')
                 .map((k) => ({ k, n: game!.elements.filter((p) => p.origin === x.origin && p.element.kind === k.id).length }))
@@ -960,7 +985,7 @@
               {engineName}
               onOpen={(key) => openElement(key, i)}
               onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)}
-              onSave={(p, next) => save(p, next)}
+              onSave={(p, next, base) => save(p, next, base)}
               onNewHere={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i, true)} />
           {:else if id.startsWith(KIND)}
             {@const [, origin, kindId] = id.split(':')}
@@ -973,7 +998,7 @@
               onOpen={(key) => openElement(key, i)}
               {engineName}
               onNew={(name) => add(origin as Origin, kindId, name, i)}
-              onSave={(p, next) => save(p, next)}
+              onSave={(p, next, base) => save(p, next, base)}
               onNewHere={(name) => add(origin as Origin, kindId, name, i, true)} />
           {:else}
             {@const p = byKey.get(keyIn(id))!}
@@ -983,7 +1008,7 @@
               {engineName}
               {worldName}
               {vendors}
-              onSave={(next) => save(p, next)}
+              onSave={(next, base) => save(p, next, base)}
               onSetAside={(on) => setAside(p, on)}
               onReskin={() => reskin(p, i)}
               onOpen={(key) => openElement(key, i)}

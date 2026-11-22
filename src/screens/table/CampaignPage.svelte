@@ -5,7 +5,7 @@
   import { titleFocus } from '../../lib/table/tray.svelte';
 
   /**
-   * A campaign's own page (Mike, November 14): its name, whether the writer runs it or
+   * A campaign's own page (Cerys, November 14): its name, whether the writer runs it or
    * plays in it, which game it uses, and links the table shares, such as the spreadsheet
    * that holds everyone's characters. Its rulebooks and handouts are added from the
    * sidebar, where they are listed, so this page does not explain them.

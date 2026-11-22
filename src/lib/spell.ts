@@ -1,5 +1,5 @@
 /**
- * Spelling (Mike, November 21). A misspelled word is set a little greyer and nothing
+ * Spelling (Cerys, November 21). A misspelled word is set a little greyer and nothing
  * else, and a right click on it offers what it might have been and adds it to the
  * writer's own dictionary. A world's names and a game's terms are never misspelled.
  *
@@ -81,7 +81,7 @@ class Spell {
   private local: Promise<Checker> | null = null;
 
   /**
-   * The worker could not read the dictionary, or never answered (Mike, November 21: no
+   * The worker could not read the dictionary, or never answered (Cerys, November 21: no
    * word was ever marked in the desktop app, and nothing said why). The page reads the
    * dictionary itself from here on, which costs a moment once and then works the same.
    */

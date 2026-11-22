@@ -20,7 +20,7 @@
   import FramePicture from '../world/FramePicture.svelte';
 
   /**
-   * The top of a page in a game's book (Mike, November 9): a header picture across the
+   * The top of a page in a game's book (Cerys, November 9): a header picture across the
    * pane, like a wiki entry's banner, with the place line and the title over its foot.
    * Without a picture, the place line and title stand alone with a way to add one.
    */

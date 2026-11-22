@@ -9,7 +9,7 @@
   import GameText from './GameText.svelte';
 
   /**
-   * A game book's title page (Mike, November 10), drawn the way a manuscript's is: the
+   * A game book's title page (Cerys, November 10), drawn the way a manuscript's is: the
    * title, a line under it, who the game is by, and the copyright line, none of it typed
    * into the page's text. The author comes from an author profile, so a pen name changed
    * in Settings changes here too. A book prints its title page, then its front matter,

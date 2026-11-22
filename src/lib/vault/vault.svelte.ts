@@ -4,7 +4,7 @@ import { deriveKey, fromBase64, importKey, keyFits, newParams, toBase64 } from '
 import { newEntryName, openEntry, sealEntry, type VaultEntry } from './entries';
 
 /**
- * The vault's lock (Mike, October 26). One passphrase opens every world's vault, and
+ * The vault's lock (Cerys, October 26). One passphrase opens every world's vault, and
  * the key stays in memory while it is open. It locks again after a quiet stretch, at a
  * key press, from its button, and whenever the app closes.
  */
@@ -51,7 +51,7 @@ class Vault {
   /**
    * Chooses the passphrase for this library's vaults. Another computer may have chosen
    * one already that has not arrived here yet, and two passphrases would split the vault
-   * in two, so `immersion.md` is synced and read again first (Mike, October 27).
+   * in two, so `immersion.md` is synced and read again first (Cerys, October 27).
    */
   async create(passphrase: string, remember: boolean) {
     await account.library?.syncYou().catch(() => null);

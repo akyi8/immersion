@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * The one sign a core rule carries (Mike, November 21). It replaces the owner label and
+   * The one sign a core rule carries (Cerys, November 21). It replaces the owner label and
    * the hint lines: the text beside it belongs to the engine, so an edit there reaches
    * every game built on it.
    */

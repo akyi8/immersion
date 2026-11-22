@@ -35,7 +35,7 @@ function localWords(): string[] {
 }
 
 /**
- * The library and what it holds for the writer (Mike, October 26), shared by the
+ * The library and what it holds for the writer (Cerys, October 26), shared by the
  * screens that need it: the Worlds page, Settings, and the title page. The app hands it
  * the library once at launch.
  */

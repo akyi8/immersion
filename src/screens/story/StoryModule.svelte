@@ -30,7 +30,7 @@
   /**
    * The Story module (Milestone 3): the shelf, the desk, and the drawer on the left, and
    * the writing in sliding panes. Names in a manuscript open their wiki entries beside it,
-   * as in the World module (Mike, October 24).
+   * as in the World module (Cerys, October 24).
    */
   let {
     view = 'narrator',
@@ -43,7 +43,7 @@
     daily = false,
   }: { view?: View; index: WikiIndex; fs: WorldFs; nav: Navigator; storiesDir: string; rebuild: () => Promise<void>; journal?: boolean; daily?: boolean } = $props();
 
-  // From Real World, the vault of any world on the Worlds page can be read (Mike, October 26).
+  // From Real World, the vault of any world on the Worlds page can be read (Cerys, October 26).
   let otherWorlds = $state<{ path: string; name: string }[]>([]);
   $effect(() => {
     if (journal) account.library?.list().then((all) => (otherWorlds = all.filter((w) => !w.missing).map((w) => ({ path: w.path, name: w.name }))));
@@ -112,9 +112,9 @@
 
   /** Every piece of writing the stories folder holds, which panes may show. */
   const pieces = $derived(new Set((story?.manuscripts ?? []).flatMap(filesOf)));
-  // A series board opens in Boards (Mike, October 26); one left open here from before still shows.
+  // A series board opens in Boards (Cerys, October 26); one left open here from before still shows.
   const SERIES = '@series:';
-  // The world's vault opens as a pane of its own (Mike, October 26).
+  // The world's vault opens as a pane of its own (Cerys, October 26).
   const VAULT = '@vault';
   const row = $derived(nav.panes.filter((id) => id === VAULT || id.startsWith(SERIES) || index.get(id) || pieces.has(id)));
 
@@ -132,7 +132,7 @@
     return titleFromName(id.split('/').pop() ?? id);
   }
 
-  /** Moves a page into a reading window of its own; its pane here closes (Mike, October 25). */
+  /** Moves a page into a reading window of its own; its pane here closes (Cerys, October 25). */
   async function toWindow(id: string) {
     await saveNow(id);
     openInWindow(id, label(id));
@@ -156,7 +156,7 @@
     else nav.replacePrefix(from, to);
   }
 
-  /** Moves a manuscript to the desk, the drawer, or the shelf (Mike, October 25). */
+  /** Moves a manuscript to the desk, the drawer, or the shelf (Cerys, October 25). */
   async function moveTo(m: Manuscript, place: Place) {
     if (!story) return;
     problem = '';
@@ -226,7 +226,7 @@
   }
 
   /**
-   * Archives a chapter (Mike, November 17). A chapter that is its own file moves into the
+   * Archives a chapter (Cerys, November 17). A chapter that is its own file moves into the
    * stories' archive folder. A chapter inside a manuscript kept as one file is cut out of
    * that file, from its heading to the next chapter's, and saved as a file of its own in
    * the archive. Nothing is deleted, and the archived text can be pasted back.
@@ -310,7 +310,7 @@
     }
   }
 
-  // A wiki entry started from a name selected in the writing (Mike, October 25). It
+  // A wiki entry started from a name selected in the writing (Cerys, October 25). It
   // opens beside the pane the name was selected in.
   let makingEntry = $state<{ name: string; after: number } | null>(null);
   let freshEntry = $state<string | null>(null);
@@ -327,7 +327,7 @@
     }
   }
 
-  // Starting a manuscript, a note, or a series in the place the sidebar shows (Mike, October 26).
+  // Starting a manuscript, a note, or a series in the place the sidebar shows (Cerys, October 26).
   type Kind = 'manuscript' | 'note' | 'series';
   let creating = $state<{ kind: Kind; place: Place } | null>(null);
   let newName = $state('');
@@ -512,7 +512,7 @@
           </button>
         {:else}
           {#if lately.length}
-            <!-- Story's home answers what was being written (Mike, October 31): the pieces
+            <!-- Story's home answers what was being written (Cerys, October 31): the pieces
                  touched most recently, each a click away from where it was left. -->
             <h2 class="label">Lately</h2>
             <div class="lately">

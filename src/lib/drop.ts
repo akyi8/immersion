@@ -7,7 +7,7 @@ import { imageExtension, type ImageSource } from './fs/types';
  *
  * The element hears the drop itself and gets the file, in the desktop app as in a
  * browser. The desktop window used to catch dropped files itself, which on Windows kept
- * every drag inside the page from working (Mike, October 31).
+ * every drag inside the page from working (Cerys, October 31).
  */
 type Handler = (image: ImageSource) => void;
 

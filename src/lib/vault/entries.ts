@@ -1,7 +1,7 @@
 import { openText, sealText, type Sealed } from './crypto.ts';
 
 /**
- * A story in a vault (Mike, October 26). Everything about it, its title included, is
+ * A story in a vault (Cerys, October 26). Everything about it, its title included, is
  * inside the encrypted file, and the file's own name is random, so a vault folder shows
  * nothing but how many stories it holds.
  */

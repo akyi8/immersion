@@ -47,7 +47,7 @@ export interface OutlineSource {
   moveThread(key: string, by: -1 | 1): Promise<void>;
   /** Removes a thread and every beat on it. The main thread cannot be removed. */
   removeThread(key: string): Promise<void>;
-  /** The board's story structure (Mike, October 28), on boards that can carry one. */
+  /** The board's story structure (Cerys, October 28), on boards that can carry one. */
   structure?(): Promise<string | null>;
   setStructure?(id: string | null): Promise<void>;
   /** Records the part card `i` holds in a structure, or clears it with null. */
@@ -278,7 +278,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
       let path = `${manuscript.path}/${n}-${slugify(title)}.md`;
       for (let k = 2; await fs.exists(path); k++) path = `${manuscript.path}/${n}-${slugify(title)}-${k}.md`;
       await fs.writeText(path, `# ${title}\n\n`);
-      // A new chapter goes before an epilogue, which stays last (Mike, October 25).
+      // A new chapter goes before an epilogue, which stays last (Cerys, October 25).
       if (files.length && EPILOGUE.test(manuscript.sections[files.length - 1].title)) {
         const order = [...files.slice(0, -1), path, files[files.length - 1]];
         const moved = await renumber(order);
@@ -330,7 +330,7 @@ export function folderSource(fs: WorldFs, manuscript: Manuscript): OutlineSource
 }
 
 /**
- * A series board (Mike, October 25): the books of one series along When, in the order
+ * A series board (Cerys, October 25): the books of one series along When, in the order
  * their title pages number them, with series threads alongside. A book's beat on a
  * series thread is kept in its `book.md`, under the book's title, the way a chapter's
  * beats sit under its heading. The world's `world.md` keeps each series' thread order.
@@ -429,7 +429,7 @@ export function seriesSource(fs: WorldFs, root: string, series: string): Outline
     // What a series' books call their parts lives in each book's title page, so a book
     // read on its own still knows. The series board sets it on all of them at once.
     // Books written by hand can disagree, so every word in use is reported, not just the
-    // first book's, and setting one word reaches every book that differs (Mike, October 31).
+    // first book's, and setting one word reaches every book that differs (Cerys, October 31).
     async partWords() {
       return [...new Set((await books()).map((b) => b.page.partWord))];
     },

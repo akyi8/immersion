@@ -72,7 +72,7 @@ export interface WorldFs {
    */
   writingActivity(dir: string, days: number): Promise<{ days: [string, number][]; uncommitted: number } | null>;
   /**
-   * Syncs the world through Git (Mike, October 26): commits its own folder, brings in
+   * Syncs the world through Git (Cerys, October 26): commits its own folder, brings in
    * what other computers pushed, and pushes.
    */
   sync(name: string): Promise<SyncReport>;
@@ -81,7 +81,7 @@ export interface WorldFs {
 }
 
 /**
- * What waits to sync (Mike, October 28): files that would go out to other computers, and
+ * What waits to sync (Cerys, October 28): files that would go out to other computers, and
  * files that would come in. `local` means Git with nowhere to push to.
  */
 export interface Pending {

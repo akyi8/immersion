@@ -9,7 +9,7 @@
   import EntryEditor from '../world/EntryEditor.svelte';
 
   /**
-   * A world's vault (Mike, October 26): stories kept under a passphrase, each with an
+   * A world's vault (Cerys, October 26): stories kept under a passphrase, each with an
    * optional picture. Nothing in it reaches the disk unencrypted, and it never opens in
    * a reading window. Names in an open story link to the wiki like anywhere else.
    */

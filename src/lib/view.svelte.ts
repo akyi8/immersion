@@ -2,7 +2,7 @@ import { spell } from './spell';
 import { ui } from './ui.svelte';
 
 /**
- * How one document is shown (Mike, November 10): the size of
+ * How one document is shown (Cerys, November 10): the size of
  * its text and whether its picture shows. Each document remembers how it was left, because a session
  * plan read for reference, a chapter being written, and a wiki entry being built want
  * different rooms. The choices are kept by this computer, like every other memory of
@@ -74,7 +74,7 @@ class Views {
 export const views = new Views();
 
 /**
- * While the writer types, everything but the page steps back (Mike, November 10), and
+ * While the writer types, everything but the page steps back (Cerys, November 10), and
  * it returns when the pointer moves or the writing loses the keyboard. Thinking with
  * still hands brings nothing back. Each computer can turn this off in Settings.
  */
@@ -90,7 +90,7 @@ class Quiet {
   );
   typing = $state(false);
   // The room steps back a moment after the typing starts and returns a moment after the
-  // pointer moves (Mike, November 21), so a pause, or a glance with the mouse, does not
+  // pointer moves (Cerys, November 21), so a pause, or a glance with the mouse, does not
   // make it flash out and in.
   private stepBack: ReturnType<typeof setTimeout> | null = null;
   private comeBack: ReturnType<typeof setTimeout> | null = null;
@@ -171,7 +171,7 @@ class Quiet {
 
 export const quiet = new Quiet();
 
-/** Whether misspelled words are set a little greyer (Mike, November 21). Each computer chooses. */
+/** Whether misspelled words are set a little greyer (Cerys, November 21). Each computer chooses. */
 class SpellingChoice {
   on = $state(spell.on);
   set(on: boolean) {

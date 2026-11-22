@@ -22,7 +22,7 @@
     auto?: boolean;
   } = $props();
 
-  // The arrival (Mike, October 31): the picture holds for a breath, a line fills under the
+  // The arrival (Cerys, October 31): the picture holds for a breath, a line fills under the
   // button, and the world opens. A click anywhere on the picture, or any key but Enter,
   // keeps the screen for as long as the writer wants it.
   const BREATH_MS = 4000;
@@ -34,7 +34,7 @@
     timer = null;
   }
 
-  // A world with no cover invites one right here (Mike, October 25).
+  // A world with no cover invites one right here (Cerys, October 25).
   let coverProblem = $state('');
   async function setCover(image: ImageSource | null) {
     if (!image) return;

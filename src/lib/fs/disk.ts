@@ -9,7 +9,7 @@ export class DiskFs implements WorldFs {
   /**
    * Every world's pictures are served at the same addresses, such as `world.png`, so
    * each address also names its world. Otherwise the webview can show a picture it
-   * cached from the world opened before (Mike, October 25).
+   * cached from the world opened before (Cerys, October 25).
    */
   private worldTag: string;
 

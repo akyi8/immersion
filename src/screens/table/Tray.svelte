@@ -10,7 +10,7 @@
   import { tray } from '../../lib/table/tray.svelte';
 
   /**
-   * The tray at the foot of the Table sidebar (Mike, November 14): dice and cards. A roll
+   * The tray at the foot of the Table sidebar (Cerys, November 14): dice and cards. A roll
    * or a drawn card can be written into the session log the writer was last in. Drawn
    * cards are remembered by the campaign.
    */
@@ -34,7 +34,7 @@
     }
   }
 
-  // Dice. The roll is built by clicking the dice (Mike, November 14): a click adds one die
+  // Dice. The roll is built by clicking the dice (Cerys, November 14): a click adds one die
   // of that shape, and a right click takes one away. The roll can also be typed.
   const SHAPES = [4, 6, 8, 10, 12, 20, 100];
   // A world's own game rolls a pool of eight-sided dice and nothing else.

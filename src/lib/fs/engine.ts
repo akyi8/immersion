@@ -3,7 +3,7 @@ import { picturePath, type DirEntry, type ImageSource } from './types';
 import type { GameFs } from '../game/game';
 
 /**
- * The engine folder a world's game is built on (Mike, November 7), reached through the
+ * The engine folder a world's game is built on (Cerys, November 7), reached through the
  * Rust backend's engine commands. Its paths are relative to the engine folder.
  */
 export class EngineFs implements GameFs {

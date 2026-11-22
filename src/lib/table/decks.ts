@@ -4,7 +4,7 @@ import { TABLE_DIR, slugOf, titleFromSlug } from './index.ts';
 import type { Chance } from './dice.ts';
 
 /**
- * Decks of cards for the table (Mike, November 14). Two decks come with the app: a poker
+ * Decks of cards for the table (Cerys, November 14). Two decks come with the app: a poker
  * deck with its jokers, and the tarot. Any other deck is a file in the world's
  * `table/decks` folder that lists its cards, one to a line, so a deck is added by adding
  * a file. A campaign remembers what has been drawn from each deck in its `draws.md`.

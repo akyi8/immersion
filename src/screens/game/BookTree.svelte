@@ -2,7 +2,7 @@
   import type { BookTree, DivisionNode, SectionNode } from '../../lib/game/game';
 
   /**
-   * A game's book as a tree (Mike, November 9). The divisions are folders and each
+   * A game's book as a tree (Cerys, November 9). The divisions are folders and each
    * section inside them opens its own page, where its rules are written, so a section's
    * rules stay folded here until its twist is opened (November 21). A division with a
    * catalog lists its kinds as folders, and their elements inside. The front matter and
@@ -153,7 +153,7 @@
       end();
     }}>
     <button type="button" class="twist" aria-label={expanded.has(key) ? 'Close' : 'Open'} onclick={() => toggle(key)}>{expanded.has(key) ? '▾' : '▸'}</button>
-    <!-- A section is written on its own page, so its name opens the page and leaves its rules folded away (Mike, November 21). The twist still shows them, to drag a rule to a new place. -->
+    <!-- A section is written on its own page, so its name opens the page and leaves its rules folded away (Cerys, November 21). The twist still shows them, to drag a rule to a new place. -->
     <button type="button" class="name" onclick={() => onOpen(`@sec:${key}`)}>{s.placed.element.name}</button>
     {#if tree.origin === 'world' && s.placed.origin === 'world'}<span class="own" title="{worldName}'s own section">◆</span>{/if}
     <button type="button" class="plus" title="Add a rule" aria-label="Add a rule to {s.placed.element.name}" onclick={() => startAdding('rule', key)}>+</button>
@@ -247,7 +247,7 @@
     <span class="n">title page</span>
     {#if onAddTop}<button type="button" class="plus" title="Add a section at the top of the book, such as an introduction" aria-label="Add a section at the top of the book" onclick={() => startAdding('section', TOP)}>+</button>{/if}
   </div>
-  <!-- The front and back matter sit at the top level, as folders of their own (Mike, November 9). -->
+  <!-- The front and back matter sit at the top level, as folders of their own (Cerys, November 9). -->
   {#each tree.front as s (s.placed.key)}{@render section(s, null, 0, false)}{/each}
   {@render adder('section', TOP, 0)}
   {#each tree.divisions as d (d.placed.key)}{@render division(d)}{/each}

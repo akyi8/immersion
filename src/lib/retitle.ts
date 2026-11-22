@@ -1,7 +1,7 @@
 import { titleFocus } from './table/tray.svelte';
 
 /**
- * A page's title is renamed by typing over it (Mike, November 15). The title looks like
+ * A page's title is renamed by typing over it (Cerys, November 15). The title looks like
  * a heading and wraps like one. A rename is taken on Enter or when the cursor leaves the
  * title, and Escape puts the old name back, so a stray key cannot rename a page: a rename
  * can move files and change every link to the page. "Rename" in a menu puts the cursor

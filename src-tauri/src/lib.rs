@@ -18,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[derive(Default)]
 struct OpenWorld(Mutex<Option<PathBuf>>);
 
-/// The engine folder the open world's game is built on, if any (Mike, November 7). It
+/// The engine folder the open world's game is built on, if any (Cerys, November 7). It
 /// lives in the library beside the worlds, holds the core elements every game shares, and
 /// is read and written through its own commands so a world never reaches outside itself.
 #[derive(Default)]
@@ -81,7 +81,7 @@ struct Settings {
     /// library are found there and need no place in this list.
     #[serde(default)]
     worlds: Vec<String>,
-    /// The library (Mike, October 26): one folder that holds the writer's worlds and
+    /// The library (Cerys, October 26): one folder that holds the writer's worlds and
     /// `immersion.md`, and syncs between computers. Where it is, is the one thing each
     /// computer must remember for itself.
     #[serde(default)]
@@ -96,7 +96,7 @@ struct Settings {
     #[serde(default = "on")]
     git_sync: bool,
     /// When each world was last opened on this computer, in milliseconds since 1970, so
-    /// the Worlds page shows the most recent first (Mike, October 26).
+    /// the Worlds page shows the most recent first (Cerys, October 26).
     #[serde(default)]
     opened: std::collections::HashMap<String, u64>,
 }
@@ -111,8 +111,8 @@ const YOU_FILE: &str = "immersion.md";
 /// Folders the library scan never enters, because they hold code, builds, or old work.
 const NOT_WORLDS: [&str; 7] = ["node_modules", "target", "dist", "build", "archive", "old", "export"];
 
-/// How many folders down the library is searched for worlds. Mike keeps some worlds
-/// inside project folders, such as a world four folders down (Mike, October 28).
+/// How many folders down the library is searched for worlds. Cerys keeps some worlds
+/// inside project folders, such as a world four folders down (Cerys, October 28).
 const LIBRARY_DEPTH: usize = 6;
 
 /// Every world in the library: any folder up to six levels down with a `world.md`. A
@@ -252,7 +252,7 @@ fn is_stash(path: &Path) -> bool {
 /// Parks a picture dropped onto the page in the temporary folder and returns its path,
 /// so it can be placed like a picture chosen from disk. The page drops files itself
 /// since the window stopped catching drops, which on Windows had blocked every drag
-/// inside the page, such as moving cards on a board (Mike, October 31). The bytes
+/// inside the page, such as moving cards on a board (Cerys, October 31). The bytes
 /// arrive as the request's body, and the picture's extension in its `x-ext` header.
 #[tauri::command]
 fn stash_picture(request: tauri::ipc::Request) -> Result<String, String> {
@@ -341,7 +341,7 @@ fn sync_in_background(app: &AppHandle, root: Option<PathBuf>) {
 }
 
 /// Syncs started in the background and not finished yet. Closing the app waits for them,
-/// because a sync cut off by the app closing never reaches GitHub (Mike, October 27).
+/// because a sync cut off by the app closing never reaches GitHub (Cerys, October 27).
 static PENDING: Mutex<usize> = Mutex::new(0);
 static PENDING_DONE: Condvar = Condvar::new();
 
@@ -366,7 +366,7 @@ fn you_file(app: &AppHandle) -> Option<PathBuf> {
 }
 
 /// Closes every reading window. They show pages of the open world, so they close when
-/// the world does (Mike, October 25).
+/// the world does (Cerys, October 25).
 fn close_readers(app: &AppHandle) {
     for (label, window) in app.webview_windows() {
         if label.starts_with("reader-") {
@@ -570,7 +570,7 @@ fn repo_relative(dir: &Path, path: &Path) -> Option<String> {
     Some(parts.join("/"))
 }
 
-/// What waits to sync (Mike, October 28): the files that would go out to other computers,
+/// What waits to sync (Cerys, October 28): the files that would go out to other computers,
 /// changed here or committed and not yet pushed, and the files that would come in.
 #[derive(Serialize, Debug, PartialEq)]
 struct Pending {
@@ -701,10 +701,10 @@ async fn sync_library(app: AppHandle) -> Result<SyncReport, String> {
     tauri::async_runtime::spawn_blocking(move || sync_paths(&lib, &library_specs(&lib).0, "Immersion: library")).await.map_err(|e| e.to_string())
 }
 
-/// Syncs one world through Git (Mike, October 26): commits the world's own folder and
+/// Syncs one world through Git (Cerys, October 26): commits the world's own folder and
 /// nothing else, brings in what other computers pushed, and pushes. The library's
 /// `immersion.md` rides along when it is in the same repository, because it holds the
-/// vault's key settings and the author profiles (Mike, October 27). Other files in the
+/// vault's key settings and the author profiles (Cerys, October 27). Other files in the
 /// repository, such as a Claude session's unfinished work, are never committed. A
 /// conflict stops the sync and is reported, and nothing is merged by guesswork.
 fn sync_folder(root: &Path, name: &str, you: Option<&Path>) -> SyncReport {
@@ -1061,7 +1061,7 @@ fn vault_path(app: &AppHandle, world: &str, name: Option<&str>) -> Result<PathBu
     }
 }
 
-/// The names of the stories in a world's vault (Mike, October 26). They are encrypted,
+/// The names of the stories in a world's vault (Cerys, October 26). They are encrypted,
 /// and the app decrypts them itself, in memory.
 #[tauri::command]
 fn vault_list(world: String, app: AppHandle) -> Result<Vec<String>, String> {
@@ -1366,7 +1366,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         // The main window opens maximized the first time, and after that where and how
-        // large it was left on this computer (Mike, October 28). Reading windows are
+        // large it was left on this computer (Cerys, October 28). Reading windows are
         // left to open fresh.
         .plugin(tauri_plugin_window_state::Builder::new().with_filter(|label| label == "main").build())
         .manage(OpenWorld::default())

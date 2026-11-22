@@ -3,7 +3,7 @@ import { withHeader } from '../world.ts';
 import { slugOf, type Campaign } from './index.ts';
 
 /**
- * Adds rulebooks and handouts to a campaign (Mike, November 14). Files chosen on this
+ * Adds rulebooks and handouts to a campaign (Cerys, November 14). Files chosen on this
  * computer are copied into the campaign's folder, and a text handout is a markdown file
  * written there, for words pasted from a chat or an email.
  */

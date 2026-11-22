@@ -8,11 +8,11 @@
   import PieceActions from './PieceActions.svelte';
 
   /**
-   * The shelf, the desk, and the drawer (Mike, October 25), as three tabs over the same
+   * The shelf, the desk, and the drawer (Cerys, October 25), as three tabs over the same
    * kind of tree. The desk holds what is being worked on, the drawer what might be worked
    * on later, and the shelf what is finished. Each tab lists manuscripts, which fold to
    * their chapters, and notes, which are single pages. The books of a series gather under
-   * the series' name, which opens its board (Mike, October 26). The writing heatmap sits
+   * the series' name, which opens its board (Cerys, October 26). The writing heatmap sits
    * at the foot.
    */
   let {
@@ -64,7 +64,7 @@
   } = $props();
 
   const TABS: [Place, string][] = [
-    // In the order a piece lives (Mike, October 31): an idea in the drawer, work on the desk, finished on the shelf.
+    // In the order a piece lives (Cerys, October 31): an idea in the drawer, work on the desk, finished on the shelf.
     ['drawer', 'Drawer'],
     ['desk', 'Desk'],
     ['shelf', 'Shelf'],
@@ -249,7 +249,7 @@
     {/if}
     <button type="button" class="manuscript" onclick={() => openManuscript(m)}>
       <span class="piece-name">
-        <!-- A book for a manuscript, a page for a note (Mike, October 31). -->
+        <!-- A book for a manuscript, a page for a note (Cerys, October 31). -->
         {#if m.kind === 'folder'}
           <svg class="kind" width="12" height="12" viewBox="0 0 12 12" aria-label="Manuscript"><path d="M2 2.2 Q4.2 1.4 6 2.6 Q7.8 1.4 10 2.2 V10 Q7.8 9.2 6 10.4 Q4.2 9.2 2 10 Z M6 2.6 V10.4" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" /></svg>
         {:else}

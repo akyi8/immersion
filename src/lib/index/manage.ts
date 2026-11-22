@@ -5,7 +5,7 @@ import { splitHeader, withHeader } from '../world.ts';
 import type { Entry } from './wiki.ts';
 
 /**
- * Renaming, moving, and archiving wiki entries (Mike, October 25). Each one moves the
+ * Renaming, moving, and archiving wiki entries (Cerys, October 25). Each one moves the
  * entry's file together with its picture, so nobody has to think about either.
  */
 
@@ -39,7 +39,7 @@ export function aliasesOf(text: string): string[] {
 }
 
 /**
- * Sets an entry's other names (Mike, October 25), in whichever form the entry already
+ * Sets an entry's other names (Cerys, October 25), in whichever form the entry already
  * keeps them: the bold aliases line when it has one, and otherwise the YAML header.
  * An empty list removes them.
  */

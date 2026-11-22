@@ -1,5 +1,5 @@
 /**
- * Where the tray writes a roll or a drawn card (Mike, November 14): the session log the
+ * Where the tray writes a roll or a drawn card (Cerys, November 14): the session log the
  * writer was last in. The log's page says so when it has the keyboard.
  */
 export interface LogTarget {
@@ -24,7 +24,7 @@ class Tray {
 
 export const tray = new Tray();
 
-/** Whether dice tumble across the screen when rolled (Mike, November 14). Kept by this computer. */
+/** Whether dice tumble across the screen when rolled (Cerys, November 14). Kept by this computer. */
 const TUMBLE = 'immersion.table.tumble';
 class Tumbling {
   on = $state(
@@ -49,7 +49,7 @@ class Tumbling {
 export const tumbling = new Tumbling();
 
 /**
- * Renaming is typing over a page's title (Mike, November 15). "Rename" in a menu opens
+ * Renaming is typing over a page's title (Cerys, November 15). "Rename" in a menu opens
  * the page and asks it to put the cursor in its title, which this carries.
  */
 class TitleFocus {

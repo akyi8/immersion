@@ -14,11 +14,11 @@
   import { account } from '../lib/account.svelte';
 
   /**
-   * The quick finder (Mike, October 31). Typing finds any entry, manuscript, note,
+   * The quick finder (Cerys, October 31). Typing finds any entry, manuscript, note,
    * chapter, board, campaign, session, rulebook, handout, or game rule in the open world, and a few
    * actions. Enter opens what is chosen in the module it belongs to. A wiki entry opens
    * beside what is already open, in the module on screen, so looking someone up in the
-   * middle of a session or a chapter never loses the place (Mike's design pass, November
+   * middle of a session or a chapter never loses the place (Cerys's design pass, November
    * 15). The vault is never searched.
    */
   let {
@@ -64,7 +64,7 @@
     run();
   };
 
-  // Only the modules the header shows are offered (Mike, November 7).
+  // Only the modules the header shows are offered (Cerys, November 7).
   const shown = (m: string) => account.look.modules.includes(m as never);
   const allActions: Findable[] = [
     { kind: 'Go to', name: 'World', detail: 'The wiki', run: go(() => nav.show('world')) },

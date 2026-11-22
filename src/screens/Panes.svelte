@@ -12,16 +12,16 @@
   import { room } from '../lib/room.svelte';
 
   /**
-   * Sliding panes, after Andy Matuschak's notes (Mike, October 24). Entries open side by
+   * Sliding panes, after Andy Matuschak's notes (Cerys, October 24). Entries open side by
    * side, left to right. When the row is wider than the screen, it scrolls sideways, and
    * the panes that slide off the left edge stack into narrow spines with their titles
    * running upward. Clicking a spine brings its pane back into view. Each module decides
    * what its panes hold, through the `pane` snippet.
    *
-   * Every document carries the same toolbar in its top corner (Mike, October 26, and the
+   * Every document carries the same toolbar in its top corner (Cerys, October 26, and the
    * interface's rules of November 15), in one order: ⋯ for what is done to the page, Aa
    * for how it looks, full screen, a new window, and close. A page's title is one size
-   * alone and a smaller one when pages share the row. Beats live in the pane's own actions row (Mike,
+   * alone and a smaller one when pages share the row. Beats live in the pane's own actions row (Cerys,
    * October 31), and show up here only in full screen, where that row is hidden. Full screen shows
    * one pane alone, and the others stay open behind it, so nothing loses its place.
    */
@@ -53,7 +53,7 @@
 
   const full = $derived(ui.full && ids.includes(ui.full) ? ui.full : null);
 
-  // Each document remembers how it is shown (Mike, November 10): the size of
+  // Each document remembers how it is shown (Cerys, November 10): the size of
   // its text and its picture. The choices
   // sit behind one button in the document's toolbar, the same for every kind of document.
   let viewing = $state<string | null>(null);
@@ -139,7 +139,7 @@
   // Following a name that is already open brings its pane into view. Only a new request
   // does this. The row of pages is made again after every save, and reading it here would
   // run this again and pull the row back to the page last asked for, away from the page
-  // being written in (Mike, November 21).
+  // being written in (Cerys, November 21).
   $effect(() => {
     const r = nav.reveal;
     if (!r) return;
@@ -148,7 +148,7 @@
   });
 
   /**
-   * Escape closes the page the writer is in, after everything is saved (Mike, November 11).
+   * Escape closes the page the writer is in, after everything is saved (Cerys, November 11).
    * With no page holding the keyboard, it closes the last one. It stands aside while
    * anything else that answers Escape is open: a dialog, a menu, Settings, the finder, or
    * a field being typed in.

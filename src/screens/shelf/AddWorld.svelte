@@ -3,7 +3,7 @@
   import { worldFile } from '../../lib/world';
   import Dialog from './Dialog.svelte';
 
-  // Describes an existing folder of writing as a world (Mike, October 24). The answers
+  // Describes an existing folder of writing as a world (Cerys, October 24). The answers
   // become a world.md written into the folder, and nothing else in it changes.
   let {
     library,

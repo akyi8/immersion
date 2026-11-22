@@ -9,7 +9,7 @@
   import RuleBody from './RuleBody.svelte';
 
   /**
-   * One rule of a game's book, opened alone (Mike, November 9, and November 21). It is
+   * One rule of a game's book, opened alone (Cerys, November 9, and November 21). It is
    * the same writing as in its section's page: its title, its text, and, in a world's
    * book, what the world adds after a core rule. A core rule carries one small mark, and
    * its tags are kept in the page's menu.
@@ -40,14 +40,27 @@
     picture: { url: string; frame: Frame | null } | null;
     choices: PictureChoice[];
     onFrame: (frame: Frame) => Promise<void>;
-    onSave: (changes: { name: string; text: string }) => Promise<void>;
+    onSave: (changes: { name: string; text: string; was: { name: string; text: string } }) => Promise<void>;
     onSaveWorld: (text: string) => Promise<void>;
   } = $props();
 
   // Seeded once from the files; the page then holds the writer's own copy.
   let name = $state((() => rule.element.name)());
   let text = $state((() => rule.element.flavor)());
-  const own = new Saver(() => onSave({ name: name.trim() || rule.element.name, text }));
+  // What the name and the text were when this page last read or saved them, so a save
+  // writes only what the writer changed here.
+  let was = (() => ({ name: rule.element.name, text: rule.element.flavor }))();
+  const own = new Saver(async () => {
+    const now = { name: name.trim() || was.name, text };
+    await onSave({ ...now, was });
+    was = now;
+  });
+  // A name changed elsewhere shows here, unless the writer is partway through changing it.
+  $effect(() => {
+    const theirs = rule.element.name;
+    if (theirs !== was.name && name === was.name) name = theirs;
+    if (name === theirs) was = { ...was, name: theirs };
+  });
   const world = new Saver<string>((t) => onSaveWorld(t));
   const busy = $derived(own.status !== 'saved' ? own.status : world.status);
 

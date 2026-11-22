@@ -6,7 +6,7 @@
   import RuleBody from './RuleBody.svelte';
 
   /**
-   * One rule within its section's page, written where it stands (Mike, November 21). Its
+   * One rule within its section's page, written where it stands (Cerys, November 21). Its
    * name is typed over to rename it, and a small control opens the rule alone.
    */
   let {
@@ -22,7 +22,7 @@
     inWorld: boolean;
     engineName: string;
     worldName: string;
-    onSave: (changes: { name: string; text: string }) => Promise<void>;
+    onSave: (changes: { name: string; text: string; was: { name: string; text: string } }) => Promise<void>;
     onSaveWorld: (text: string) => Promise<void>;
     onOpen: () => void;
   } = $props();
@@ -31,7 +31,20 @@
   // Seeded once from the file; the page then holds the writer's own copy.
   let name = $state((() => item.placed.element.name)());
   let text = $state((() => item.placed.element.flavor)());
-  const own = new Saver(() => onSave({ name: name.trim() || item.placed.element.name, text }));
+  // What the name and the text were when this page last read or saved them, so a save
+  // writes only what the writer changed here.
+  let was = (() => ({ name: item.placed.element.name, text: item.placed.element.flavor }))();
+  const own = new Saver(async () => {
+    const now = { name: name.trim() || was.name, text };
+    await onSave({ ...now, was });
+    was = now;
+  });
+  // A name changed elsewhere shows here, unless the writer is partway through changing it.
+  $effect(() => {
+    const theirs = item.placed.element.name;
+    if (theirs !== was.name && name === was.name) name = theirs;
+    if (name === theirs) was = { ...was, name: theirs };
+  });
   const world = new Saver<string>((t) => onSaveWorld(t));
   onDestroy(() => {
     void own.flush(true);

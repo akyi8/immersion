@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * A board's name, renamed where it stands (Mike, October 27): click it, type, and press
+   * A board's name, renamed where it stands (Cerys, October 27): click it, type, and press
    * Enter or click away. Escape puts the old name back.
    */
   let { name, label, onRename }: { name: string; label: string; onRename: (name: string) => Promise<void> } = $props();

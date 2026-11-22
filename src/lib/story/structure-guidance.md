@@ -1,6 +1,6 @@
 # Story Structure Guidance
 
-*Draft for Mike to edit, October 28, 2026. Immersion shows this text on the board when a story structure is on (design: Story structures).*
+*Draft for Cerys to edit, October 28, 2026. Immersion shows this text on the board when a story structure is on (design: Story structures).*
 
 This file holds the guidance for Immersion's three story structures. Each structure opens with a short overview, which the app shows when the structure is chosen. Each part of a structure has a paragraph on what the part does and a few prompts for outlining it, and the app shows both when the writer opens the arrow on that part's header. In Four Acts, each act also lists the Hero's Journey stages that can happen inside it, recommended first and optional after. The app reads this file as written, so a heading, a paragraph, or a prompt changed here changes on the board.
 

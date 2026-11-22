@@ -17,7 +17,7 @@
   import { sync } from '../lib/sync.svelte';
 
   /**
-   * Settings, as one page (Mike, November 17). The groups name what a setting is for:
+   * Settings, as one page (Cerys, November 17). The groups name what a setting is for:
    * how the app looks, how the desk behaves, which modules show, and where files live.
    * Where a choice applies is a small tag beside its name. All worlds is kept in the
    * library's `immersion.md`, This world in the open world's `world.md`, and This

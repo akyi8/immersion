@@ -3,7 +3,7 @@ import { saveAll } from './saves';
 import { account } from './account.svelte';
 
 /**
- * When the open world syncs through Git (Mike, October 26): as it opens, a few minutes
+ * When the open world syncs through Git (Cerys, October 26): as it opens, a few minutes
  * after the writing stops, every five minutes while it is open, and when the app comes
  * back to the front. Closing the world
  * syncs it once more, from the Rust side, so leaving never waits on the network.
@@ -11,7 +11,7 @@ import { account } from './account.svelte';
 const AFTER_WRITING_MS = 3 * 60 * 1000;
 const EVERY_MS = 5 * 60 * 1000;
 /**
- * Coming back to the app syncs too (Mike, October 31), so changes a Claude session made
+ * Coming back to the app syncs too (Cerys, October 31), so changes a Claude session made
  * in the meantime arrive without a press of the button, unless a sync just ran.
  */
 const BACK_AFTER_MS = 60 * 1000;

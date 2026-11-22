@@ -2,7 +2,7 @@
   import { heatmapWeeks, totals, type Activity } from '../../lib/story/activity';
 
   // The activity heatmap: one square per day, shaded by words written. It shows how the
-  // writing has gone, with no streaks to keep (Mike).
+  // writing has gone, with no streaks to keep (Cerys).
   let { activity, weeks, months = false }: { activity: Activity; weeks: number; months?: boolean } = $props();
 
   const today = new Date();

@@ -2,7 +2,7 @@ import { splitHeader, withHeader } from './world.ts';
 import { slugify } from './slug.ts';
 
 /**
- * What follows the writer to every computer (Mike, October 26), kept in `immersion.md`
+ * What follows the writer to every computer (Cerys, October 26), kept in `immersion.md`
  * at the root of the library. It starts with author profiles: a name to write under and
  * who holds the copyright, such as a pen name and a legal name. A title page links to a
  * profile by its id, so a profile renamed later is renamed on every book that uses it.
@@ -15,11 +15,11 @@ export interface Profile {
 }
 
 /**
- * The writer's layout (Mike, October 27), which is theirs on every world rather than a
+ * The writer's layout (Cerys, October 27), which is theirs on every world rather than a
  * world's. Classic is the app as it began, ruled with lines. Soft trades the lines for
  * space, rounds the corners, sets the type a step smaller, and lets things settle into
  * place, and its desk can show the open world's picture through frosted glass. Radiance
- * (Mike, November 17) is Soft with a picture that belongs to the room, down its right
+ * (Cerys, November 17) is Soft with a picture that belongs to the room, down its right
  * edge: the world's, or that of the page in use.
  */
 export type Layout = 'classic' | 'soft' | 'radiance';
@@ -28,9 +28,9 @@ export interface Look {
   layout: Layout;
   /** In Soft, whether the world's picture glows through behind the desk. */
   backdrop: boolean;
-  /** Whether a world's loading screen enters the world on its own after a breath (Mike, October 31). */
+  /** Whether a world's loading screen enters the world on its own after a breath (Cerys, October 31). */
   autoEnter: boolean;
-  /** The face of the text on boards: the world's prose font, or a condensed one (Mike, October 31). */
+  /** The face of the text on boards: the world's prose font, or a condensed one (Cerys, October 31). */
   boardFont: BoardFont;
   /** The modules the header shows, in header order. */
   modules: ModuleId[];
@@ -39,7 +39,7 @@ export interface Look {
 export type BoardFont = 'theme' | 'cabin' | 'plex';
 
 /**
- * The modules the header shows (Mike, November 7). World, Boards, and Story are on from
+ * The modules the header shows (Cerys, November 7). World, Boards, and Story are on from
  * the start. Character, Play, and Game serve fewer writers, so each waits until the
  * writer turns it on in Settings.
  */

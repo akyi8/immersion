@@ -55,7 +55,7 @@
     else applyTheme(phase === 'shelf' ? null : (world?.theme ?? null), mode.current);
   });
 
-  // The writer's layout, the same on every world (Mike, October 27). In Soft, the open
+  // The writer's layout, the same on every world (Cerys, October 27). In Soft, the open
   // world's picture can glow through the desk.
   $effect(() => {
     // Radiance is Soft with a picture that belongs to the room, so it wears Soft's rules.
@@ -75,7 +75,7 @@
       : null,
   );
 
-  // Spelling (Mike, November 21): the writer's own words and the world's names are never
+  // Spelling (Cerys, November 21): the writer's own words and the world's names are never
   // misspelled, and the open world says which English it is written in.
   $effect(() => spell.allow('mine', account.words));
   $effect(() => spell.allow('world', index ? [...index.entries.values()].flatMap((e) => [e.name, ...e.aliases]) : []));
@@ -165,7 +165,7 @@
     document.documentElement.classList.toggle('typing', quiet.on && quiet.typing);
   });
 
-  /** Sets how every entry in the open world shows its picture (Mike, November 10). */
+  /** Sets how every entry in the open world shows its picture (Cerys, November 10). */
   async function setPictures(shape: 'portrait' | 'banner' | 'behind' | null) {
     if (!fs) return;
     await fs.writeText('world.md', withHeader(await fs.readText('world.md'), { pictures: shape ?? undefined }));
@@ -235,14 +235,14 @@
     });
   });
 
-  // The open world's name and tagline, from the menu on its name (Mike, October 26).
+  // The open world's name and tagline, from the menu on its name (Cerys, October 26).
   let detailsFor = $state<ShelfWorld | null>(null);
   async function editDetails() {
     if (!library) return;
     detailsFor = (await library.list()).find((w) => w.path === openPath) ?? null;
   }
 
-  // The open world's theme is a group of Settings (Mike, November 18).
+  // The open world's theme is a group of Settings (Cerys, November 18).
   const editTheme = () => (ui.settings = 'theme');
   let settingsWorldMd = $state<string | null>(null);
 
@@ -332,7 +332,7 @@
       })
       .catch(() => {});
     // The app opens on the Worlds page, where the library's sync and every world can be
-    // seen before one is chosen (Mike, October 28).
+    // seen before one is chosen (Cerys, October 28).
     phase = 'shelf';
   });
 </script>

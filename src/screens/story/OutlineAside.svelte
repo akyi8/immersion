@@ -9,10 +9,10 @@
   import Portrait from '../world/Portrait.svelte';
 
   /**
-   * The outline beside the writing (Mike, October 23 and 25): the outline of the chapter
+   * The outline beside the writing (Cerys, October 23 and 25): the outline of the chapter
    * the cursor is in, which follows the cursor from chapter to chapter and can be edited
    * right here. Below it are the faces of everyone and everything the chapter names
-   * (Mike, October 25), and clicking one opens its entry beside the writing.
+   * (Cerys, October 25), and clicking one opens its entry beside the writing.
    */
   let {
     view,

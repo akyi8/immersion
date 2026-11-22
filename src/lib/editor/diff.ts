@@ -2,7 +2,7 @@
  * The smallest single change that turns `before` into `after`: the stretch between their
  * common start and their common end. An outside edit applied this way leaves the cursor
  * and the scroll where they were, unless the edit touches the very place the cursor is
- * (Mike, October 26).
+ * (Cerys, October 26).
  */
 export function smallestChange(before: string, after: string): { from: number; to: number; insert: string } | null {
   if (before === after) return null;

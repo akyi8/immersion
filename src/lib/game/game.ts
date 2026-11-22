@@ -4,7 +4,7 @@ import { splitHeader, withHeader } from '../world.ts';
 import { IMAGE_EXTENSIONS, type DirEntry, type ImageSource } from '../fs/types.ts';
 
 /**
- * A game as the Game module shows it (Mike, November 7): the engine's elements and the
+ * A game as the Game module shows it (Cerys, November 7): the engine's elements and the
  * world's own, put together. Core elements appear in every game, except the ones a world
  * sets aside or reskins. A world records those choices in its own folder, never on the
  * core element, so the engine stays the same for every game built on it.
@@ -26,7 +26,7 @@ export interface GameFs {
 
 /**
  * Where an element comes from: `engine`, `world`, or an expansion's id, such as
- * `fogbound` (Mike, November 9). An expansion adds to its world and changes nothing
+ * `fogbound` (Cerys, November 9). An expansion adds to its world and changes nothing
  * in it, so any mix of expansions makes a sound game.
  */
 export type Origin = string;
@@ -60,21 +60,21 @@ export interface Placed {
 /** A book's chapters in order, by reference, such as `engine:chapter/taking-risks`. */
 export interface Book {
   name: string;
-  /** The book's divisions in order, by reference, such as `world:division/the-protagonist` (Mike, November 9). */
+  /** The book's divisions in order, by reference, such as `world:division/the-protagonist` (Cerys, November 9). */
   divisions: string[];
   /** Sections listed outside any division, from before books had divisions. */
   chapters: string[];
-  /** The front matter and back matter (Mike, November 9): sections before and after the divisions, such as the license and the safety page. */
+  /** The front matter and back matter (Cerys, November 9): sections before and after the divisions, such as the license and the safety page. */
   frontMatter: string[];
   backMatter: string[];
   /**
-   * Text in the body of `book.md`. Before the title page (Mike, November 10) this was the
+   * Text in the body of `book.md`. Before the title page (Cerys, November 10) this was the
    * book's front page. It printed ahead of the front matter, so an introduction belongs
    * in the front matter instead, and the app offers to move what is here.
    */
   body: string;
   /**
-   * The title page (Mike, November 10), in the same fields as a manuscript's: the line
+   * The title page (Cerys, November 10), in the same fields as a manuscript's: the line
    * under the title, the author profile the book is linked to, or an author and a
    * copyright holder written out by hand, and the copyright year.
    */
@@ -95,7 +95,7 @@ export interface Game {
   kinds: Map<string, Kind & { origin: Origin }>;
   elements: Placed[];
   setAside: Set<string>;
-  /** The engine's book, which is the base game, and the world's own book (Mike, November 8). */
+  /** The engine's book, which is the base game, and the world's own book (Cerys, November 8). */
   books: { engine: Book | null; world: Book | null };
   /** What the world adds after each core rule, its add-on, by the rule it extends, such as `module/the-edge`. */
   addOns: Map<string, Placed>;
@@ -296,7 +296,7 @@ export function gameFileWith(source: string | null, setAside: string[]): string 
 }
 
 /**
- * The book as a tree (Mike, November 9): divisions, each with a front page, hold rule
+ * The book as a tree (Cerys, November 9): divisions, each with a front page, hold rule
  * sections, and each section holds its rules. A core rule carries what the world adds
  * after it when the book is a world's. A division with a `catalog` lists every element
  * of those kinds instead of sections, so the aspects print as lists.
@@ -410,7 +410,7 @@ export function pictureOf(game: Game, p: Placed, inWorld: boolean): { src: Sourc
 
 
 /**
- * The files of a world's first book, laid out over its engine's (Mike, November 21), so a
+ * The files of a world's first book, laid out over its engine's (Cerys, November 21), so a
  * new game opens with the base game's shape and its core rules already in place. Each of
  * the engine's divisions becomes a division of the world's own with the same name, front
  * page, and sections, and the front and back matter become sections of the world's own

@@ -46,7 +46,7 @@
   });
 
   // Entries deleted in another program drop out of the row.
-  // The timeline opens as a pane of its own, beside entries (Mike, October 25).
+  // The timeline opens as a pane of its own, beside entries (Cerys, October 25).
   const TIMELINE = '@timeline';
   const entries = $derived(nav.panes.filter((id) => id === TIMELINE || index.get(id)));
 

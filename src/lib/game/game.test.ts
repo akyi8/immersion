@@ -255,3 +255,44 @@ test("a new world's book is laid out over its engine's", async () => {
   assert.equal(await engine.exists('elements/division/the-protagonist.md'), true);
   assert.match(await engine.readText('book.md'), /name: Example Engine/);
 });
+
+// Code review, November 21 (D3): a game page wrote its whole element back from memory.
+test("a page's save writes only what it changed, onto the file as it stands on disk", async () => {
+  const { readElement, withChanges } = await import('./elements.ts');
+  const { merge3 } = await import('../editor/merge.ts');
+  const path = 'elements/gear/rope.md';
+  const first = '---\nname: Rope\nkind: gear\ntags: [ core, gear ]\n# a note for whoever edits this by hand\ncost: 40\nconcealable: true\nstats:\n  weight: 2\nrules:\n  - "Holds a climber."\n---\n\nFifty feet of it.\n\nTarred against the salt.\n';
+  const base = readElement(path, first);
+
+  // Another computer renamed it and changed its cost while this page was open.
+  const onDisk = first.replace('name: Rope', 'name: Tarred Rope').replace('cost: 40', 'cost: 55').replace('Fifty feet of it.', 'Sixty feet of it.');
+  // This page changed one rule and the second paragraph.
+  const mine = { ...base, fields: { ...base.fields, rules: ['Holds two climbers.'] }, flavor: 'Fifty feet of it.\n\nTarred against the fog.' };
+  const out = withChanges(onDisk, base, mine, merge3);
+
+  assert.match(out, /name: Tarred Rope/, 'the rename from elsewhere is kept');
+  assert.match(out, /cost: 55/, 'a number changed elsewhere is kept, and stays a number');
+  assert.match(out, /concealable: true/, 'a key the page does not know is kept');
+  assert.match(out, /stats:\n {2}weight: 2/, 'a nested key is kept');
+  assert.match(out, /# a note for whoever edits this by hand/, 'a comment is kept');
+  assert.match(out, /Holds two climbers\./, "the page's own change is written");
+  assert.match(out, /Sixty feet of it\.\n\nTarred against the fog\./, 'both changes to the body are joined');
+
+  // Nothing changed: nothing is rewritten.
+  assert.equal(withChanges(onDisk, base, base, merge3), onDisk);
+  // A field emptied on the page leaves the file.
+  assert.doesNotMatch(withChanges(first, base, { ...base, fields: { ...base.fields, rules: [] } }, merge3), /rules:/);
+});
+
+test('a header that cannot be read stops the save, and the file keeps every key', async () => {
+  const { readElement, withChanges } = await import('./elements.ts');
+  const { merge3 } = await import('../editor/merge.ts');
+  const path = 'elements/gear/blade.md';
+  const good = '---\nname: Blade\nkind: gear\ncost: "3"\n---\n\nSharp.\n';
+  const base = readElement(path, good);
+  // Someone typed a colon into a value by hand, which breaks the header.
+  const broken = '---\nname: Blade\nkind: gear\ncost: "3"\neffect: Roll: 2d6\n---\n\nSharp.\n';
+  assert.throws(() => withChanges(broken, base, { ...base, name: 'Long Blade' }, merge3), /cannot be read/);
+  // A change to the body alone does not touch the header, so it is still saved.
+  assert.match(withChanges(broken, base, { ...base, flavor: 'Very sharp.' }, merge3), /effect: Roll: 2d6\n---\n\nVery sharp\./);
+});

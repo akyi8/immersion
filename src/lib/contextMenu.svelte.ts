@@ -1,5 +1,5 @@
 /**
- * The right-click menu (Mike, October 25). Any list in the app can open it with the
+ * The right-click menu (Cerys, October 25). Any list in the app can open it with the
  * actions that fit what was clicked, and one menu, drawn by the app's shell, shows them.
  */
 export interface MenuItem {

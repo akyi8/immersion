@@ -7,18 +7,18 @@
   import { effective, type Placed } from '../../lib/game/game';
 
   /**
-   * One element, edited as a form (Mike, November 7: structured data). Each field of the
+   * One element, edited as a form (Cerys, November 7: structured data). Each field of the
    * element's kind gets its own box: a line, a paragraph, or a list with one item a line.
    * Changes save on their own a moment after typing stops.
    *
    * A world's files can set a core element aside or reskin it, and the page shows either
    * where a world has done so. A reskin changes only the name and the flavor, so its
    * mechanics show here read-only, as the core element has them. The page no longer
-   * offers to set aside or to reskin (Mike, November 21), since no game used them and the
+   * offers to set aside or to reskin (Cerys, November 21), since no game used them and the
    * two controls made every core aspect harder to read.
    *
    * An element of the world's own, or of one of its expansions, can move between them
-   * (Mike, November 9), such as a piece of gear that belongs in an expansion after all.
+   * (Cerys, November 9), such as a piece of gear that belongs in an expansion after all.
    */
   let {
     placed,
@@ -40,7 +40,7 @@
     worldName: string;
     /** The world's vendors, by id and name, for the vendor choice. */
     vendors: { id: string; name: string }[];
-    onSave: (next: Element) => Promise<void>;
+    onSave: (next: Element, base: Element) => Promise<void>;
     onSetAside: (on: boolean) => void;
     onReskin: () => void;
     onOpen: (key: string) => void;
@@ -70,6 +70,8 @@
 
   // The form holds its own copy while the writer types, seeded from the file.
   let draft = $state<Element>((() => structuredClone($state.snapshot(placed.element)) as Element)());
+  // Where the form started, so a save writes only what was changed in it.
+  let started = (() => structuredClone($state.snapshot(placed.element)) as Element)();
   let status = $state<'saved' | 'waiting' | 'saving' | 'problem'>('saved');
   let problem = $state('');
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -90,7 +92,10 @@
     timer = null;
     status = 'saving';
     try {
-      await onSave($state.snapshot(draft) as Element);
+      const next = $state.snapshot(draft) as Element;
+      await onSave(next, started);
+      // What was just saved is where the next save starts from.
+      started = structuredClone(next);
       status = 'saved';
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
@@ -147,7 +152,7 @@
         {#if placed.reskinnedBy}
           <button type="button" class="tool" onclick={() => onOpen(placed.reskinnedBy!.key)}>Open the reskin</button>
         {:else if placed.setAside}
-          <!-- Setting aside and reskinning stay in the files and leave the page (Mike, November 21).
+          <!-- Setting aside and reskinning stay in the files and leave the page (Cerys, November 21).
                A game that already set this aside can still take it back. -->
           <button type="button" class="tool" onclick={() => onSetAside(false)} title="Bring this core element back into {worldName}'s game">Use in {worldName}</button>
         {/if}

@@ -1,5 +1,5 @@
 /**
- * World themes (Mike, October 25). A world names two colors in its `world.md`: a base,
+ * World themes (Cerys, October 25). A world names two colors in its `world.md`: a base,
  * which carries structure such as rules, labels, focus, and selected states, and a
  * highlight, which marks names and primary actions. Every other color the app uses is
  * worked out from those two, so a theme stays readable with no further choices. A world
@@ -32,7 +32,7 @@ export interface SideOverrides {
   text?: string;
 }
 
-/** Each theme has a dark side and a light side, and one switch picks between them (Mike, October 25). */
+/** Each theme has a dark side and a light side, and one switch picks between them (Cerys, October 25). */
 export type Mode = 'dark' | 'light';
 
 export interface FontChoice {
@@ -185,7 +185,7 @@ export function palette(spec: ThemeSpec, mode: Mode = 'dark'): Record<string, st
 
 function lightPalette(spec: ThemeSpec): Record<string, string> {
   const own = spec.light ?? {};
-  // On a pale page the darker of the two colors leads (Mike, October 25): it takes the
+  // On a pale page the darker of the two colors leads (Cerys, October 25): it takes the
   // titles, names, and selections, and the other takes the lines and labels and tints
   // the page. Navy and gold therefore become navy ink on a warm gold-tinted page.
   const darkBase = rgbToOklch(hexToRgb(isHex(spec.base) ? spec.base : NIGHT.base));

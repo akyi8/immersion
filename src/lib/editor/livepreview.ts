@@ -8,7 +8,7 @@ import { standingOf } from '../table/rumors';
 /**
  * Live preview. The file stays plain markdown, and this extension only changes how it
  * looks: the marks around a phrase (`*`, `**`, `#`, `>`, link brackets) are hidden, and
- * they reappear while the cursor is inside that phrase so they can be edited (Mike,
+ * they reappear while the cursor is inside that phrase so they can be edited (Cerys,
  * October 24: marks reappear for the phrase the cursor is in, not the whole line).
  *
  * Nothing here edits the document. Every change is a decoration drawn over the text.
@@ -59,7 +59,7 @@ class LabelWidget extends WidgetType {
 }
 
 /**
- * A chapter's outline, folded to one quiet line in the writing view (Mike, October 25).
+ * A chapter's outline, folded to one quiet line in the writing view (Cerys, October 25).
  * Clicking it opens outline view at that chapter. The outline itself is edited there,
  * so the writing view never shows the callout's markup.
  */
@@ -98,7 +98,7 @@ class OutlineWidget extends WidgetType {
 
 /**
  * A quiet "Start writing here" below a chapter that has only its beat so far, so it is
- * clear where the writing goes (Mike, November 1). Clicking it starts the writing there.
+ * clear where the writing goes (Cerys, November 1). Clicking it starts the writing there.
  */
 class WriteHereWidget extends WidgetType {
   toDOM(view: EditorView) {
@@ -135,7 +135,7 @@ function pastSeparator(state: EditorState, n: number): number {
  * (a chapter's beat), and the blank lines that keep them apart from the writing. Only
  * the one blank line after a beat is protected, because a line typed straight after a
  * beat would join its quote. Further blank lines are the writer's own, so pressing
- * Enter above the first paragraph makes room to write there (Mike, November 1).
+ * Enter above the first paragraph makes room to write there (Cerys, November 1).
  */
 function outlineZones(state: EditorState): Zone[] {
   const zones: Zone[] = [];
@@ -160,7 +160,7 @@ function outlineZones(state: EditorState): Zone[] {
 /**
  * The top of a file whose title heading is hidden: any hidden header, the title, and the
  * blank line after it. The title already shows above the editor and has its own Rename,
- * so the cursor steps past this zone and typing cannot reach it (Mike, October 25: the
+ * so the cursor steps past this zone and typing cannot reach it (Cerys, October 25: the
  * title flashed as the cursor passed through).
  */
 function titleZone(state: EditorState, title: string): Zone | null {
@@ -202,7 +202,7 @@ function aliasLine(state: EditorState): { from: number; to: number; n: number } 
 /**
  * A rule drawn straight under the title, before any text, such as the `---` many wiki
  * entries open with. It only repeats the edge the page already has, so it is hidden
- * (Mike, November 10). The file keeps it.
+ * (Cerys, November 10). The file keeps it.
  */
 function openingRule(state: EditorState): { from: number; to: number; n: number } | null {
   const doc = state.doc;
@@ -262,7 +262,7 @@ function writingStart(state: EditorState, zones: Zone[]): number {
 }
 
 /**
- * Typing and deleting in the writing view never touch an outline (Mike, October 25).
+ * Typing and deleting in the writing view never touch an outline (Cerys, October 25).
  * A change that would cut into an outline or the blank line after it is refused whole,
  * because removing that blank line would pull the next paragraph into the outline.
  * Typing at the end of the heading or the start of the paragraph still works, and
@@ -297,7 +297,7 @@ const protectZones = (title: string) =>
   });
 
 /**
- * The cursor stays where text can be written (Mike, November 1). A click or a key that
+ * The cursor stays where text can be written (Cerys, November 1). A click or a key that
  * would put it inside a hidden header, the hidden title, or a beat moves it to where the
  * writing continues below them, so typing always shows.
  */
@@ -374,7 +374,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   const doc = state.doc;
   const titleLine = titleLineOf(state, title);
 
-  // The YAML header is never shown (Mike, November 10). What it holds is offered by the
+  // The YAML header is never shown (Cerys, November 10). What it holds is offered by the
   // page itself, such as its other names, its date, and its picture, so nobody has to
   // edit a file's header by hand inside the app.
   const header = headerRange(state);
@@ -416,7 +416,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
         // no title hides nothing. Before November 15 any top heading that matched the title
         // hid, so on a page with no title a bare `#` typed anywhere vanished as it was
         // typed and the next key was refused, and a heading that happened to repeat the
-        // page's name vanished too (Mike's reports of November 13 and 15).
+        // page's name vanished too (Cerys's reports of November 13 and 15).
         if (level === 1 && line.number === titleLine) {
           marks.push(Decoration.replace({ block: true }).range(line.from, line.to));
           return false;
@@ -494,7 +494,7 @@ function build(state: EditorState, title: string, onOutline: ((at: number) => vo
   });
 
   // Underlined text, written <u> and </u>, shows underlined with its tags hidden until
-  // the cursor reaches it (Mike, November 1).
+  // the cursor reaches it (Cerys, November 1).
   if (doc.length < 400000) {
     const text = doc.toString();
     for (const m of text.matchAll(/<u>([^<\n]+?)<\/u>/g)) {

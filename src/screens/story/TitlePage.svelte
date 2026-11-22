@@ -9,10 +9,10 @@
   import { ui } from '../../lib/ui.svelte';
 
   /**
-   * A manuscript's title page (Mike, October 25), drawn from the fields in its `book.md`.
+   * A manuscript's title page (Cerys, October 25), drawn from the fields in its `book.md`.
    * Choosing Edit title page opens a small form, and the series line and the copyright
    * line are written from what is filled in. The author comes from an author profile
-   * (Mike, October 26), which the book links to, so a profile changed in Settings
+   * (Cerys, October 26), which the book links to, so a profile changed in Settings
    * changes every book that uses it.
    */
   let {

@@ -2,7 +2,7 @@ import type { Entry } from '../index/wiki.ts';
 import { within, type When } from './when.ts';
 
 /**
- * The wiki's timeline (Mike, October 25): every entry with a `when:` line, in order, with
+ * The wiki's timeline (Cerys, October 25): every entry with a `when:` line, in order, with
  * eras as bands over the stretch of time they cover. Moments are laid out in order, not
  * to scale, so a thousand years and a single day take the same room.
  */
@@ -58,7 +58,7 @@ export function buildTimeline(entries: Entry[]): Timeline {
   for (const era of eras) {
     // Eras that hand off share a year: "1985 to 2000" ends where "2000 to 2015" begins.
     // That year's moment belongs to the era beginning in it, so a band stops at the
-    // moment before the next era starts (Mike, October 31). An era nothing hands off
+    // moment before the next era starts (Cerys, October 31). An era nothing hands off
     // from, such as a war "1914 to 1918", keeps the events of its last year.
     const handoffs = new Set(eras.filter((other) => other !== era && other.when!.start > era.when!.start && other.when!.start >= era.when!.end - 1).map((other) => key(other.when!)));
     const inside = moments

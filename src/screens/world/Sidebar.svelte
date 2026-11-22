@@ -35,7 +35,7 @@
     onEntriesMoved: (moves: [string, string][]) => void;
   } = $props();
 
-  // Selecting and dragging entries in the tree (Mike, October 25). Cmd-click or Ctrl-click
+  // Selecting and dragging entries in the tree (Cerys, October 25). Cmd-click or Ctrl-click
   // adds an entry to the selection, Shift-click selects a run, and dragging any selected
   // entry onto a folder moves them all. The drag is drawn by hand from pointer events,
   // so it works the same in every desktop webview.
@@ -129,7 +129,7 @@
   }
 
 
-  // Right-click menus (Mike, October 25). One set of entry forms and one set of category
+  // Right-click menus (Cerys, October 25). One set of entry forms and one set of category
   // forms, each aimed at whatever was right-clicked.
   let entryActions: EntryActions | undefined = $state();
   let entryTarget = $state<string | null>(null);
@@ -176,7 +176,7 @@
     ]);
   }
 
-  // Faces moved to the World home page as its opening band (Mike, October 31).
+  // Faces moved to the World home page as its opening band (Cerys, October 31).
   type Mode = 'working' | 'tree';
   const MODES: [Mode, string][] = [
     ['working', 'Working set'],
@@ -396,7 +396,7 @@
     color: var(--text);
     background: transparent;
     border: 0;
-    /* Rows sit close, so more of a wiki shows at once (Mike, November 10). */
+    /* Rows sit close, so more of a wiki shows at once (Cerys, November 10). */
     padding: 4px 18px;
     min-height: 28px;
     display: flex;

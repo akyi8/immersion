@@ -6,7 +6,7 @@
   import { worldFile } from '../../lib/world';
   import Dialog from './Dialog.svelte';
 
-  // A new world with starter categories (Mike, October 24; the word was shelves until October 31): a wiki with a folder for each
+  // A new world with starter categories (Cerys, October 24; the word was shelves until October 31): a wiki with a folder for each
   // kind of entry most worlds need, and an empty stories folder.
   let { library, onCreated, onCancel }: { library: Library; onCreated: (path: string) => void; onCancel: () => void } = $props();
 

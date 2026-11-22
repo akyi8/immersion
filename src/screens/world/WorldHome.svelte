@@ -19,7 +19,7 @@
   }: { index: WikiIndex; fs: WorldFs; nav: Navigator; worldName: string; onNewEntry: (folder?: string) => void; onTimeline: () => void } = $props();
 
   /**
-   * Faces (Mike, October 31): the home page opens with the faces of the world, large, so
+   * Faces (Cerys, October 31): the home page opens with the faces of the world, large, so
    * the people the writer has been living with look back at them. People come first,
    * then any other entry with a picture, each group most recently opened first. People
    * with no picture yet are counted below, and a picture dropped on a name becomes theirs.

@@ -1,5 +1,5 @@
 /**
- * The quick finder (Mike, October 31): one box, opened with Ctrl or Cmd and K, that finds
+ * The quick finder (Cerys, October 31): one box, opened with Ctrl or Cmd and K, that finds
  * anything in the world by name, such as an entry, a chapter, a note, or a board, along
  * with a few actions. This part does the matching, so it can be tested on its own.
  */

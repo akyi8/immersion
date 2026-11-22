@@ -18,7 +18,7 @@
   import { STRUCTURES } from '../../lib/story/guide';
 
   /**
-   * Boards (Mike, October 26): every board in the world in one place. The wiki's timeline,
+   * Boards (Cerys, October 26): every board in the world in one place. The wiki's timeline,
    * each series' board, and each manuscript's board are listed in the sidebar, and a board
    * opens in a pane. An entry or a chapter opened from a board opens beside it here, so
    * planning and reading sit side by side, and World and Story stay as they were left.
@@ -57,11 +57,11 @@
 
   const series = $derived([...new Set((story?.manuscripts ?? []).map((m) => m.series).filter((s): s is string => !!s))].sort());
   const booksIn = (name: string) => (story?.manuscripts ?? []).filter((m) => m.series === name).length;
-  /** What one book of a series is called, such as Episode (Mike, October 31). */
+  /** What one book of a series is called, such as Episode (Cerys, October 31). */
   const wordOf = (name: string) => (story?.manuscripts ?? []).find((m) => m.series === name)?.seriesWord ?? 'Story';
   const manuscripts = $derived((story?.manuscripts ?? []).filter((m) => m.kind === 'folder' && m.sections.length));
   // The home page's cards say what each board holds and when it was last touched, and the
-  // ones touched most recently come first (Mike, October 31).
+  // ones touched most recently come first (Cerys, October 31).
   const PLACES = { desk: 'On the desk', drawer: 'In the drawer', shelf: 'On the shelf' };
   const structureName = (id: string | null) => STRUCTURES.find((s) => s.id === id)?.name ?? null;
   const wordsIn = (name: string) => (story?.manuscripts ?? []).filter((m) => m.series === name).reduce((n, m) => n + m.words, 0);

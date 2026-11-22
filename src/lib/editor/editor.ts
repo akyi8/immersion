@@ -113,13 +113,13 @@ const paragraphGaps = ViewPlugin.fromClass(
 
 /**
  * The blank line between two paragraphs is one step for the cursor, not a line to type
- * on (Mike, October 24). Arrow keys pass over it, Backspace at the start of a paragraph
+ * on (Cerys, October 24). Arrow keys pass over it, Backspace at the start of a paragraph
  * joins it to the one above, and a click on the gap lands at the edge of a paragraph.
  * The blank line stays in the file, so the markdown keeps its spacing.
  *
  * Where blank lines run longer, as they do just after Enter makes room for a new
  * paragraph, the first blank line after a paragraph and the last one before the next
- * are steps too (Mike, November 1). So one Up arrow from a fresh paragraph returns to
+ * are steps too (Cerys, November 1). So one Up arrow from a fresh paragraph returns to
  * the end of the one above, as in other editors, and text typed in the room Enter made
  * always has a blank line on each side.
  */
@@ -168,7 +168,7 @@ function findGaps(state: EditorState): DecorationSet {
 
 /**
  * Up and Down keep the cursor's place across the line when they cross the gap between
- * two paragraphs (Mike, November 11). Without this the gap, being one step, would send
+ * two paragraphs (Cerys, November 11). Without this the gap, being one step, would send
  * Up to the end of the paragraph above and Down to the start of the one below.
  */
 function stepLine(view: EditorView, forward: boolean, extend: boolean): boolean {
@@ -178,7 +178,7 @@ function stepLine(view: EditorView, forward: boolean, extend: boolean): boolean 
   const here = view.coordsAtPos(sel.head, sel.assoc || 1);
   const next = view.moveVertically(sel, forward);
   // A file ends with one empty line, directly under its last paragraph. Down from that
-  // paragraph would rest there, where typing starts a line and not a paragraph (Mike,
+  // paragraph would rest there, where typing starts a line and not a paragraph (Cerys,
   // November 21), so the cursor goes to the end of the paragraph and stops.
   const doc = view.state.doc;
   const landing = doc.lineAt(next.head);
@@ -281,7 +281,7 @@ const theme = EditorView.theme(
     '.cm-rule': { display: 'inline-block', width: '100%', borderTop: '1px solid var(--rule)', verticalAlign: 'middle' },
     '.cm-quote': { borderLeft: '2px solid var(--rule-strong)', paddingLeft: '16px !important', color: 'var(--text-soft)' },
     '.cm-callout-narrator': { borderLeftColor: 'var(--structure)', backgroundColor: 'var(--surface)', color: 'var(--text)' },
-    // A rumor: suspected, not known (Mike, November 14). A settled one steps back.
+    // A rumor: suspected, not known (Cerys, November 14). A settled one steps back.
     '.cm-callout-rumor': { borderLeftColor: 'var(--accent)', borderLeftStyle: 'dashed', backgroundColor: 'var(--accent-wash)', color: 'var(--text)' },
     '.cm-callout-rumor .cm-callout-label': { color: 'var(--accent)' },
     '.cm-callout-settled': { backgroundColor: 'transparent', color: 'var(--text-soft)' },
@@ -313,7 +313,7 @@ const theme = EditorView.theme(
       color: 'var(--structure)',
       flexShrink: '0',
     },
-    // The beat wraps, so a long one reads in full and never pushes the page sideways (Mike, November 1).
+    // The beat wraps, so a long one reads in full and never pushes the page sideways (Cerys, November 1).
     '.cm-outline-text': { whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: '0' },
     '.cm-write-here': {
       margin: '18px 0 0',
@@ -375,7 +375,7 @@ export function createEditor(options: {
 }
 
 /**
- * Notes a letter key that changed nothing (Mike, November 13: typing stopped in a page
+ * Notes a letter key that changed nothing (Cerys, November 13: typing stopped in a page
  * and nothing said why). The note says what the editor held at that moment, which is
  * what is needed to find the cause afterward.
  */
@@ -409,7 +409,7 @@ const deadKeys = EditorView.domEventHandlers({
 
 /**
  * Marks the parts of the cursor's paragraph that lie outside the sentence being written,
- * so the page can let them step back a little while the writer types (Mike, November 11).
+ * so the page can let them step back a little while the writer types (Cerys, November 11).
  * Headings are left alone.
  */
 const farFromCursor = Decoration.mark({ class: 'cm-far' });

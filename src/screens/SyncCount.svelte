@@ -2,7 +2,7 @@
   import type { Pending } from '../lib/fs/types';
 
   /**
-   * What waits to sync, and a button that syncs now (Mike, October 28). The number is
+   * What waits to sync, and a button that syncs now (Cerys, October 28). The number is
    * the files that would go out to other computers, and an arrow down counts the files
    * that would come in. Nothing shows for a world that does not sync through Git.
    */
@@ -37,7 +37,7 @@
   });
 </script>
 
-<!-- With no Git sync to speak of, nothing shows at all (Mike, October 31). -->
+<!-- With no Git sync to speak of, nothing shows at all (Cerys, October 31). -->
 {#if counts && syncs}
   <div class="count {tone}">
     <button type="button" class="figures" {title} aria-label={title} onclick={() => onDetails?.()} disabled={!onDetails}>

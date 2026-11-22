@@ -1,12 +1,12 @@
 import { splitHeader, withHeader } from '../world.ts';
 
 /**
- * Story structures on a board (Mike, October 28): Kishōtenketsu, the Story Circle, and
+ * Story structures on a board (Cerys, October 28): Kishōtenketsu, the Story Circle, and
  * Four Acts. A structure gives a board one header band per part, in story order, and
  * cards are dragged under them. A board starts with no structure.
  *
  * The parts' names, overviews, guidance, and prompts come from `structure-guidance.md`,
- * which Mike edits. Each structure and part also has a fixed id here, matched to the
+ * which Cerys edits. Each structure and part also has a fixed id here, matched to the
  * file by order, so renaming a part in the guidance never loses the chapters placed in it.
  */
 

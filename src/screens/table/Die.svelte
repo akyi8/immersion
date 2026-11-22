@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * A die drawn as its own shape (Mike, November 14), with a number on its face: the die's
+   * A die drawn as its own shape (Cerys, November 14), with a number on its face: the die's
    * sides when it is a button, or what it rolled when it is a result.
    */
   let { sides, face, size = 34 }: { sides: number; face: string | number; size?: number } = $props();
