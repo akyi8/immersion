@@ -21,7 +21,7 @@ The examples use Harrowgate, the small demo world that the browser build opens. 
 
 ## 1. The library
 
-A library is one folder that holds a writer's worlds. Immersion asks for its location the first time it runs, and the Worlds page lists every world it finds there. The app looks for worlds up to six folders deep, so a world can sit inside a project folder. It skips hidden folders, `node_modules`, and any folder inside a world.
+A library is one folder that holds a writer's worlds. Immersion asks for its location the first time it runs, and the Worlds page lists every world it finds there. The app looks for worlds up to six folders deep, so a world can sit inside a project folder. It skips hidden folders, any folder inside a world, and folders named `node_modules`, `target`, `dist`, `build`, `archive`, `old`, or `export`, so a world kept under one of those names never shows.
 
 The library's root can hold `immersion.md`, which belongs to the app. That file stores the writer's author profiles, the vault's key settings, the words the writer has added to the spelling dictionary, and per-writer choices such as layout and which modules the header shows. When the library is a Git repository, `immersion.md` syncs along with the worlds, so those choices follow the writer to other computers.
 
@@ -77,7 +77,7 @@ A smuggler who works the Salt Market and keeps a ledger of every favor owed to h
 
 An older form is also read: a bold line under the title, such as `**Aliases:** Rook, the Ledger-keeper`.
 
-Names link on their own. Wherever an entry's name or one of its aliases appears in any text in the world, the app links it, so `[[wiki links]]` are unnecessary. The first paragraph of prose is the entry's summary, which the app shows on hover and on the World home page, so an entry reads best when it opens with a sentence that says what the thing is.
+Names link on their own. Wherever an entry's name or one of its aliases appears in any text in the world, the app links it, so `[[wiki links]]` are unnecessary. Capitals decide how strict the match is. A name or alias with a capital letter in it links only when written with those same capitals, so the nickname `Rook` does not link the word "rook". An alias written all in lowercase, such as `the basin`, links however it is capitalized. A name must stand as a whole word, a possessive such as "Wren's" still links, and where two names overlap the longer one wins. The first paragraph of prose is the entry's summary, which the app shows on hover and on the World home page, so an entry reads best when it opens with a sentence that says what the thing is.
 
 ### Narrator-only text
 
@@ -533,7 +533,7 @@ A world's game can have expansions, each a folder of its own in the game folder'
 ```
 harrowgate/game/expansions/
   fogbound/
-    expansion.md            the expansion's name, and what it is about as its body
+    expansion.md            the expansion's name, and what it is about as its body (required)
     elements/
       gear/
         dark-lantern.md

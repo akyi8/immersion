@@ -83,7 +83,6 @@ export function readShape(value: unknown): Shape | null {
 
 export const isPerson = (category: string) => category.toLowerCase() === 'people';
 
-/** The shape a category's pictures take unless an entry says otherwise. */
 /**
  * A world can say how all its pictures show (Cerys, November 10), in `world.md` as
  * `pictures: behind`, `banner`, or `portrait`. An entry's own `picture:` still wins, and

@@ -185,7 +185,7 @@
             {#each worlds.filter((w) => w.path !== world) as w (w.path)}<option value={w.path}>{w.name}</option>{/each}
           </select>
         {/if}
-        <button type="button" class="lock" onclick={() => vault.lock()} title="Lock the vault (Ctrl or Cmd, Shift, L)">Lock</button>
+        <button type="button" class="lock" onclick={() => vault.lock(true)} title="Lock the vault (Ctrl or Cmd, Shift, L)">Lock</button>
       </div>
     {/if}
   </header>
@@ -209,6 +209,7 @@
       <label class="label" for="vault-again">The same again</label>
       <input id="vault-again" type="password" bind:value={again} autocomplete="new-password" />
       <label class="check"><input type="checkbox" bind:checked={remember} /> Remember on this computer</label>
+      <p class="remember-note">Remembering keeps the key in this computer's keychain, so the vault opens here without the passphrase until you lock it by hand. Anyone using this computer as you can open it too.</p>
       <button type="submit" class="primary" disabled={busy || !pass}>{busy ? 'Working…' : 'Make the vault'}</button>
     </form>
   {:else if !vault.open}
@@ -223,6 +224,7 @@
       <!-- svelte-ignore a11y_autofocus -->
       <input id="vault-pass" type="password" bind:value={pass} autocomplete="current-password" autofocus />
       <label class="check"><input type="checkbox" bind:checked={remember} /> Remember on this computer</label>
+      <p class="remember-note">Remembering keeps the key in this computer's keychain, so the vault opens here without the passphrase until you lock it by hand. Anyone using this computer as you can open it too.</p>
       <button type="submit" class="primary" disabled={busy || !pass}>{busy ? 'Opening…' : 'Open'}</button>
     </form>
   {:else if current && storyFs}
@@ -270,7 +272,7 @@
       {/each}
     </div>
   {/if}
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+  {#if problem || vault.problem}<p class="problem" role="alert">{problem || vault.problem}</p>{/if}
 </article>
 
 <style>
@@ -449,6 +451,12 @@
   }
   .confirm p {
     margin: 0 0 10px;
+  }
+  .remember-note {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 12px;
+    line-height: 1.45;
   }
   .problem {
     color: var(--danger);

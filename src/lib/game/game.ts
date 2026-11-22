@@ -57,7 +57,11 @@ export interface Placed {
   image: string | null;
 }
 
-/** A book's chapters in order, by reference, such as `engine:chapter/taking-risks`. */
+/**
+ * A book: its title page, its front matter, its divisions with the rule sections in each,
+ * and its back matter. Sections are named by reference, such as
+ * `engine:chapter/taking-risks`.
+ */
 export interface Book {
   name: string;
   /** The book's divisions in order, by reference, such as `world:division/the-protagonist` (Cerys, November 9). */

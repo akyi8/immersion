@@ -48,7 +48,7 @@ export interface Element {
   tags: string[];
   /** The id of the vendor that sells it, for gear and the like. */
   vendor: string;
-  /** For a reskin: the id of the core element whose mechanics it uses. */
+  /** For a reskin: the core element whose mechanics it uses, as `kind/id`. */
   reskins: string;
   /** Every other field, by key: text for line and text fields, a list for list fields. */
   fields: Record<string, string | string[]>;

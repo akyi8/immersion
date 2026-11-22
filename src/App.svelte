@@ -271,7 +271,7 @@
     onShortcut((e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
-        void vault.lock();
+        void vault.lock(true);
       }
     });
     zoom.start();

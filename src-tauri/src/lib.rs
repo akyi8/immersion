@@ -2,9 +2,11 @@
 //! writes files inside the open world folder for the screens, watches that folder so
 //! edits made in other programs appear in the app, and serves images to the webview
 //! through two URL schemes: `world` for the open world's files and `shelf` for the
-//! covers on the shelf. Every path from the screens is relative to the world folder,
-//! and nothing outside that folder can be reached, except through the shelf commands,
-//! which act only on folders the player chose.
+//! covers on the shelf. It also syncs a world through Git, keeps the vault's key in the
+//! computer's keychain when asked to, opens the game engine's folder beside the world's,
+//! and serves rulebook PDFs. A path from the screens is relative to the world folder or
+//! the engine folder, and a path that would climb out of it or name a drive is refused.
+//! The shelf commands act only on folders the writer chose.
 
 use serde::{Deserialize, Serialize};
 use std::fs;

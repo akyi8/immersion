@@ -26,7 +26,7 @@ The Story module holds the writing, sorted into three places: the drawer for ide
 
 The writing view is a live markdown editor. Markdown marks stay hidden until the cursor reaches them, names from the wiki link as they are typed, and a selection bar offers bold, italic, underline, and making a new wiki entry from a name. Each chapter's beat, its plan in a sentence or two, folds above the prose, and a Beats panel shows the chapter's beats on every thread beside the writing. Drafting mode hides everything but the page.
 
-The vault keeps private stories encrypted. One passphrase unlocks every world's vault. The passphrase becomes a key through Argon2id, the stories are encrypted with AES-256-GCM, and a computer can remember the key in its own keychain. Real World is a journal world that the app creates for the writer, and its stories live in the vault.
+The vault keeps private stories encrypted. One passphrase unlocks every world's vault. The passphrase becomes a key through Argon2id, the stories are encrypted with AES-256-GCM, and a computer can remember the key in its own keychain. A remembered key opens the vault on that computer without the passphrase, for anyone using it as the writer. Locking by hand, from the Lock button or with Ctrl or Cmd, Shift, L, sets the remembered key aside until the passphrase is typed again. The vault does not lock while a story in it cannot be saved, and it says so. Real World is a journal world that the app creates for the writer, and its stories live in the vault.
 
 ### Boards
 
@@ -130,7 +130,8 @@ stories: stories
 - `npm install` installs the frontend dependencies.
 - `npm run dev` serves the app in a browser at http://localhost:1420, with two small built-in demo worlds. Harrowgate has a wiki, stories, a campaign, and a game built on a sample engine. Low Tide has no game yet, so starting one can be tried.
 - `npm test` runs the unit tests, and `npm run check` type-checks the code. `npm run build` builds the screens, which also proves that the workers and the bundled files are put together correctly.
-- `cargo test` in `src-tauri/` runs the Rust tests.
+- `cargo test` in `src-tauri/` runs the Rust tests. On a fresh copy, make an empty `dist` folder at the top first (`mkdir -p dist`), because the app's settings expect one to exist.
+- The tests need Node 22.18 or later, which runs TypeScript test files as they are.
 - `npx tauri dev` runs the desktop app. It needs Rust and, on Linux, the WebKitGTK development libraries.
 - `npx tauri build` builds an installer for the current platform. Release builds sign their update files, so a local build needs the update key in `TAURI_SIGNING_PRIVATE_KEY`, or `--config '{"bundle":{"createUpdaterArtifacts":false}}'` to skip signing.
 

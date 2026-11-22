@@ -40,7 +40,7 @@ export type BoardFont = 'theme' | 'cabin' | 'plex';
 
 /**
  * The modules the header shows (Cerys, November 7). World, Boards, and Story are on from
- * the start. Character, Play, and Game serve fewer writers, so each waits until the
+ * the start. Character, Play, Game, and Table serve fewer writers, so each waits until the
  * writer turns it on in Settings.
  */
 export type ModuleId = 'character' | 'play' | 'world' | 'boards' | 'story' | 'game' | 'table';

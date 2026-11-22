@@ -20,6 +20,9 @@ class Vault {
   open = $state(false);
   private key: CryptoKey | null = null;
   private idle: ReturnType<typeof setTimeout> | null = null;
+  /** Why the vault did not lock when asked, shown on its page. */
+  problem = $state('');
+  private lockedByHand = false;
 
   /** True once a passphrase has been chosen for this library. */
   get ready(): boolean {
@@ -27,6 +30,7 @@ class Vault {
   }
 
   private opened(key: CryptoKey) {
+    this.lockedByHand = false;
     this.key = key;
     this.open = true;
     this.touch();
@@ -39,13 +43,28 @@ class Vault {
     this.idle = setTimeout(() => void this.lock(), IDLE_MS);
   }
 
-  /** Locks, after whatever is waiting to be saved is sealed into the vault. */
-  async lock() {
-    if (this.open) await saveAll().catch(() => {});
+  /**
+   * Locks, after whatever is waiting to be saved is sealed into the vault. Sealing needs
+   * the key, so when a save fails the vault stays open and says why, and a story is never
+   * left unsaved behind a lock. Returns whether it locked.
+   *
+   * `byHand` is the writer locking it on purpose, from the button or the keys. This
+   * computer's remembered key then stays unused until the passphrase is typed again, so
+   * locking by hand means locked.
+   */
+  async lock(byHand = false): Promise<boolean> {
+    if (this.open && !(await saveAll().catch(() => false))) {
+      this.problem = 'A story could not be saved, so the vault is still open. It locks once the story is saved.';
+      this.touch();
+      return false;
+    }
+    this.problem = '';
+    if (byHand) this.lockedByHand = true;
     this.key = null;
     this.open = false;
     if (this.idle) clearTimeout(this.idle);
     this.idle = null;
+    return true;
   }
 
   /**
@@ -76,6 +95,7 @@ class Vault {
 
   /** Opens with the key this computer remembers, when it has one that still fits. */
   async unlockRemembered(): Promise<boolean> {
+    if (this.lockedByHand) return false;
     const params = account.vaultParams;
     const saved = await account.library?.vaultRecall();
     if (!params || !saved) return false;

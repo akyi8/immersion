@@ -55,13 +55,23 @@
     loaded = true;
   }
 
+  // One gathering a moment after the last change, so a sync that touches hundreds of files
+  // reads the rumors once and not once for each file.
+  let soon: ReturnType<typeof setTimeout> | null = null;
+  const gatherSoon = () => {
+    if (soon) clearTimeout(soon);
+    soon = setTimeout(() => void gather(), 250);
+  };
   $effect(() => {
     void campaign;
     void index;
     void view;
-    void gather();
+    gatherSoon();
+    return () => {
+      if (soon) clearTimeout(soon);
+    };
   });
-  $effect(() => fs.onChange(() => void gather()));
+  $effect(() => fs.onChange((paths) => paths.some((p) => /\.md$/i.test(p)) && gatherSoon()));
 
   async function settle(row: Row, standing: Standing) {
     problem = '';
