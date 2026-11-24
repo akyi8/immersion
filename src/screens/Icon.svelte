@@ -1,7 +1,7 @@
 <script lang="ts">
   import { icons } from '../lib/icons.svelte';
 
-  // ICONS TRIAL (Cerys, November 24). One icon, drawn in the color of the text around it.
+  // ICONS TRIAL (Cerys, November 24). One icon, drawn in one of the world's own colors.
   let { name, size = 15 }: { name: string | null | undefined; size?: number } = $props();
 
   const body = $derived(icons.on ? icons.body(name) : null);
@@ -20,7 +20,11 @@
     flex: none;
     display: inline-block;
     vertical-align: -0.15em;
+    /* An icon wears the world's second color, so it stands apart from the name beside it
+       (Cerys, November 24). A row or a title sets --icon to give it another: the accent on
+       the row that is open, and the title's own color in a title. */
+    color: var(--icon, var(--structure));
     fill: currentColor;
-    margin-inline-end: 0.45em;
+    margin-inline-end: 0.5em;
   }
 </style>

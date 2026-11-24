@@ -170,4 +170,8 @@
   .other button:hover {
     color: var(--text);
   }
+  /* In the picker an icon is the color of its button, so the chosen one shows. */
+  .grid {
+    --icon: currentColor;
+  }
 </style>

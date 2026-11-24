@@ -381,4 +381,8 @@
     border-radius: var(--round);
     padding: 4px 8px;
   }
+  /* ICONS TRIAL: the open row's icon takes the accent. */
+  .row.on {
+    --icon: var(--accent);
+  }
 </style>

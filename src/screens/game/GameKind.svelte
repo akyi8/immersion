@@ -349,4 +349,8 @@
     padding: 12px 4px;
     color: var(--muted);
   }
+  /* ICONS TRIAL: the title's icon is the title's color. */
+  h1 {
+    --icon: currentColor;
+  }
 </style>

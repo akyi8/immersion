@@ -522,6 +522,10 @@
     color: var(--text);
     background: var(--well, var(--surface));
   }
+  /* ICONS TRIAL: the open entry's icon takes the accent. */
+  .item.current {
+    --icon: var(--accent);
+  }
   /* ICONS TRIAL: an icon and its name stay together at the start of a row. */
   .with-icon {
     flex: 1;
