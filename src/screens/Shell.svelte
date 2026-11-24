@@ -1,5 +1,6 @@
 <script lang="ts">
   import { keepWord, word } from '../lib/prefs';
+  import HoverCards from './HoverCards.svelte';
   import { gone } from '../lib/gone.svelte';
   import Pick from './Pick.svelte';
   import { mod, onMac, onShortcut } from '../lib/shortcuts';
@@ -243,6 +244,8 @@
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
 </div>
+
+{#if index}<HoverCards {index} {fs} />{/if}
 
 {#if gone.notice}
   <div class="gone" role="status">

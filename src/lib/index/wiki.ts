@@ -144,7 +144,8 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         aliases: parsed.aliases,
         category: category ?? 'Unfiled',
         body: parsed.body,
-        summary: parsed.summary,
+        // A summary written for the entry, in its header, is used in place of its first paragraph.
+        summary: typeof header.summary === 'string' && header.summary.trim() ? header.summary.trim() : parsed.summary,
         imagePath: image ? `${path}/${image}` : null,
         when: parseWhen(header.when),
         era: header.era === true && !!parseWhen(header.when),
