@@ -79,6 +79,8 @@ A smuggler who works the Salt Market and keeps a ledger of every favor owed to h
 
 An older form is also read: a bold line under the title, such as `**Aliases:** Rook, the Ledger-keeper`.
 
+An entry wears its category's icon. `icon:` in an entry's header, such as `icon: pirate-captain`, gives that one entry an icon of its own, by its name in the Game-icons set.
+
 Names link on their own. Wherever an entry's name or one of its aliases appears in any text in the world, the app links it, so `[[wiki links]]` are unnecessary. Capitals decide how strict the match is. A name or alias with a capital letter in it links only when written with those same capitals, so the nickname `Rook` does not link the word "rook". An alias written all in lowercase, such as `the basin`, links however it is capitalized. A name also links in its plural, so `Storm Lamp` links "Storm Lamps". A name that already ends in s is left as it is. A name must stand as a whole word, a possessive such as "Wren's" still links, and where two names overlap the longer one wins. The first paragraph of prose is the entry's summary, which the app shows on hover and on the World home page, so an entry reads best when it opens with a sentence that says what the thing is.
 
 ### Narrator-only text
@@ -421,7 +423,6 @@ A dock knife with a cork grip, so it floats.
 ```
 
 - `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
-- `icon` in a wiki entry's header, such as `icon: pirate-captain`, gives that one entry an icon of its own in place of its category's.
 - `tags` says where the element belongs and what it is. A `core` tag marks an engine's element. The tags `aspect` and `keyword` decide how the element's name links, as described under "How a game's names link".
 - `vendor` names the id of the vendor element that sells it, in the same world.
 - Every other key is one of the kind's fields.
