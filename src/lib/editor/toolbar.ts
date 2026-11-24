@@ -1,5 +1,6 @@
 import { EditorSelection, Prec, StateField, type EditorState, type Extension } from '@codemirror/state';
 import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view';
+import { allOn, chosen, readLine, setMark } from './marks';
 
 /**
  * The selection toolbar (Cerys, October 25). Selecting text shows a small bar above it
@@ -16,10 +17,22 @@ export interface ToolbarOptions {
   onMakeEntry?: (name: string) => void;
 }
 
+/** The markers that open a line and are no part of its words: a heading, a quote, a list item. */
+const LINE_OPENER = /^(\s*(#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+))*/;
+
 /**
- * Wraps the selection in `mark`, or removes the mark when the selection already has it.
- * Underline has no markdown of its own, so it is written `<u>` and `</u>`, which the
- * reading view and other markdown editors understand (Cerys, November 1).
+ * Turns bold, italic, or underline on or off (Cerys, November 24). With words selected,
+ * the mark goes on all of them, or comes off all of them when every one already has it,
+ * so pressing twice always clears the selection. The work is done on the words, in
+ * `marks.ts`, so marks already in the selection are folded in and never doubled.
+ *
+ * With nothing selected, the pair of marks is written with the cursor between them, ready
+ * to type. Pressed again at once, the empty pair is taken away. At the end of a marked
+ * phrase, it steps the cursor out past the closing mark.
+ *
+ * A selection over several paragraphs is marked one line at a time, because a mark cannot
+ * cross a line (Cerys, November 11). Underline has no markdown of its own, so it is written
+ * `<u>` and `</u>` (Cerys, November 1).
  */
 export function toggleMark(view: EditorView, mark: string, close: string = mark): boolean {
   const { state } = view;
@@ -27,63 +40,57 @@ export function toggleMark(view: EditorView, mark: string, close: string = mark)
   const m = close.length;
   view.dispatch(
     state.changeByRange((range) => {
-      // A selection that runs over several paragraphs is marked one paragraph at a time,
-      // because a mark cannot cross a blank line (Cerys, November 11). Each piece leaves out
-      // the space around it and any heading, list, or quote marker in front of it.
-      type Side = 'outside' | 'inside' | null;
-      const pieces: { from: number; to: number; start: Side; end: Side }[] = [];
-      // Asterisks run together where text is both bold and italic, so a run is counted:
-      // an odd run holds italic, and a run of two or more holds bold.
-      const stars = (pos: number, dir: 1 | -1, limit: number) => {
-        let count = 0;
-        while (count < limit && state.sliceDoc(dir > 0 ? pos + count : pos - count - 1, dir > 0 ? pos + count + 1 : pos - count) === '*') count++;
-        return count;
-      };
-      const has = (text: string, pos: number, dir: 1 | -1, limit: number) => {
-        if (text.includes('*')) {
-          const run = stars(pos, dir, limit);
-          return text === '*' ? run % 2 === 1 : run >= 2;
-        }
-        return limit >= text.length && (dir > 0 ? state.sliceDoc(pos, pos + text.length) : state.sliceDoc(pos - text.length, pos)) === text;
-      };
+      if (range.empty) {
+        const line = state.doc.lineAt(range.head);
+        const at = range.head - line.from;
+        const here = readLine(line.text, mark, close);
+        const plainAt = (i: number) => here.at.includes(i);
+        const emptyPair =
+          line.text.slice(at - n, at) === mark &&
+          line.text.slice(at, at + m) === close &&
+          // The marks of an empty pair mark nothing, so they read as ordinary characters,
+          // and for italic they must not be the two halves of a bold mark.
+          plainAt(at - n) &&
+          plainAt(at) &&
+          (mark !== '*' || readLine(line.text, '**').at.includes(at));
+        if (emptyPair) return { changes: { from: range.head - n, to: range.head + m }, range: EditorSelection.cursor(range.head - n) };
+        const before = here.at.indexOf(at - 1);
+        const closesHere = line.text.slice(at, at + m) === close && !plainAt(at) && before >= 0 && here.on[before];
+        if (closesHere) return { range: EditorSelection.cursor(range.head + m) };
+        return { changes: { from: range.head, insert: mark + close }, range: EditorSelection.cursor(range.head + n) };
+      }
+      const pieces: { from: number; text: string; a: number; b: number }[] = [];
       for (let pos = range.from; pos <= range.to; ) {
         const line = state.doc.lineAt(pos);
-        let from = Math.max(range.from, line.from);
-        let to = Math.min(range.to, line.to);
-        if (from === line.from) from += /^(\s*(#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+))*/.exec(line.text)![0].length;
-        const text = state.sliceDoc(from, Math.max(from, to));
-        from += text.length - text.trimStart().length;
-        to -= text.length - text.trimEnd().length;
-        if (to > from || (range.empty && pos === range.from)) {
-          to = Math.max(from, to);
-          // The mark may sit just outside the selection or just inside it, at either end.
-          const start: Side = has(mark, from, -1, from - line.from) ? 'outside' : has(mark, from, 1, to - from) ? 'inside' : null;
-          const end: Side = has(close, to, 1, line.to - to) ? 'outside' : has(close, to, -1, to - from) ? 'inside' : null;
-          pieces.push({ from, to, start, end });
-        }
+        const a = Math.max(range.from - line.from, LINE_OPENER.exec(line.text)![0].length);
+        const b = Math.min(range.to, line.to) - line.from;
+        if (b > a && chosen(readLine(line.text, mark, close), a, b)) pieces.push({ from: line.from, text: line.text, a, b });
         pos = line.to + 1;
       }
       if (!pieces.length) return { range };
-      // The mark comes off only when every piece has it. Otherwise the pieces without it get it.
-      const marked = (p: (typeof pieces)[number]) => !!p.start && !!p.end && (p.to - p.from >= n + m || p.start === 'outside' || p.end === 'outside');
-      const remove = pieces.every(marked);
-      const specs = pieces.flatMap((p): { from: number; to?: number; insert?: string }[] =>
-        remove
-          ? [p.start === 'outside' ? { from: p.from - n, to: p.from } : { from: p.from, to: p.from + n }, p.end === 'outside' ? { from: p.to, to: p.to + m } : { from: p.to - m, to: p.to }]
-          : marked(p)
-            ? []
-            : [
-                { from: p.from, insert: mark },
-                { from: p.to, insert: close },
-              ],
-      );
-      const changes = state.changes(specs);
-      // One piece keeps the words selected, inside their marks. Several pieces keep the
-      // whole run selected, marks included, so pressing again takes the marks off.
-      const one = pieces.length === 1;
-      const first = Math.min(range.from, pieces[0].from);
-      const last = Math.max(range.to, pieces[pieces.length - 1].to);
-      return { changes, range: EditorSelection.range(changes.mapPos(first, one ? 1 : -1), changes.mapPos(last, one ? -1 : 1)) };
+      const value = !pieces.every((p) => {
+        const l = readLine(p.text, mark, close);
+        const c = chosen(l, p.a, p.b)!;
+        return allOn(l, c.first, c.last);
+      });
+      const specs: { from: number; to: number; insert: string }[] = [];
+      let grown = 0;
+      let first = range.from;
+      let last = range.to;
+      pieces.forEach((p, i) => {
+        const done = setMark(p.text, p.a, p.b, value, mark, close)!;
+        if (i === 0) first = p.from + grown + done.from;
+        if (i === pieces.length - 1) last = p.from + grown + done.to;
+        if (done.text === p.text) return;
+        // Only the stretch that differs is replaced, so the rest of the line is untouched.
+        let head = 0;
+        while (head < p.text.length && head < done.text.length && p.text[head] === done.text[head]) head++;
+        let tail = 0;
+        while (tail < p.text.length - head && tail < done.text.length - head && p.text[p.text.length - 1 - tail] === done.text[done.text.length - 1 - tail]) tail++;
+        specs.push({ from: p.from + head, to: p.from + p.text.length - tail, insert: done.text.slice(head, done.text.length - tail) });
+        grown += done.text.length - p.text.length;
+      });
+      return { changes: specs, range: EditorSelection.range(first, last) };
     }),
     { userEvent: 'input.format' },
   );

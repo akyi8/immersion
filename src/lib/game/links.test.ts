@@ -11,12 +11,12 @@ const elements = [
   { key: 'world:add-on/trouble', name: 'Trouble', kind: 'add-on', origin: 'world' },
   { key: 'engine:keyword/wren', name: 'Wren', kind: 'keyword', origin: 'engine' },
 ];
-const world = [{ id: 'wiki/people/wren.md', name: 'Marta "Wren" Okafor', aliases: ['Wren'] }];
+const world = [{ id: 'wiki/people/wren.md', name: 'Marta "Wren" Okafor', aliases: ['Wren', 'Marta'] }];
 const ids = (s: ReturnType<typeof gameScanner>, text: string) => s.find(text).map((m) => m.id);
 
 test("a world's game text links game terms and the world's names", () => {
   const s = gameScanner(elements, world, 'world');
-  assert.deepEqual(ids(s, 'Wren rolls for Trouble and takes on a Salt Debt.'), ['wiki/people/wren.md', 'game:engine:keyword/trouble', 'game:world:gear/salt-debt']);
+  assert.deepEqual(ids(s, 'Marta rolls for Trouble and takes on a Salt Debt.'), ['wiki/people/wren.md', 'game:engine:keyword/trouble', 'game:world:gear/salt-debt']);
 });
 
 test('a mechanic links however it is written, singular or plural', () => {
@@ -56,8 +56,13 @@ test('the names of divisions, sections, and rules never link', () => {
   assert.deepEqual(ids(s, 'See Taking Risks, in The Harbor.'), []);
 });
 
-test("a world's name wins over a game term of the same name", () => {
-  assert.deepEqual(ids(gameScanner(elements, world, 'world'), 'Then Wren waited.'), ['wiki/people/wren.md']);
+test('in game text a word that is both a game term and a wiki name is the game term', () => {
+  assert.deepEqual(ids(gameScanner(elements, world, 'world'), 'Then Wren waited.'), ['game:engine:keyword/wren']);
+  // A person called Art, and a keyword called Art: "Arts" in a rule is the keyword, in any case.
+  const art = [{ key: 'engine:keyword/art', name: 'Art', kind: 'keyword', origin: 'engine' }];
+  const people = [{ id: 'wiki/people/art.md', name: 'Arthur Vane', aliases: ['Art'] }];
+  const s = gameScanner(art, people, 'world');
+  assert.deepEqual(ids(s, 'The Arts are learned slowly, and an art is kept. Arthur Vane knows two.'), ['game:engine:keyword/art', 'game:engine:keyword/art', 'wiki/people/art.md']);
 });
 
 test("the engine's text links only the engine's own terms", () => {

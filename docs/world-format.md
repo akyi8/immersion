@@ -434,7 +434,7 @@ One set of rules covers the three kinds of name a game's text can link, and each
 
 Which of the three an element is comes from its labels, described under "Labels" below. An element is a mechanic when it carries the label `keyword`, either in its `tags:` or as its kind. An element that also carries the label `aspect` is an aspect. An element with neither label links as an aspect does. Every name also links in its plural, and a name written as a plural links in its singular: Storm Lamp links "Storm Lamps", and Property links "properties". The names of divisions, sections, and rules never link.
 
-Which names link depends on where the text is. The wiki, the stories, and the boards link wiki names alone. A world's game text links all three. The base engine's text links the engine's own aspects and mechanics.
+In game text a word that is both a game term and a wiki name links to the game term, so "Arts" in a rule is the keyword and not the plural of a person called Art. Which names link depends on where the text is. The wiki, the stories, and the boards link wiki names alone. A world's game text links all three. The base engine's text links the engine's own aspects and mechanics.
 
 ### A world's book follows the base game's
 
