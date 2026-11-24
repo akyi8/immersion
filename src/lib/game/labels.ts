@@ -30,6 +30,8 @@ export interface Meaning {
   is?: string[];
   /** The heading a list of these elements goes under, such as "Keywords". */
   plural?: string;
+  /** ICONS TRIAL: the icon elements with this label wear, by its name in the icon set, or `none`. */
+  icon?: string;
 }
 
 export type Labels = Map<string, Meaning>;
@@ -80,6 +82,8 @@ export function readLabels(text: string | null, over: Labels = builtIn()): { lab
     }
     if (given.is !== undefined) next.is = (Array.isArray(given.is) ? given.is : [given.is]).map(norm).filter(Boolean);
     if (typeof given.plural === 'string' && given.plural.trim()) next.plural = given.plural.trim();
+    // ICONS TRIAL
+    if (typeof given.icon === 'string' && given.icon.trim()) next.icon = given.icon.trim();
     labels.set(label, next);
   }
   return { labels, skipped };

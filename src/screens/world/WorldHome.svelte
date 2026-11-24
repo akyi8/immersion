@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ICONS TRIAL
+  import Icon from '../Icon.svelte';
+  import { icons } from '../../lib/icons.svelte';
   import { errorText } from '../../lib/errors';
   import type { WikiIndex } from '../../lib/index/wiki';
   import { folderLabel } from '../../lib/index/wiki';
@@ -107,7 +110,7 @@
   {#if faces.length}{@render facelessNote()}{/if}
   {#each index.root.folders as folder}
     {@const ids = allIn(folder)}
-    <h2 class="label">{folderLabel(folder.name)} {#if ids.length}<span>{ids.length}</span>{/if}</h2>
+    <h2 class="label"><Icon name={icons.forCategory(folder.name)} size={13} /> {folderLabel(folder.name)} {#if ids.length}<span>{ids.length}</span>{/if}</h2>
     <div class="chips">
       {#each ids as id}
         <button type="button" onclick={() => nav.open(id)}>{index.get(id)!.name}</button>

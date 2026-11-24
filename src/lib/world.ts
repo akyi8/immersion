@@ -17,6 +17,8 @@ export interface World {
   journal: boolean;
   /** True when the journal keeps a page for each day. Off unless the writer turns it on. */
   daily: boolean;
+  /** ICONS TRIAL: the icon each wiki category wears, from `icons:`, by the category's folder under the wiki. */
+  icons: Record<string, string>;
   /** The engine this world's game is built on, as a path from the library's top, or ''. */
   engine: string;
   /** The folder that holds this world's own game elements (Cerys, November 7). */
@@ -73,6 +75,8 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     gameDir: text(header.game, 'game'),
     pictures: readShape(header.pictures),
     roomFrame: readFrame(header.room_frame),
+    // ICONS TRIAL: the icon each wiki category wears, by the category's folder.
+    icons: Object.fromEntries(Object.entries(header.icons && typeof header.icons === 'object' && !Array.isArray(header.icons) ? header.icons : {}).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1].trim() !== '')),
     spelling: header.spelling === 'british' ? 'british' : 'american',
     spanish: header.spelling_also === 'spanish',
   };

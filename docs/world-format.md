@@ -39,6 +39,7 @@ stories: stories
 ```
 
 - `name:` is the world's name, and `tagline:` is the line shown under it.
+- `icons:` gives a wiki category its icon. It maps a folder's path under the wiki to an icon's name in the Game-icons set, such as `people: cowled` or `people/major: crown`. A folder with no icon of its own takes the icon of the folder above it. The word `none` leaves a category with no icon. The app writes this map when an icon is chosen from a category's menu.
 - `id:` is the world's own id: a short random string the app writes once and never changes. It names the same world whatever its folder is called and wherever it sits on each computer. A new world is given one when it is made, and an older world is given one the first time a story is saved in its vault. The vault seals each story to this id, so deleting or changing the line would stop that world's stories opening. The app puts a deleted id back from the stories themselves, and a changed one has to be changed back by hand.
 - `wiki:` is the folder that holds the wiki. It defaults to `wiki`.
 - `stories:` is the folder that holds the writing. It defaults to `stories`.
@@ -420,6 +421,7 @@ A dock knife with a cork grip, so it floats.
 ```
 
 - `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
+- `icon` in a wiki entry's header, such as `icon: pirate-captain`, gives that one entry an icon of its own in place of its category's.
 - `tags` says where the element belongs and what it is. A `core` tag marks an engine's element. The tags `aspect` and `keyword` decide how the element's name links, as described under "How a game's names link".
 - `vendor` names the id of the vendor element that sells it, in the same world.
 - Every other key is one of the kind's fields.
@@ -479,6 +481,7 @@ What this game's labels mean, in the writer's words.
 - `links` says how an element's name links: `any case`, `capitals`, or `never`.
 - `is` names other labels that every element with this label also has, so `is: aspect` on `gear` makes every piece of gear an aspect.
 - `plural` is the heading a list of these elements goes under.
+- `icon` is the icon elements with this label wear, by its name in the Game-icons set, or `none` for no icon. The app writes it when an icon is chosen on a kind's page.
 
 When an element's labels disagree about linking, the strictest wins: `never` over `capitals`, and `capitals` over `any case`. An element with no label that says how it links is treated as a name and links with its capitals. A game with no labels file works as the six built-in meanings say. An entry the app cannot read is left out, and the Game sidebar names the entry and the reason.
 

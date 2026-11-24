@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ICONS TRIAL
+  import Icon from '../Icon.svelte';
+  import { icons } from '../../lib/icons.svelte';
   import { keepWord, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
   import type { Element, Kind } from '../../lib/game/elements';
@@ -26,7 +29,12 @@
     onSave,
     onNewHere,
     gathered = false,
+    icon = null,
+    onIcon,
   }: {
+    /** ICONS TRIAL: the icon these elements wear, and how to choose another. */
+    icon?: string | null;
+    onIcon?: () => void;
     kind: Kind;
     /** The engine's or the world's name. */
     where: string;
@@ -103,11 +111,12 @@
 <article class="kind" class:wide={sheet}>
   <header>
     <div class="label">{where} · {gathered ? 'Label' : 'Kind'}</div>
-    <h1>{kind.plural}</h1>
+    <h1><Icon name={icon} size={34} />{kind.plural}</h1>
     <div class="row">
       <span class="meta">{elements.length} {elements.length === 1 ? 'element' : 'elements'}</span>
       <span class="spacer"></span>
       {#if onSave && !gathered}<Pick small label="Show {kind.plural} as" value={show} onpick={setShow} options={[['list', 'List'], ['sheet', 'Sheet']] as const} />{/if}
+      {#if onIcon && icons.on}<button type="button" class="tool" onclick={onIcon}>Icon…</button>{/if}
       <input class="filter" type="search" placeholder="Filter by name or tag" bind:value={filter} aria-label="Filter {kind.plural}" />
       {#if gathered}
         <span class="meta">Everything tagged {kind.id}</span>
@@ -153,7 +162,7 @@
     {#each shown as p (p.key)}
       <li>
         <button type="button" class:dim={p.setAside || !!p.reskinnedBy} onclick={() => onOpen(p.key)} oncontextmenu={(e) => onMenu?.(e, p.key)}>
-          <span class="name">{p.element.name}</span>
+          <span class="name"><Icon name={icon} size={17} />{p.element.name}</span>
           <span class="tags">{p.element.tags.filter((t) => t.toLowerCase() !== kind.id).join(', ')}</span>
           {#if p.setAside}<span class="flag">Set aside in {worldName}</span>{/if}
           {#if p.reskinnedBy}<span class="flag">Reskinned as {p.reskinnedBy.element.name}</span>{/if}

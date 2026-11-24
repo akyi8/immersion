@@ -2,6 +2,7 @@
   import { errorText } from './lib/errors';
   import { fade } from 'svelte/transition';
   import { onShortcut } from './lib/shortcuts';
+  import { icons } from './lib/icons.svelte';
   import { room } from './lib/room.svelte';
   import { noteTrouble, watchForTrouble } from './lib/trouble';
   import { onMount } from 'svelte';
@@ -42,6 +43,10 @@
   let phase = $state<Phase>('starting');
   let fs = $state<WorldFs | null>(null);
   let world = $state<World | null>(null);
+  // ICONS TRIAL: the open world's own icon choices.
+  $effect(() => {
+    icons.world = world?.icons ?? {};
+  });
   let index = $state<WikiIndex | null>(null);
   let problem = $state('');
   /** True while a world is being opened, when its loading screen may enter on its own. */

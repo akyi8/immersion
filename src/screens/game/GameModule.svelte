@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ICONS TRIAL
+  import IconPicker from '../IconPicker.svelte';
+  import { labelIcon } from '../../lib/icons.svelte';
   import { freePath } from '../../lib/archive';
   import { errorText } from '../../lib/errors';
   import Dialog from '../shelf/Dialog.svelte';
@@ -703,6 +706,30 @@
     const mine = await worldTwin(p);
     await saveTyped(mine, { ...c, name: mine.element.name, was: { ...c.was, name: mine.element.name } });
   }
+  // ICONS TRIAL: the icon a label wears, from the game's labels file or the label's default,
+  // and choosing one, which is written to the labels file of the book on screen.
+  const iconOf = (...labels: string[]) => {
+    for (const l of labels) {
+      const found = labelIcon(l, game?.labels.get(l.toLowerCase())?.icon);
+      if (found || game?.labels.get(l.toLowerCase())?.icon) return found;
+    }
+    return null;
+  };
+  let pickingIcon = $state<{ label: string; name: string } | null>(null);
+  async function pickIcon(name: string | null) {
+    const p = pickingIcon;
+    if (!p || !bookSource) return;
+    const file = pathIn(bookSource, 'labels.md');
+    const text = (await bookSource.fs.exists(file)) ? await bookSource.fs.readText(file) : '';
+    const was = splitHeader(text).header[p.label];
+    const entry = { ...(was && typeof was === 'object' && !Array.isArray(was) ? (was as Record<string, unknown>) : {}) };
+    if (name) entry.icon = name;
+    else delete entry.icon;
+    await bookSource.fs.writeText(file, withHeader(text, { [p.label]: Object.keys(entry).length ? entry : undefined }));
+    pickingIcon = null;
+    await load();
+  }
+
   /** A division's sections as the book shows them now, which is the list a change starts from. */
   const sectionsShown = (divKey: string) => tree?.divisions.find((d) => d.placed.key === divKey)?.sections.map((s) => s.placed.key) ?? null;
 
@@ -871,7 +898,8 @@
             onAddRule={addRule}
             onAddSection={addSection}
             onAddTop={addTopSection}
-            onMenu={(e, id) => contextMenu.show(e, menuFor(id))} />
+            onMenu={(e, id) => contextMenu.show(e, menuFor(id))}
+            {iconOf} />
         {/if}
         {#if game?.books.world && game.books.engine && bookOrigin === 'world'}
           <button type="button" class="base-book" title="The book every game built on {engineName} starts from: its title page, its divisions, and their order" onclick={() => (chosen = 'engine')}>The base game's book</button>
@@ -1024,6 +1052,8 @@
             <GameKind
               kind={c.kind}
               gathered={c.byLabel}
+              icon={iconOf(c.kind.id)}
+              onIcon={() => (pickingIcon = { label: c.kind.id, name: c.kind.plural })}
               where={tree?.book.name ?? worldName}
               {worldName}
               elements={c.elements}
@@ -1041,6 +1071,7 @@
               where={originName(origin)}
               {worldName}
               elements={game!.elements.filter((p) => p.origin === origin && p.element.kind === kindId)}
+              icon={iconOf(kindId)}
               onOpen={(key) => openElement(key, i)}
               onMenu={(e, key) => contextMenu.show(e, menuFor(`${EL}${key}`))}
               {engineName}
@@ -1115,6 +1146,11 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input class="tag-field" type="text" bind:value={tagText} aria-label="Tags" autocomplete="off" autofocus />
   </Dialog>
+{/if}
+
+<!-- ICONS TRIAL -->
+{#if pickingIcon}
+  <IconPicker what={pickingIcon.name} current={iconOf(pickingIcon.label)} start="objects" onPick={pickIcon} onCancel={() => (pickingIcon = null)} />
 {/if}
 
 {#if archiving}

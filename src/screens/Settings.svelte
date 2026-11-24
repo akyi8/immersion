@@ -1,4 +1,6 @@
 <script lang="ts">
+  // ICONS TRIAL
+  import { icons } from '../lib/icons.svelte';
   import { errorText } from '../lib/errors';
   import { tumbling } from '../lib/table/tray.svelte';
   import { clearTroubles, troubleText, troubles } from '../lib/trouble';
@@ -115,6 +117,8 @@
         wide: true,
       },
       { id: 'board-font', group: 'look', name: 'Board lettering', tell: 'The lettering on board cards. A condensed face fits more of an outline on each card.', where: 'All worlds' },
+      // ICONS TRIAL
+      { id: 'icons', group: 'look', name: 'Icons', tell: 'Small icons beside the names in sidebars and lists, drawn in the color of the text around them. A category, a game label, or one entry can be given its own from its menu. The icons are from game-icons.net, by Lorc, Delapouite, and other contributors, under the Creative Commons Attribution 3.0 license.', where: 'This computer' },
       { id: 'quiet', group: 'work', name: 'Quiet typing', tell: 'While you type, everything steps back in layers around the sentence you are writing. It all returns when the pointer moves.', where: 'This computer' },
       { id: 'spelling', group: 'work', name: 'Spelling', tell: `A misspelled word is set a little greyer, and a right click on it offers what it might have been. Your world's names are never marked. You have added ${account.words.length} ${account.words.length === 1 ? 'word' : 'words'} of your own. ${spell.status === 'failed' ? `The dictionary could not be read (${spell.problem}).` : spell.status === 'starting' ? 'The dictionary is read the first time a page with writing opens.' : 'The dictionary is loaded.'}`, where: 'This computer' },
       world && journal && { id: 'daily', group: 'work', name: 'Daily pages', tell: 'Keeps a page for each day and adds a Today button to the journal. Days you skip simply do not exist, and nothing reminds you.', where: 'This world' },
@@ -240,6 +244,8 @@
     <select class="board-font" aria-label="Board lettering" value={account.look.boardFont} style:font-family={BOARD_FONTS.find(([f]) => f === account.look.boardFont)?.[2] || null} onchange={(e) => run(() => account.saveLook({ ...account.look, boardFont: (e.currentTarget as HTMLSelectElement).value as BoardFont }))}>
       {#each BOARD_FONTS as [f, name, face]}<option value={f} style:font-family={face || null}>{name}</option>{/each}
     </select>
+  {:else if id === 'icons'}
+    {@render flip(icons.on, (on) => icons.set(on), 'Icons')}
   {:else if id === 'quiet'}
     {@render flip(quiet.on, (on) => quiet.set(on), 'Quiet typing')}
   {:else if id === 'spelling'}

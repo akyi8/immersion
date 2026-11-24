@@ -11,6 +11,11 @@
   import { contextMenu } from '../../lib/contextMenu.svelte';
   import { moveToWindow } from '../../lib/windows';
   import { titleFocus } from '../../lib/retitle';
+  // ICONS TRIAL
+  import Icon from '../Icon.svelte';
+  import IconPicker from '../IconPicker.svelte';
+  import { icons } from '../../lib/icons.svelte';
+  import { withHeader } from '../../lib/world';
   import { moveEntry } from '../../lib/index/manage';
   import { saveNow } from '../../lib/saves';
 
@@ -150,6 +155,21 @@
     categoryActions?.start(what);
   }
 
+  // ICONS TRIAL: choosing an icon for a category, or for one entry.
+  let picking = $state<{ kind: 'category'; path: string; name: string } | { kind: 'entry'; id: string } | null>(null);
+  /** A folder's path under the wiki, which is how `world.md` names a category. */
+  const under = (path: string) => (path.startsWith(index.root.path + '/') ? path.slice(index.root.path.length + 1) : '');
+  async function pickIcon(name: string | null) {
+    const p = picking;
+    if (!p) return;
+    if (p.kind === 'category') await icons.setCategory(fs, under(p.path), name);
+    else {
+      await saveNow(p.id);
+      await fs.writeText(p.id, withHeader(await fs.readText(p.id), { icon: name ?? undefined }));
+    }
+    picking = null;
+  }
+
   function entryMenu(event: MouseEvent, id: string) {
     contextMenu.show(event, [
       { label: 'Open', run: () => nav.open(id) },
@@ -164,6 +184,8 @@
       // A card has no title to type over, so it falls back to the small form.
       { label: 'Rename', run: () => (nav.open(id), titleFocus.request(id, () => void entryForm(id, 'rename'))) },
       { label: 'Other names', run: () => entryForm(id, 'names') },
+      // ICONS TRIAL
+      ...(icons.on ? [{ label: 'Icon…', run: () => (picking = { kind: 'entry', id }) }] : []),
       { label: 'Move to another category', run: () => entryForm(id, 'move') },
       { label: 'Archive', run: () => entryForm(id, 'archive') },
     ]);
@@ -175,6 +197,8 @@
       { label: 'New category inside', run: () => onNewFolder(folder.path) },
       'separator',
       { label: 'Rename category', run: () => categoryForm(folder, 'rename') },
+      // ICONS TRIAL
+      ...(icons.on ? [{ label: 'Icon…', run: () => (picking = { kind: 'category', path: folder.path, name: folderLabel(folder.name) }) }] : []),
       { label: 'Archive category', run: () => categoryForm(folder, 'archive') },
     ]);
   }
@@ -237,7 +261,7 @@
       <div class="folder-row" class:drop={drag?.over === child.path} data-drop={child.path} oncontextmenu={(e) => categoryMenu(e, child)} role="presentation">
         <button type="button" class="folder" style:padding-left="{18 + depth * 14}px" aria-expanded={isOpen(child)} onclick={() => toggle(child)}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={isOpen(child) ? 'M1 3 L5 7 L9 3' : 'M3 1 L7 5 L3 9'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
-          {folderLabel(child.name)}
+          <span class="with-icon"><Icon name={icons.forCategory(under(child.path))} />{folderLabel(child.name)}</span>
           <span class="count">{child.entries.length || ''}</span>
         </button>
         <div class="row-actions"><button type="button" class="row-more" aria-label="What can be done with {folderLabel(child.name)}" aria-haspopup="menu" onclick={(e) => categoryMenu(e, child)}>⋯</button></div>
@@ -258,7 +282,7 @@
           style:padding-left="{32 + depth * 14}px"
           onpointerdown={(event) => pressEntry(event, id)}
           onclick={(event) => clickEntry(event, id)}
-          oncontextmenu={(event) => entryMenu(event, id)}>{e.name}</button>
+          oncontextmenu={(event) => entryMenu(event, id)}><span class="with-icon"><Icon name={icons.forEntry(under(id.slice(0, id.lastIndexOf('/'))), e.icon)} />{e.name}</span></button>
         <div class="row-actions"><button type="button" class="row-more" aria-label="What can be done with {e.name}" aria-haspopup="menu" onclick={(event) => entryMenu(event, id)}>⋯</button></div>
       </div>
     {/each}
@@ -281,7 +305,7 @@
           {#if e}
             <div class="entry-row">
               <button type="button" class="item" onclick={() => nav.open(id)} oncontextmenu={(event) => entryMenu(event, id)}>
-                <span>{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
+                <span><Icon name={icons.forEntry(under(id.slice(0, id.lastIndexOf('/'))), e.icon)} />{e.name}</span><span class="kind">{folderLabel(e.category)}</span>
               </button>
               <div class="row-actions over"><button type="button" class="row-more" aria-label="What can be done with {e.name}" aria-haspopup="menu" onclick={(event) => entryMenu(event, id)}>⋯</button></div>
             </div>
@@ -319,6 +343,16 @@
 {/if}
 {#if categoryTarget}
   <CategoryActions bind:this={categoryActions} {fs} {index} folder={categoryTarget} onMoved={onCategoryMoved} />
+{/if}
+
+<!-- ICONS TRIAL -->
+{#if picking}
+  {#if picking.kind === 'category'}
+    <IconPicker what={picking.name} current={icons.forCategory(under(picking.path))} start={/people|character/i.test(picking.name) ? 'characters' : /place|location/i.test(picking.name) ? 'places' : 'all'} onPick={pickIcon} onCancel={() => (picking = null)} />
+  {:else}
+    {@const e = index.get(picking.id)}
+    {#if e}<IconPicker what={e.name} current={icons.forEntry(under(picking.id.slice(0, picking.id.lastIndexOf('/'))), e.icon)} fallback start="all" onPick={pickIcon} onCancel={() => (picking = null)} />{/if}
+  {/if}
 {/if}
 
 <style>
@@ -487,5 +521,14 @@
   .row-more:hover {
     color: var(--text);
     background: var(--well, var(--surface));
+  }
+  /* ICONS TRIAL: an icon and its name stay together at the start of a row. */
+  .with-icon {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
   }
 </style>

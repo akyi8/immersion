@@ -1,4 +1,6 @@
 <script lang="ts">
+  // ICONS TRIAL
+  import Icon from '../Icon.svelte';
   import { keep, keepWord, kept, word } from '../../lib/prefs';
   import type { BookTree, DivisionNode, SectionNode } from '../../lib/game/game';
 
@@ -23,6 +25,7 @@
     onAddSection,
     onAddTop,
     onMenu,
+    iconOf = () => null,
   }: {
     tree: BookTree;
     worldName: string;
@@ -31,6 +34,8 @@
     onOpen: (id: string) => void;
     /** A right click on a rule or a section opens its menu. */
     onMenu?: (e: MouseEvent, id: string) => void;
+    /** ICONS TRIAL: the icon a label wears, tried in the order given. */
+    iconOf?: (...labels: string[]) => string | null;
     onMoveRule: (rule: string, from: string, to: string, before: string | null) => void;
     onMoveSection: (section: string, from: string | null, to: string, before: string | null) => void;
     /** The name of an origin: the engine, the world, or an expansion. */
@@ -217,13 +222,13 @@
       {@const ck = `${key}#${c.kind.id}`}
       <div class="row folder" class:on={isOpen(`@cat:${c.kind.id}`)} style="--depth: 1" role="treeitem" aria-selected={isOpen(`@cat:${c.kind.id}`)} aria-expanded={expanded.has(ck)} tabindex="-1">
         <button type="button" class="twist" aria-label={expanded.has(ck) ? 'Close' : 'Open'} onclick={() => toggle(ck)}>{expanded.has(ck) ? '▾' : '▸'}</button>
-        <button type="button" class="name" onclick={() => (toggle(ck, true), onOpen(`@cat:${c.kind.id}`))}>{c.kind.plural}</button>
+        <button type="button" class="name" onclick={() => (toggle(ck, true), onOpen(`@cat:${c.kind.id}`))}><Icon name={iconOf(c.kind.id)} />{c.kind.plural}</button>
         <span class="n">{c.elements.length}</span>
       </div>
       {#if expanded.has(ck)}
         {#each c.elements as p (p.key)}
           <div class="row leaf" class:on={isOpen(`@el:${p.key}`)} style="--depth: 2" role="treeitem" aria-selected={isOpen(`@el:${p.key}`)} tabindex="-1" oncontextmenu={(e) => onMenu?.(e, `@el:${p.key}`)}>
-            <button type="button" class="name" onclick={() => onOpen(`@el:${p.key}`)}>{p.element.name}</button>
+            <button type="button" class="name" onclick={() => onOpen(`@el:${p.key}`)}><Icon name={iconOf(p.element.kind, c.kind.id)} />{p.element.name}</button>
             {#if tree.origin === 'world' && p.origin === 'world'}<span class="own" title="{worldName}'s own">◆</span>
             {:else if p.origin !== 'engine'}<span class="n" title="From the {names(p.origin)} expansion">{names(p.origin)}</span>{/if}
           </div>

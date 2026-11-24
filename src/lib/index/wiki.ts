@@ -23,6 +23,8 @@ export interface Entry {
   when: When | null;
   /** An era: a span of time whose events belong to it (Cerys, October 25). */
   era: boolean;
+  /** ICONS TRIAL: an icon of the entry's own, from `icon:` in its header, or null for its category's. */
+  icon?: string | null;
   /** Whether the picture shows as a portrait or a banner, when the entry overrides its category. */
   picture?: Shape | null;
   /** How the picture is framed as a portrait and as a banner (Cerys, November 1). */
@@ -147,6 +149,8 @@ export async function buildWikiIndex(fs: WorldFs, world: World): Promise<WikiInd
         when: parseWhen(header.when),
         era: header.era === true && !!parseWhen(header.when),
         picture: readShape(header.picture),
+        // ICONS TRIAL: an icon of the entry's own, in place of its category's.
+        icon: typeof header.icon === 'string' && header.icon.trim() ? header.icon.trim() : null,
         portraitFrame: readFrame(header.portrait_frame),
         bannerFrame: readFrame(header.banner_frame),
         behindFrame: readFrame(header.behind_frame),
