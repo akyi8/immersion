@@ -425,7 +425,7 @@ A dock knife with a cork grip, so it floats.
 ```
 
 - `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
-- `summary` is one line saying what the element is, shown on its hover card. An element without one shows the first sentence of its body, or of its first rule.
+- `summary` is one line saying what the element is, shown on its hover card. An element without one shows its `reminder`, when its kind has that field, as a keyword does, and otherwise the first sentence of its body or of its first rule. A `full_rule` field is shown on the card as where the full rule is written.
 - `tags` says where the element belongs and what it is. A `core` tag marks an engine's element. The tags `aspect` and `keyword` decide how the element's name links, as described under "How a game's names link".
 - `vendor` names the id of the vendor element that sells it, in the same world.
 - Every other key is one of the kind's fields.

@@ -21,6 +21,8 @@ layout: [ availability, flavor, rules, burned, recovery ]
 
 What a protagonist carries.
 `,
+    'kinds/keyword.md': '---\nname: Keyword\nplural: Keywords\nfields:\n  - { key: reminder, label: Reminder, type: text }\n  - { key: full_rule, label: Full rule, type: line }\nlayout: [ reminder, full_rule ]\n---\n\nA name for a rule that many aspects share.\n',
+    'elements/keyword/trouble.md': '---\nname: Trouble\nkind: keyword\ntags: [ core, keyword ]\nreminder: "each die over your edge is one trouble; clear it or pay for it"\nfull_rule: Reading the Dice\n---\n',
     'kinds/need.md': `---
 name: Need
 plural: Needs
@@ -57,10 +59,10 @@ A kind of place that sells, and the kind of person who runs it. Each world write
     'elements/division/the-narrator.md': '---\nname: The Narrator\nkind: division\ntags: [ core, division ]\nsections:\n  - chapter/running-a-scene\n---\n\nHow to run the game.\n',
     'elements/chapter/running-a-scene.md': '---\nname: Running a Scene\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/set-the-stakes\n---\n',
     'elements/module/set-the-stakes.md': '---\nname: Set the Stakes\nkind: module\ntags: [ core, module ]\n---\n\nSay what is at risk before anyone rolls.\n',
-    'elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ core, division ]\ncatalog: [ need, gear ]\n---\n\nEvery aspect, listed by kind.\n',
+    'elements/division/the-aspects.md': '---\nname: The Aspects\nkind: division\ntags: [ core, division ]\ncatalog: [ need, gear, keyword ]\n---\n\nEvery aspect, listed by kind.\n',
     'elements/chapter/taking-risks.md': '---\nname: Taking Risks\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/when-to-roll\n  - module/reading-the-dice\n---\n\nWhen a protagonist tries something uncertain, the dice decide.\n',
     'elements/module/when-to-roll.md': '---\nname: When to Roll\nkind: module\ntags: [ core, module ]\n---\n\nRoll only when failing would be *interesting*. Walking across a quiet room needs no dice.\n',
-    'elements/module/reading-the-dice.md': '---\nname: Reading the Dice\nkind: module\ntags: [ core, module ]\n---\n\nEach die at or under your edge is a **success**.\n\n### Ties\n\nA tie goes to the protagonist.\n',
+    'elements/module/reading-the-dice.md': '---\nname: Reading the Dice\nkind: module\ntags: [ core, module ]\n---\n\nEach die at or under your edge is a **success**. Each die over it is one trouble.\n\n### Ties\n\nA tie goes to the protagonist.\n',
     'elements/gear/rope.md': '---\nname: Rope\nkind: gear\ntags: [ core, gear, tool ]\navailability: "1"\nrules:\n  - "**Applies when** *(climbing, binding, or hauling)*."\nburned: Frayed through.\nrecovery: Buy more.\n---\n\nFifteen meters of braided line.\n',
     'elements/gear/lantern.md': '---\nname: Lantern\nkind: gear\ntags: [ core, gear, tool ]\navailability: "1"\nrules:\n  - "**Applies when** *(seeing in the dark)*."\nburned: Shattered, and the oil is gone.\nrecovery: Buy another.\n---\n\nA shuttered lantern that throws light one way.\n',
     'elements/need/rest.md': '---\nname: Rest\nkind: need\ntags: [ core, need ]\nburned: Exhausted. Every roll after midnight starts one die worse.\n---\n\nSleep, and somewhere safe enough to take it.\n',

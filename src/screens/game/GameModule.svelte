@@ -327,8 +327,8 @@
   });
 
   // A game term's hover card (Cerys, November 24): what the term is, in a line. The line is
-  // `summary:` in the element's file when it has one, else its first sentence, else its
-  // first rule.
+  // `summary:` in the element's file when it has one, else its `reminder:`, which every
+  // keyword carries, else its first sentence, else its first rule.
   $effect(() => {
     hover.game = (key) => {
       const p = byKey.get(key);
@@ -336,12 +336,15 @@
       const el = effective(p);
       const text = (v: unknown) => (typeof v === 'string' ? v : Array.isArray(v) ? String(v[0] ?? '') : '');
       const plainly = (t: string) => t.replace(/^#+\s.*$/gm, '').replace(/[*_`>]/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
-      const brief = text(el.fields.summary) || firstSentence(plainly(el.flavor)) || firstSentence(plainly(text(el.fields.rules)));
+      // A reminder is written to sit inside a sentence, so it opens in lowercase. On a card it stands alone.
+      const alone = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) + (/[.!?]$/.test(t) ? '' : '.') : '');
+      const brief = text(el.fields.summary) || alone(plainly(text(el.fields.reminder)).trim()) || firstSentence(plainly(el.flavor)) || firstSentence(plainly(text(el.fields.rules)));
       const kind = game.kinds.get(el.kind);
       const tags = el.tags.filter((t) => t.toLowerCase() !== el.kind && t.toLowerCase() !== 'core');
       const pic = pictureFor(p);
       const facts: [string, string][] = [];
       if (text(el.fields.availability)) facts.push(['Availability', text(el.fields.availability)]);
+      if (text(el.fields.full_rule)) facts.push(['Full rule', text(el.fields.full_rule)]);
       if (tags.length) facts.push(['Tags', tags.slice(0, 5).join(', ')]);
       return { id: `game:${key}`, kind: kind?.name ?? el.kind, icon: iconOf(el.kind), main: el.name, lead: '', brief, also: [], facts, picture: pic ? { url: pic.url, style: '' } : null, game: true };
     };
