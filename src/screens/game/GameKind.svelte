@@ -140,6 +140,7 @@
         <thead>
           <tr>
             <th scope="col" class="name-col">Name</th>
+            <th scope="col" class="line">Tags</th>
             {#each kind.fields as f (f.key)}<th scope="col" class={f.type}>{f.label}</th>{/each}
             <th scope="col" class="text">{kind.body ?? 'Flavor'}</th>
           </tr>
@@ -148,7 +149,7 @@
           {#each rows as p (p.key)}
             <SheetRow placed={p} {kind} {engineName} onSave={(next, base) => onSave!(p, next, base)} onOpen={() => onOpen(p.key)} />
           {:else}
-            <tr><td class="none" colspan={kind.fields.length + 2}>{filter ? 'Nothing matches.' : `No ${kind.plural.toLowerCase()} yet.`}</td></tr>
+            <tr><td class="none" colspan={kind.fields.length + 3}>{filter ? 'Nothing matches.' : `No ${kind.plural.toLowerCase()} yet.`}</td></tr>
           {/each}
         </tbody>
       </table>

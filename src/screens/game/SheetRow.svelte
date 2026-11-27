@@ -35,6 +35,15 @@
   });
   onDestroy(() => void saver.flush(true));
 
+  // The tags are typed as one line with commas between. The line is the writer's own while
+  // they type, so a comma just typed is not taken away before the next tag is.
+  let tagText = $state((() => placed.element.tags.join(', '))());
+  function setTags(value: string) {
+    tagText = value;
+    draft.tags = value.split(',').map((t) => t.trim()).filter(Boolean);
+    saver.push(null);
+  }
+
   const textOf = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
   function setField(key: string, type: string, value: string) {
     draft.fields[key] = type === 'list' ? value.split('\n').filter((l) => l.trim() !== '') : value;
@@ -98,6 +107,9 @@
       {#if saver.status !== 'saved'}<span class="status" title={saver.problem}>{said(saver.status)}</span>{/if}
     </span>
   </th>
+  <td class="line tags">
+    <textarea rows="1" use:grow value={tagText} oninput={(e) => setTags(e.currentTarget.value)} onkeydown={(e) => move(e, true)} aria-label="Tags of {placed.element.name}" spellcheck="false"></textarea>
+  </td>
   {#each kind.fields as f (f.key)}
     <td class={f.type}>
       <textarea rows="1" use:grow value={textOf(draft.fields[f.key])} oninput={(e) => setField(f.key, f.type, e.currentTarget.value)} onkeydown={(e) => move(e, f.type === 'line')} aria-label="{f.label} of {placed.element.name}"></textarea>
@@ -179,5 +191,11 @@
   }
   tr.problem .status {
     color: var(--danger);
+  }
+  /* Every other row sits on a slightly different ground (Cerys, November 27), so the eye
+     can follow one aspect across a wide sheet. */
+  tr:nth-child(even) th,
+  tr:nth-child(even) td {
+    background: color-mix(in oklab, var(--text) 6%, var(--paper, var(--bg)));
   }
 </style>

@@ -3,7 +3,7 @@
   import type { WikiIndex } from '../lib/index/wiki';
   import { folderLabel } from '../lib/index/wiki';
   import type { WorldFs } from '../lib/fs/types';
-  import { frameStyle, spineName } from '../lib/index/frame';
+  import { frameStyle } from '../lib/index/frame';
   import { hover, firstSentence, type CardFacts } from '../lib/hover.svelte';
   import { icons } from '../lib/icons.svelte';
   import { quiet } from '../lib/view.svelte';
@@ -35,15 +35,14 @@
     if (id.startsWith('game:')) return hover.game?.(id.slice(5)) ?? null;
     const e = index?.get(id);
     if (!e || !index) return null;
-    const spine = spineName(e.name, e.spine ?? null);
     const folder = id.slice(0, id.lastIndexOf('/'));
     const under = folder.startsWith(index.root.path + '/') ? folder.slice(index.root.path.length + 1) : '';
     return {
       id,
       kind: folderLabel(e.category),
       icon: icons.forEntry(under, e.icon),
-      main: spine.main || e.name,
-      lead: spine.rest,
+      main: e.name,
+      lead: '',
       brief: firstSentence(e.summary),
       also: e.aliases.slice(0, 3),
       facts: [],
@@ -121,7 +120,8 @@
           <div class="art" aria-hidden="true"><img src={facts.picture.url} alt="" style={facts.picture.style} /></div>
         {/if}
         <div class="spine">
-          <div class="name"><span class="main">{facts.main}</span>{#if facts.lead}<span class="lead">{facts.lead}</span>{/if}</div>
+          <!-- The whole name at one size (Cerys, November 27). On a card this small, one large word and one small one read as a mistake. A longer name is set smaller, and wraps to a second line up the spine. -->
+          <div class="name" style:font-size="{facts.main.length <= 12 ? 26 : facts.main.length <= 22 ? 22 : 18}px">{facts.main}</div>
           <div class="kind"><Icon name={facts.icon} size={12} />{facts.kind}</div>
         </div>
         <div class="body">
@@ -210,11 +210,28 @@
     white-space: nowrap;
   }
   :global(.hover-card .name) {
-    max-height: 190px;
+    max-height: 176px;
     overflow: hidden;
+    white-space: normal;
     font-family: var(--font-display);
     text-transform: uppercase;
-    line-height: 0.92;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-shadow: 0 2px 12px var(--shadow);
+  }
+  :global(.hover-card .kind) {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+  }
+  :global(.hover-card .name) {
+    max-height: 176px;
+    overflow: hidden;
+    white-space: normal;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    line-height: 1;
     text-shadow: 0 2px 12px var(--shadow);
   }
   :global(.hover-card .name .main) {
