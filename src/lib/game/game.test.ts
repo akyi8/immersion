@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryFs } from '../fs/memory.ts';
 import { readElement, readKind, writeElement, writeKind, newElement, type Kind } from './elements.ts';
-import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, overBase, pictureOf, withBody, readBook } from './game.ts';
+import { bookTree, chapterItems, effective, gameFileWith, inPlay, loadGame, overBase, isSlot, pictureOf, printedText, withBody, readBook } from './game.ts';
 
 const gear: Kind = {
   id: 'gear',
@@ -409,4 +409,40 @@ test("an aspect's header is its card and its body is its page, when its kind lis
   assert.equal(readElement(e.path, writeElement(e, carded)).fields.flavor, 'A brass lamp with a shutter.');
   // A kind with no flavor field keeps its flavor as the body, as before.
   assert.deepEqual(readKind('gear', writeKind(gear)).layout, ['availability', 'flavor', 'rules', 'burned']);
+});
+
+test('a rule each world writes for itself prints the world\'s text in place of the base text', async () => {
+  const engine = new MemoryFs({
+    'engine.md': '---\nname: Example Engine\n---\n',
+    'book.md': '---\nname: Example Engine\n---\n',
+    'elements/module/a-sample.md': '---\nname: A Sample\nkind: module\neach_world: yes\n---\n\nA generic sample.\n',
+    'elements/module/bare.md': '---\nname: Bare\nkind: module\neach_world: true\n---\n',
+    'elements/module/the-edge.md': '---\nname: The Edge\nkind: module\n---\n\nThe edge is 5.\n',
+  });
+  const world = new MemoryFs({
+    'world.md': '---\nname: Harrowgate\n---\n',
+    'game/book.md': '---\nname: Harrowgate\n---\n',
+    'game/elements/add-on/a-sample.md': '---\nname: A Sample\nkind: add-on\nextends: module/a-sample\n---\n\nWren Okafor, read top to bottom.\n',
+    'game/elements/add-on/the-edge.md': '---\nname: The Edge\nkind: add-on\nextends: module/the-edge\n---\n\n*Wren climbs the pier.*\n',
+    'game/elements/module/low-water.md': '---\nname: Low Water\nkind: module\neach_world: yes\n---\n\nThe tide is out.\n',
+  });
+  const game = await loadGame({ origin: 'engine', name: 'Example Engine', fs: engine, dir: '' }, { origin: 'world', name: 'Harrowgate', fs: world, dir: 'game' });
+  const by = (name: string) => game.elements.find((p) => p.element.name === name && p.element.kind === 'module')!;
+
+  assert.equal(isSlot(by('A Sample')), true);
+  assert.equal(isSlot(by('Bare')), true, 'a bare true in a hand-written header counts');
+  assert.equal(isSlot(by('The Edge')), false);
+  assert.equal(isSlot(by('Low Water')), false, "a world's own rule is already the world's");
+
+  // The world's text stands alone in the world, and never reaches the base game's book.
+  assert.deepEqual(printedText(game, by('A Sample'), true), [{ from: 'world', text: 'Wren Okafor, read top to bottom.' }]);
+  assert.deepEqual(printedText(game, by('A Sample'), false), [{ from: 'base', text: 'A generic sample.' }]);
+  // A world that has written nothing prints the base text, and nothing when that is blank too.
+  assert.deepEqual(printedText(game, by('Bare'), true), []);
+  // A rule every world shares keeps its text, with what the world adds after it.
+  assert.deepEqual(printedText(game, by('The Edge'), true), [
+    { from: 'base', text: 'The edge is 5.' },
+    { from: 'world', text: '*Wren climbs the pier.*' },
+  ]);
+  assert.deepEqual(printedText(game, by('Low Water'), true), [{ from: 'world', text: 'The tide is out.' }]);
 });

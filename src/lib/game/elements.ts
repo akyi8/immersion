@@ -71,7 +71,8 @@ export interface Element {
 
 const RESERVED = new Set(['name', 'kind', 'tags', 'vendor', 'reskins']);
 
-const text = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
+// A switch written as a bare `true` reads as the word, so a hand-written header works.
+const text = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : v === true ? 'true' : '');
 
 export function slugify(name: string): string {
   return name

@@ -27,10 +27,12 @@
   import {
     bookTree,
     gameFileWith,
+    isSlot,
     loadGame,
     pathIn,
     pictureOf,
     refOf,
+    SLOT,
     sourceOf,
     withBody,
     type DivisionNode,
@@ -509,6 +511,18 @@
     }
   }
 
+  async function setSlot(p: Placed, on: boolean) {
+    try {
+      await saveAll();
+      await save(p, { ...p.element, fields: { ...p.element.fields, [SLOT]: on ? 'yes' : '' } });
+      notice = on
+        ? `${p.element.name} is now a rule each world writes for itself. A world's own text prints in place of what ${engineName} says here.`
+        : `${p.element.name} prints ${engineName}'s text in every world again, with what a world adds after it.`;
+    } catch (e) {
+      notice = errorText(e);
+    }
+  }
+
   // A rule, a section, or an element offers its menu from the corner of its page and from a
   // right click on its row: Rename, which puts the cursor in its title, and Archive.
   function menuFor(id: string): MenuEntry[] {
@@ -518,6 +532,15 @@
     return [
       ...(titled ? [{ label: 'Rename', run: () => (nav.open(id), titleFocus.request(id)) }] : []),
       ...(id.startsWith(RULE) ? [{ label: 'Tags…', run: () => ((tagProblem = ''), (tagText = p.element.tags.join(', ')), (tagging = p)) }] : []),
+      // A core rule can be one each world writes for itself. The switch is the base game's
+      // to set, so it is offered in the base game's book only.
+      ...(id.startsWith(RULE) && p.origin === 'engine' && !inWorld
+        ? [
+            isSlot(p)
+              ? { label: 'Every world prints this text', run: () => void setSlot(p, false) }
+              : { label: 'Each world writes its own', run: () => void setSlot(p, true) },
+          ]
+        : []),
       ...(titled ? ['separator' as const] : []),
       // A core element belongs to the base game, so a world's book cannot archive it. The
       // menu says where it can be archived and goes there, in place of a greyed-out word.

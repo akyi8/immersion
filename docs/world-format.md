@@ -588,6 +588,20 @@ extends: module/when-to-roll
 *Wren wants to cross the pier in the fog. The narrator calls for a roll, because the guard is listening.*
 ```
 
+A core rule can be one that each world writes for itself, such as a walkthrough of a sample protagonist. The engine's rule carries `each_world: yes` in its header:
+
+```markdown
+---
+name: Reading a Protagonist
+kind: module
+each_world: yes
+---
+
+A sample protagonist, read top to bottom.
+```
+
+The engine keeps the rule's name and its place in the book. The engine's own text for the rule can be blank, a note to the designer, or a version that any world could print. A world writes its text in the same `add-on` file, and for this rule the world's text prints in place of the engine's text, not after it. A world that has written nothing prints the engine's text. The engine's book always prints the engine's text and never a world's. The line is read only on an engine's rule. The app sets it from the rule's menu in the base game's book, with "Each world writes its own", and removes it with "Every world prints this text".
+
 The app creates the add-on the first time the writer types under a core rule's "In" and the world's name. An add-on with no text is read as none. Only a rule takes an add-on. A section's introduction and a division's front page are the engine's text alone, and an add-on that names one of them is not read. A rule of the world's own has no add-on, because all of its text is already the world's. A world's own rule goes only into the world's own sections, and a world's own section only into the world's divisions, so the engine's book never names something one world alone has.
 
 Any page of the book can carry a header picture: the title page, a division, a section, or a rule. The picture is a JPEG, PNG, or WebP file beside the element's file with the same name, such as `elements/module/when-to-roll.png`, or `book.png` beside `book.md`. The page's header remembers how the picture is framed in `banner_frame:`, as a wiki entry does. In a world's book, a core rule can carry the world's own picture beside its add-on, which shows instead of the core picture.

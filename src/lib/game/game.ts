@@ -508,6 +508,36 @@ export function bookTree(game: Game, origin: BookOrigin): BookTree | null {
   return { origin, book, divisions, loose: sections(book.chapters, origin), front: matter(base.frontMatter, book.frontMatter), back: matter(base.backMatter, book.backMatter) };
 }
 
+/** The header line that marks a core rule each world writes for itself. */
+export const SLOT = 'each_world';
+
+/**
+ * Whether a core rule is one each world writes for itself (Cerys, November 27). The base
+ * game keeps the rule's name and place, and its text there is blank or generic. A world's
+ * own text, kept in its add-on for the rule, takes the place of the base text in that world.
+ */
+export function isSlot(p: Placed): boolean {
+  if (p.origin !== 'engine' || p.element.kind !== 'module') return false;
+  const v = p.element.fields[SLOT];
+  return typeof v === 'string' && ['yes', 'true'].includes(v.trim().toLowerCase());
+}
+
+/**
+ * A rule's text as a book prints it, in parts and in order. The base game's book prints
+ * the rule's own text. A world's book prints a core rule and then what the world adds,
+ * except for a rule each world writes for itself, where the world's text stands alone and
+ * the base text prints only while the world has written nothing.
+ */
+export function printedText(game: Game, p: Placed, inWorld: boolean): { from: 'base' | 'world'; text: string }[] {
+  const own = p.element.flavor.trim();
+  const piece = inWorld && p.origin === 'engine' && p.element.kind === 'module' ? game.addOns.get(refOf(p.element)) : undefined;
+  const added = (piece?.element.flavor ?? '').trim();
+  const from = p.origin === 'engine' ? ('base' as const) : ('world' as const);
+  if (!added) return own ? [{ from, text: own }] : [];
+  if (isSlot(p)) return [{ from: 'world', text: added }];
+  return [...(own ? [{ from, text: own }] : []), { from: 'world' as const, text: added }];
+}
+
 /**
  * The picture at the top of an element's page. In a world's book, a core rule can carry
  * the world's own picture, kept beside the world's add-on, which shows instead of the core one.
