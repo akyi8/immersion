@@ -1,4 +1,5 @@
 <script lang="ts">
+  import * as edit from '../../lib/game/edit';
   import { hover, firstSentence } from '../../lib/hover.svelte';
   // ICONS TRIAL
   import IconPicker from '../IconPicker.svelte';
@@ -20,14 +21,12 @@
   import type { WorldFs, ImageSource } from '../../lib/fs/types';
   import type { Navigator } from '../../lib/nav.svelte';
   import { splitHeader, withHeader } from '../../lib/world';
-  import { newElement, readElement, withChanges, writeElement, type Element } from '../../lib/game/elements';
+  import { newElement, writeElement, type Element } from '../../lib/game/elements';
   import { merge3 } from '../../lib/editor/merge';
   import { sync } from '../../lib/sync.svelte';
   import {
     bookTree,
     gameFileWith,
-    isExpansion,
-    keyOf,
     loadGame,
     pathIn,
     pictureOf,
@@ -373,23 +372,15 @@
    */
   async function save(p: Placed, next: Element, base: Element = p.element) {
     if (!game) return;
-    const src = sourceOf(game, p);
-    const file = pathIn(src, next.path);
-    const onDisk = (await src.fs.exists(file)) ? await src.fs.readText(file) : null;
-    const text = onDisk === null ? writeElement(next, game.kinds.get(next.kind) ?? null) : withChanges(onDisk, base, next, merge3);
-    if (text !== onDisk) await src.fs.writeText(file, text);
     // The page is shown what the file now holds, which may be more than it wrote.
-    swap(p, { ...readElement(next.path, text), path: next.path });
+    swap(p, await edit.saveElement(game, p, next, base, merge3));
   }
   /** A page's title and text, with what each was when the page last read or saved them. */
   type Typed = { name: string; text: string; was: { name: string; text: string } };
   const saveTyped = (p: Placed, c: Typed) => save(p, { ...p.element, name: c.name, flavor: c.text }, { ...p.element, name: c.was.name, flavor: c.was.text });
 
-  const list = (p: Placed, field: string): string[] => {
-    const v = p.element.fields[field];
-    return Array.isArray(v) ? [...v] : [];
-  };
-  const withList = (p: Placed, field: string, items: string[]): Element => ({ ...p.element, fields: { ...p.element.fields, [field]: items } });
+  const list = edit.listOf;
+  const withList = edit.withList;
 
   /** The file that holds what this world adds after a core rule, its add-on, made the first time it is written in. */
   async function worldPieceOf(p: Placed): Promise<Placed> {
@@ -507,41 +498,7 @@
     archiveProblem = '';
     try {
       await saveAll();
-      const stood: { in: string; list: string; before: string | null }[] = [];
-      for (const other of game.elements) {
-        if (other === p) continue;
-        for (const field of ['items', 'sections']) {
-          const refs = list(other, field);
-          const at = refs.findIndex((r) => keyOf(r, other.origin) === p.key);
-          if (at < 0) continue;
-          stood.push({ in: other.key, list: field, before: refs[at + 1] ? keyOf(refs[at + 1], other.origin) : null });
-          await save(other, withList(other, field, refs.filter((_, i) => i !== at)));
-        }
-      }
-      // The books name sections and matter too.
-      for (const src of [game.engine, game.world]) {
-        if (!src) continue;
-        const file = pathIn(src, 'book.md');
-        if (!(await src.fs.exists(file))) continue;
-        const text = await src.fs.readText(file);
-        const { header } = splitHeader(text);
-        const changes: Record<string, unknown> = {};
-        for (const field of ['front_matter', 'back_matter', 'divisions', 'chapters']) {
-          const refs = Array.isArray(header[field]) ? (header[field] as unknown[]).map(String) : [];
-          const at = refs.findIndex((r) => keyOf(r, src.origin) === p.key);
-          if (at < 0) continue;
-          stood.push({ in: `${src.origin}:book`, list: field, before: refs[at + 1] ? keyOf(refs[at + 1], src.origin) : null });
-          const rest = refs.filter((_, i) => i !== at);
-          changes[field] = rest.length ? rest : undefined;
-        }
-        if (Object.keys(changes).length) await src.fs.writeText(file, withHeader(text, changes));
-      }
-      const src = sourceOf(game, p);
-      const file = pathIn(src, p.element.path);
-      await src.fs.writeText(file, withHeader(await src.fs.readText(file), { archived_from: stood.length ? stood : undefined }));
-      const free = (path: string) => freePath((p) => src.fs.exists(p), pathIn(src, `archive/${path}`));
-      await src.fs.move(file, await free(p.element.path));
-      if (p.image) await src.fs.move(pathIn(src, p.image), await free(p.image));
+      await edit.archiveElement(game, p, save);
       for (const id of [`${RULE}${p.key}`, `${SEC}${p.key}`, `${EL}${p.key}`]) if (nav.panes.includes(id)) nav.close(id);
       archiving = null;
       await load();
@@ -706,13 +663,7 @@
       return;
     }
     notice = '';
-    const without = (p: Placed) => list(p, 'items').filter((r) => keyOf(r, p.origin) !== ruleKey);
-    const target = without(to);
-    const at = before ? target.findIndex((r) => keyOf(r, to.origin) === before) : -1;
-    if (at < 0) target.push(ruleKey);
-    else target.splice(at, 0, ruleKey);
-    if (from !== to) await save(from, withList(from, 'items', without(from)));
-    await save(to, withList(to, 'items', target));
+    await edit.placeRule(from, to, ruleKey, before, save);
   }
 
   /**
@@ -724,11 +675,7 @@
   async function worldTwin(p: Placed): Promise<Placed> {
     if (!game || !inWorld || p.origin !== 'engine') return p;
     const key = `world:${refOf(p.element)}`;
-    const kind = game.kinds.get(p.element.kind);
-    if (byKey.get(key) || !kind) return byKey.get(key) ?? p;
-    const e: Element = { ...newElement(p.element.name, kind, new Set()), id: p.element.id, path: p.element.path, tags: [kind.id] };
-    await game.world.fs.writeText(pathIn(game.world, e.path), writeElement(e, kind));
-    await load();
+    if (!byKey.get(key) && (await edit.makeWorldTwin(game, p))) await load();
     return byKey.get(key) ?? p;
   }
   /**
@@ -787,33 +734,16 @@
     notice = '';
     const shownNow = sectionsShown(toKey);
     to = await worldTwin(to);
-    const target = (shownNow ?? list(to, 'sections')).filter((r) => keyOf(r, to!.origin) !== secKey);
-    const at = before ? target.findIndex((r) => keyOf(r, to!.origin) === before) : -1;
-    if (at < 0) target.push(secKey);
-    else target.splice(at, 0, secKey);
-    const from = fromKey ? byKey.get(fromKey) : null;
-    if (from && from.key !== to.key && from.origin === sec.origin) await save(from, withList(from, 'sections', list(from, 'sections').filter((r) => keyOf(r, from.origin) !== secKey)));
-    if (!fromKey) {
-      // A section from before divisions leaves the book's loose list.
-      const file = pathIn(bookSource, 'book.md');
-      const book = game.books[bookOrigin!]!;
-      const rest = book.chapters.filter((r) => keyOf(r, bookOrigin!) !== secKey);
-      await bookSource.fs.writeText(file, withHeader(await bookSource.fs.readText(file), { chapters: rest.length ? rest : undefined }));
-    }
-    await save(to, withList(to, 'sections', target));
+    const from = fromKey ? (byKey.get(fromKey) ?? null) : null;
+    // A section from before divisions leaves the book's loose list.
+    if (!fromKey) await edit.dropLooseSection(bookSource, bookOrigin!, game.books[bookOrigin!]!.chapters, secKey);
+    await edit.placeSection(from, to, sec, before, shownNow, save);
     if (!fromKey) await load();
   }
 
   async function addElement(origin: Origin, kindId: string, name: string): Promise<string> {
     if (!game) throw new Error('The game is not open');
-    const kind = game.kinds.get(kindId);
-    if (!kind) throw new Error(`This game has no ${kindId} kind yet.`);
-    const taken = new Set(game.elements.filter((p) => p.origin === origin).map((p) => refOf(p.element)));
-    const e = newElement(name, kind, taken);
-    e.tags = origin === 'engine' ? ['core', kind.id] : isExpansion(origin) ? [origin, kind.id] : [kind.id];
-    const src: Source = origin === 'engine' && game.engine ? game.engine : (expansionOf(origin) ?? game.world);
-    await src.fs.writeText(pathIn(src, e.path), writeElement(e, kind));
-    return `${origin}:${refOf(e)}`;
+    return edit.addElement(game, origin, kindId, name);
   }
 
   async function addRule(secKey: string, name: string, stay = false) {
