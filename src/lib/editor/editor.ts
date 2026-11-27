@@ -47,7 +47,9 @@ function mentionPlugin(ref: ScannerRef, onMention: (id: string) => void): Extens
       let pos = from;
       while (pos <= to) {
         const line = view.state.doc.lineAt(pos);
-        for (const m of ref.current.find(line.text)) {
+        // A heading names a part of the page, so a name inside one is left unlinked
+        // (Cerys, November 27).
+        for (const m of /^#{1,6}\s/.test(line.text) ? [] : ref.current.find(line.text)) {
           if (m.id === ref.selfId) continue;
           // A game's own terms are marked apart from the world's names (lib/game/links.ts).
           const mark = m.id.startsWith('game:') ? 'cm-term' : m.id === ref.next ? 'cm-mention cm-mention-open' : 'cm-mention';

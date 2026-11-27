@@ -6,7 +6,8 @@ import type { WikiIndex } from './index/wiki';
 export type View = 'narrator' | 'protagonist';
 
 /** Elements whose text is never turned into automatic links. */
-const NO_LINKS = new Set(['A', 'BUTTON', 'CODE', 'PRE', 'H1']);
+// A heading names a part of the page, so a name inside one is left unlinked (Cerys, November 27).
+const NO_LINKS = new Set(['A', 'BUTTON', 'CODE', 'PRE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 
 /**
  * Renders an entry's markdown for display. Names that match wiki entries become
@@ -21,6 +22,18 @@ const NO_LINKS = new Set(['A', 'BUTTON', 'CODE', 'PRE', 'H1']);
  * and send what is typed into it away.
  */
 export const SAFE = { FORBID_TAGS: ['form', 'input', 'button', 'textarea', 'select', 'option', 'style', 'iframe', 'object', 'embed'], FORBID_ATTR: ['style', 'formaction'] };
+
+/**
+ * Renders a few lines of markdown as they stand, line for line: bold, italic, and code,
+ * with no paragraphs, lists, or links. A cell of a sheet uses it to show its text as it
+ * will print while keeping each line where the writer typed it.
+ */
+export function renderLines(markdown: string): string {
+  return markdown
+    .split('\n')
+    .map((line) => DOMPurify.sanitize(marked.parseInline(line, { async: false, gfm: true }) as string, { ...SAFE, ALLOWED_TAGS: ['strong', 'em', 'code', 'del', 'u'] }))
+    .join('<br>');
+}
 
 export function renderBody(markdown: string, index: WikiIndex, selfId: string | null, view: View): string {
   const source = markdown

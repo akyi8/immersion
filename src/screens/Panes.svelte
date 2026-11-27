@@ -469,6 +469,10 @@
   .pane.alone {
     flex: 1 0 100%;
     width: 100%;
+    /* A page in full screen is as wide as the window and no wider, so something wide inside
+       it, such as a sheet of aspects, scrolls in its own box where the writer can reach it. */
+    min-width: 0;
+    max-width: 100%;
     border-left: 0;
     box-shadow: none;
   }
@@ -496,5 +500,11 @@
   }
   .strip.full {
     overflow-x: hidden;
+  }
+  /* In full screen the row is the window's width, so the one page in it is too. */
+  .strip.full .row {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
   }
 </style>

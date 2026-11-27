@@ -4,6 +4,7 @@
   import type { Placed } from '../../lib/game/game';
   import { Saver, said } from '../../lib/game/saver.svelte';
   import CoreMark from './CoreMark.svelte';
+  import { renderLines } from '../../lib/render';
 
   /**
    * One aspect as a row of a sheet (Cerys, November 21): its name, each of its kind's
@@ -112,11 +113,17 @@
   </td>
   {#each kind.fields as f (f.key)}
     <td class={f.type}>
-      <textarea rows="1" use:grow value={textOf(draft.fields[f.key])} oninput={(e) => setField(f.key, f.type, e.currentTarget.value)} onkeydown={(e) => move(e, f.type === 'line')} aria-label="{f.label} of {placed.element.name}"></textarea>
+      <div class="cell">
+        <div class="shown" aria-hidden="true">{@html renderLines(textOf(draft.fields[f.key]))}</div>
+        <textarea rows="1" use:grow value={textOf(draft.fields[f.key])} oninput={(e) => setField(f.key, f.type, e.currentTarget.value)} onkeydown={(e) => move(e, f.type === 'line')} aria-label="{f.label} of {placed.element.name}"></textarea>
+      </div>
     </td>
   {/each}
   <td class="text">
-    <textarea rows="1" use:grow bind:value={draft.flavor} oninput={() => saver.push(null)} onkeydown={move} aria-label="{kind.body ?? 'Flavor'} of {placed.element.name}"></textarea>
+    <div class="cell">
+      <div class="shown" aria-hidden="true">{@html renderLines(draft.flavor)}</div>
+      <textarea rows="1" use:grow bind:value={draft.flavor} oninput={() => saver.push(null)} onkeydown={move} aria-label="{kind.body ?? 'Flavor'} of {placed.element.name}"></textarea>
+    </div>
   </td>
 </tr>
 
@@ -191,6 +198,29 @@
   }
   tr.problem .status {
     color: var(--danger);
+  }
+  /* A cell shows its text as it will print, bold as bold (Cerys, November 27). The text box
+     sits over that with its own words unseen, and takes over, marks and all, the moment
+     the cell is clicked or tabbed into. */
+  .cell {
+    position: relative;
+  }
+  .shown {
+    position: absolute;
+    inset: 0;
+    padding: 6px 9px;
+    overflow: hidden;
+    font-size: calc(13.5px * var(--type));
+    line-height: 1.45;
+    color: var(--text);
+    overflow-wrap: break-word;
+    pointer-events: none;
+  }
+  .cell textarea:not(:focus) {
+    color: transparent;
+  }
+  .cell:focus-within .shown {
+    visibility: hidden;
   }
   /* Every other row sits on a slightly different ground (Cerys, November 27), so the eye
      can follow one aspect across a wide sheet. */

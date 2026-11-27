@@ -72,3 +72,10 @@ test('names become safe file names', () => {
   assert.equal(slugify('Café Noir'), 'cafe-noir');
   assert.equal(slugify('  ?? '), '');
 });
+
+test('a possessive links the name, with either kind of apostrophe', () => {
+  const s = new MentionScanner([{ text: 'Harrowgate', id: 'h' }]);
+  for (const text of ["Harrowgate's fog", 'Harrowgate’s fog', "the Harrowgates' fog"]) assert.deepEqual(s.idsIn(text), text.includes('gates') ? [] : ['h']);
+  const m = s.find("Harrowgate's fog")[0];
+  assert.equal("Harrowgate's fog".slice(m.start, m.end), 'Harrowgate');
+});
