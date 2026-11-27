@@ -38,6 +38,19 @@ export interface Kind {
   body?: string;
 }
 
+/**
+ * Where a kind's layout puts the file's body. An aspect's file is its card and its page
+ * (Cerys, November 27): the header holds what is printed on the card, flavor included,
+ * and the body is the aspect's page in the book, which says at length what the card says
+ * in brief. A kind says so by listing `flavor` among its fields, and its layout then
+ * names the body `body`. A kind with no such field keeps its flavor as the body, under
+ * the name `flavor`, as every kind once did.
+ */
+export const hasPage = (kind: Kind | null | undefined): boolean => !!kind?.fields.some((f) => f.key === 'flavor');
+export const bodyPart = (kind: Kind | null | undefined): 'body' | 'flavor' => (hasPage(kind) ? 'body' : 'flavor');
+/** What the body is called in the form. */
+export const bodyLabel = (kind: Kind | null | undefined): string => kind?.body ?? (hasPage(kind) ? 'Page' : 'Flavor');
+
 export interface Element {
   /** The file's path inside its folder, such as `elements/gear/storm-lamp.md`. */
   path: string;
@@ -141,7 +154,10 @@ export function readKind(id: string, source: string): Kind {
     fields.push(hint ? { key, label: text(r.label) || key, type, hint } : { key, label: text(r.label) || key, type });
   }
   const name = text(header.name) || id;
-  const layout = Array.isArray(header.layout) ? header.layout.map(text).filter(Boolean) : ['flavor', ...fields.map((f) => f.key)];
+  const paged = fields.some((f) => f.key === 'flavor');
+  const layout = Array.isArray(header.layout) ? header.layout.map(text).filter(Boolean) : paged ? [...fields.map((f) => f.key), 'body'] : ['flavor', ...fields.map((f) => f.key)];
+  // A kind with a page always has a place for it, so the page can be written.
+  if (paged && !layout.includes('body')) layout.push('body');
   const kind: Kind = { id, name, plural: text(header.plural) || name, fields, layout, about: body.trim() };
   if (text(header.body)) kind.body = text(header.body);
   return kind;

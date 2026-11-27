@@ -4,7 +4,7 @@
   import GameText from './GameText.svelte';
   import { onDestroy } from 'svelte';
   import { Saver, said } from '../../lib/game/saver.svelte';
-  import type { Element, Kind } from '../../lib/game/elements';
+  import { bodyLabel, bodyPart, type Element, type Kind } from '../../lib/game/elements';
   import { effective, type Placed } from '../../lib/game/game';
 
   /**
@@ -187,14 +187,14 @@
       </label>
     {/if}
     {#each kind?.layout ?? ['flavor'] as part (part)}
-      {#if part === 'flavor'}
+      {#if part === bodyPart(kind)}
         <!-- The main text is written in the same editor as a rule or a chapter, so it links names and reads the same. -->
         <div class="field">
-          <span class="label">{kind?.body ?? 'Flavor'}</span>
+          <span class="label">{bodyLabel(kind)}</span>
           <GameText
             text={placed.element.flavor}
             self="game:{placed.key}"
-            label={kind?.body ?? 'Flavor'}
+            label={bodyLabel(kind)}
             onChange={(t) => {
               draft.flavor = t;
               changed();
@@ -203,9 +203,9 @@
       {:else}
         {@const f = kind?.fields.find((x) => x.key === part)}
         {#if f}
-          <label class="field" class:locked={reskin}>
+          <label class="field" class:locked={reskin && f.key !== 'flavor'}>
             <span class="label">{f.label}</span>
-            {#if reskin}
+            {#if reskin && f.key !== 'flavor'}
               <div class="readonly">{fieldText(shown.fields[f.key]) || '—'}</div>
             {:else if f.type === 'line'}
               <input type="text" value={fieldText(draft.fields[f.key])} oninput={(e) => setField(f.key, f.type, (e.currentTarget as HTMLInputElement).value)} autocomplete="off" />

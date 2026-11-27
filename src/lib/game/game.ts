@@ -297,7 +297,9 @@ export async function loadGame(engine: Source | null, world: Source): Promise<Ga
 export function effective(p: Placed): Element {
   if (!p.base) return p.element;
   const core = p.base.element;
-  return { ...core, path: p.element.path, id: p.element.id, name: p.element.name, flavor: p.element.flavor, reskins: p.element.reskins };
+  // Where flavor is a line on the card, the reskin's own line is the one shown.
+  const fields = p.element.fields.flavor !== undefined ? { ...core.fields, flavor: p.element.fields.flavor } : core.fields;
+  return { ...core, fields, path: p.element.path, id: p.element.id, name: p.element.name, flavor: p.element.flavor, reskins: p.element.reskins };
 }
 
 /** Whether an element is part of the game being played, rather than set aside or replaced. */

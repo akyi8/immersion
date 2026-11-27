@@ -397,3 +397,16 @@ test("a world's own division stands at its number among the base game's", async 
   assert.deepEqual(names(t.divisions), ['The Harbor', 'The Protagonist', 'The Narrator']);
   assert.deepEqual(names(t.divisions[0].sections), ['The Tides']);
 });
+
+test("an aspect's header is its card and its body is its page, when its kind lists flavor as a field", () => {
+  const carded = readKind('gear', '---\nname: Gear\nfields:\n  - { key: flavor, label: Flavor, type: text }\n  - { key: rules, label: Rules, type: list }\nlayout: [ flavor, rules ]\nbody: Page\n---\n');
+  // The page always has a place in the form, even when the layout forgot it.
+  assert.deepEqual(carded.layout, ['flavor', 'rules', 'body']);
+  const source = '---\nname: Storm Lamp\nkind: gear\ntags: [ harbor, gear ]\nflavor: "A brass lamp with a shutter."\nrules:\n  - "**Tool**."\n---\n\nA Storm Lamp is a tool for the dark.\n\n## Example\n\nWren rows out at low water.\n';
+  const e = readElement('elements/gear/storm-lamp.md', source);
+  assert.equal(e.fields.flavor, 'A brass lamp with a shutter.');
+  assert.match(e.flavor, /^A Storm Lamp is a tool for the dark\./);
+  assert.equal(readElement(e.path, writeElement(e, carded)).fields.flavor, 'A brass lamp with a shutter.');
+  // A kind with no flavor field keeps its flavor as the body, as before.
+  assert.deepEqual(readKind('gear', writeKind(gear)).layout, ['availability', 'flavor', 'rules', 'burned']);
+});

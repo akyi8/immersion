@@ -424,6 +424,7 @@ burned: Rusted to the handle.
 A dock knife with a cork grip, so it floats.
 ```
 
+- **The header is the card and the body is the page**, for a kind that lists `flavor` among its fields, as an aspect's kind does. The header then holds what is printed on the aspect's card, its `flavor` line included. The body is the aspect's page in the book: ordinary markdown that says at length what the card says in brief, with an example under a heading such as `## Example`. Such a kind's `layout` names the body `body`, and its `body:` line says what the form calls it, such as `Page`. A kind that does not list `flavor` as a field keeps the older shape, where the body is the flavor and the layout names it `flavor`. A rule, a section, and a division are of that older shape: their body is their text.
 - `name` and `kind` name the element and its kind. The file's name, without `.md`, is its id, and it stays the same when the element is renamed.
 - `summary` is one line saying what the element is, shown on its hover card. An element without one shows its `reminder`, when its kind has that field, as a keyword does, and otherwise the first sentence of its body or of its first rule. A `full_rule` field is shown on the card as where the full rule is written.
 - `tags` says where the element belongs and what it is. A `core` tag marks an engine's element. The tags `aspect` and `keyword` decide how the element's name links, as described under "How a game's names link".

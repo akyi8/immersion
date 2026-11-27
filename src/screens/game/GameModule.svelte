@@ -338,7 +338,7 @@
       const plainly = (t: string) => t.replace(/^#+\s.*$/gm, '').replace(/[*_`>]/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
       // A reminder is written to sit inside a sentence, so it opens in lowercase. On a card it stands alone.
       const alone = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) + (/[.!?]$/.test(t) ? '' : '.') : '');
-      const brief = text(el.fields.summary) || alone(plainly(text(el.fields.reminder)).trim()) || firstSentence(plainly(el.flavor)) || firstSentence(plainly(text(el.fields.rules)));
+      const brief = text(el.fields.summary) || alone(plainly(text(el.fields.reminder)).trim()) || firstSentence(plainly(text(el.fields.flavor))) || firstSentence(plainly(el.flavor)) || firstSentence(plainly(text(el.fields.rules)));
       const kind = game.kinds.get(el.kind);
       const tags = el.tags.filter((t) => t.toLowerCase() !== el.kind && t.toLowerCase() !== 'core');
       const pic = pictureFor(p);

@@ -4,7 +4,7 @@
   import { icons } from '../../lib/icons.svelte';
   import { keepWord, word } from '../../lib/prefs';
   import { errorText } from '../../lib/errors';
-  import type { Element, Kind } from '../../lib/game/elements';
+  import { hasPage, type Element, type Kind } from '../../lib/game/elements';
   import Pick from '../Pick.svelte';
   import SheetRow from './SheetRow.svelte';
   import type { Placed } from '../../lib/game/game';
@@ -154,7 +154,7 @@
             <th scope="col" class="name-col">Name</th>
             <th scope="col" class="line">Tags</th>
             {#each kind.fields as f (f.key)}<th scope="col" class={f.type}>{f.label}</th>{/each}
-            <th scope="col" class="text">{kind.body ?? 'Flavor'}</th>
+            {#if !hasPage(kind)}<th scope="col" class="text">{kind.body ?? 'Flavor'}</th>{/if}
           </tr>
         </thead>
         <tbody>

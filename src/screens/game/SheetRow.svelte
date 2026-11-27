@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import type { Element, Kind } from '../../lib/game/elements';
+  import { hasPage, type Element, type Kind } from '../../lib/game/elements';
   import type { Placed } from '../../lib/game/game';
   import { Saver, said } from '../../lib/game/saver.svelte';
   import CoreMark from './CoreMark.svelte';
@@ -119,12 +119,15 @@
       </div>
     </td>
   {/each}
+  <!-- A kind whose aspects have a page keeps the page out of the sheet: it is long, and it is written on the aspect's own page. -->
+  {#if !hasPage(kind)}
   <td class="text">
     <div class="cell">
       <div class="shown" aria-hidden="true">{@html renderLines(draft.flavor)}</div>
       <textarea rows="1" use:grow bind:value={draft.flavor} oninput={() => saver.push(null)} onkeydown={move} aria-label="{kind.body ?? 'Flavor'} of {placed.element.name}"></textarea>
     </div>
   </td>
+  {/if}
 </tr>
 
 <style>
