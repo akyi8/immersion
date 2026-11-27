@@ -28,6 +28,7 @@
     onNew,
     onSave,
     onNewHere,
+    homes = [],
     gathered = false,
     icon = null,
     onIcon,
@@ -43,7 +44,13 @@
     onOpen: (key: string) => void;
     /** Opens an element's menu, from a right click on its row. */
     onMenu?: (e: MouseEvent, key: string) => void;
-    onNew: (name: string) => Promise<void>;
+    onNew: (name: string, home?: string) => Promise<void>;
+    /**
+     * Where a new element can be made, when there is a choice (Cerys, November 27): the
+     * world, or the base game its engine holds. The first is the one offered. A new element
+     * for the base game belongs to every game built on it.
+     */
+    homes?: { origin: string; name: string }[];
     engineName?: string;
     /** Saves one element from its row of the sheet. Without it the page is a list only. */
     onSave?: (p: Placed, next: Element, base: Element) => Promise<void>;
@@ -53,7 +60,7 @@
      */
     gathered?: boolean;
     /** Adds an element and stays on this page, for the sheet's last row. */
-    onNewHere?: (name: string) => Promise<void>;
+    onNewHere?: (name: string, home?: string) => Promise<void>;
   } = $props();
 
   const SHOW = 'immersion.game.kind-view';
@@ -63,6 +70,10 @@
     keepWord(SHOW, v);
   }
   const sheet = $derived(show === 'sheet' && !!onSave && !gathered);
+  // The home last chosen stays chosen while the page is open, so several elements in a row
+  // go to the same place.
+  let home = $state<string | undefined>((() => homes[0]?.origin)());
+  const homeName = $derived(homes.find((h) => h.origin === home)?.name ?? '');
   let fresh = $state('');
   async function addHere(e: SubmitEvent) {
     e.preventDefault();
@@ -70,7 +81,7 @@
     if (!n) return;
     problem = '';
     try {
-      await (onNewHere ?? onNew)(n);
+      await (onNewHere ?? onNew)(n, home);
       fresh = '';
     } catch (err) {
       problem = errorText(err);
@@ -99,7 +110,7 @@
     if (!n) return;
     problem = '';
     try {
-      await onNew(n);
+      await onNew(n, home);
       naming = false;
       name = '';
     } catch (err) {
@@ -124,6 +135,7 @@
         <form class="naming" onsubmit={add}>
           <!-- svelte-ignore a11y_autofocus -->
           <input type="text" bind:value={name} placeholder="Name" aria-label="New {kind.name}'s name" autofocus autocomplete="off" />
+          {#if homes.length > 1}<Pick small label="The new {kind.name.toLowerCase()} is for" value={home ?? homes[0].origin} onpick={(v) => (home = v)} options={homes.map((h) => [h.origin, `For ${h.name}`] as const)} />{/if}
           <button type="submit" class="tool" disabled={!name.trim()}>Add</button>
           <button type="button" class="tool" onclick={() => ((naming = false), (name = ''))}>Cancel</button>
         </form>
@@ -155,7 +167,8 @@
       </table>
     </div>
     <form class="fresh" onsubmit={addHere}>
-      <input type="text" bind:value={fresh} placeholder="+ New {kind.name.toLowerCase()}: type its name and press Enter" aria-label="New {kind.name}'s name" autocomplete="off" />
+      <input type="text" bind:value={fresh} placeholder="+ New {kind.name.toLowerCase()}{homes.length > 1 ? ` for ${homeName}` : ''}: type its name and press Enter" aria-label="New {kind.name}'s name" autocomplete="off" />
+      {#if homes.length > 1}<Pick small label="The new {kind.name.toLowerCase()} is for" value={home ?? homes[0].origin} onpick={(v) => (home = v)} options={homes.map((h) => [h.origin, `For ${h.name}`] as const)} />{/if}
     </form>
     <p class="keys">Tab moves across. Alt with an up or down arrow moves between rows, and Enter moves down from a one-line cell.</p>
   {:else}
@@ -353,5 +366,15 @@
   /* ICONS TRIAL: the title's icon is the title's color. */
   h1 {
     --icon: currentColor;
+  }
+  /* The new row's name and, where there is a choice, whose game it is for, side by side. */
+  .fresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fresh input {
+    flex: 1;
+    min-width: 0;
   }
 </style>

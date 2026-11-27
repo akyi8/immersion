@@ -1089,9 +1089,10 @@
               {engineName}
               onOpen={(key) => openElement(key, i)}
               onMenu={(e, key) => contextMenu.show(e, menuFor(`${EL}${key}`))}
-              onNew={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i)}
+              homes={inWorld && game?.engine && game.kinds.get(c.kind.id)?.origin === 'engine' ? [{ origin: 'world', name: worldName }, { origin: 'engine', name: engineName }] : []}
+              onNew={(name, home) => add((home as Origin | undefined) ?? bookOrigin ?? 'world', c.kind.id, name, i)}
               onSave={(p, next, base) => save(p, next, base)}
-              onNewHere={(name) => add(bookOrigin ?? 'world', c.kind.id, name, i, true)} />
+              onNewHere={(name, home) => add((home as Origin | undefined) ?? bookOrigin ?? 'world', c.kind.id, name, i, true)} />
           {:else if id.startsWith(KIND)}
             {@const [, origin, kindId] = id.split(':')}
             {@const kind = game!.kinds.get(kindId)!}
