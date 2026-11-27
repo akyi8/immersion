@@ -26,7 +26,6 @@
     kind,
     engineName,
     worldName,
-    vendors,
     onSave,
     onSetAside,
     onReskin,
@@ -39,8 +38,6 @@
     kind: Kind | null;
     engineName: string;
     worldName: string;
-    /** The world's vendors, by id and name, for the vendor choice. */
-    vendors: { id: string; name: string }[];
     onSave: (next: Element, base: Element) => Promise<void>;
     onSetAside: (on: boolean) => void;
     onReskin: () => void;
@@ -170,20 +167,6 @@
           {#each homes as h (h.origin)}<option value={h.origin}>{h.name}</option>{/each}
         </select>
         <span class="hint">{worldName} itself, or one of its expansions. Moving it moves its file and its picture.</span>
-      </label>
-    {/if}
-    {#if placed.origin !== 'engine' && !reskin && draft.kind !== 'vendor' && vendors.length}
-      <label class="field">
-        <span class="label">Sold by</span>
-        <select
-          value={draft.vendor}
-          onchange={(e) => {
-            draft.vendor = (e.currentTarget as HTMLSelectElement).value;
-            changed();
-          }}>
-          <option value="">No vendor</option>
-          {#each vendors as v (v.id)}<option value={v.id}>{v.name}</option>{/each}
-        </select>
       </label>
     {/if}
     {#each kind?.layout ?? ['flavor'] as part (part)}

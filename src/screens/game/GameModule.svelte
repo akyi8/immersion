@@ -249,7 +249,6 @@
       .sort((a, b) => a.kind.plural.localeCompare(b.kind.plural));
   const engineKinds = $derived(game?.engine ? kindsIn('engine') : []);
   const worldKinds = $derived(game ? kindsIn('world') : []);
-  const vendors = $derived((game?.elements ?? []).filter((p) => p.origin !== 'engine' && p.element.kind === 'vendor').map((p) => ({ id: p.element.id, name: p.element.name })));
   const results = $derived.by(() => {
     const q = filter.trim().toLowerCase();
     if (!q || !game) return [];
@@ -567,7 +566,17 @@
       // menu says where it can be archived and goes there, in place of a greyed-out word.
       canArchive(p) || p.origin !== 'engine'
         ? { label: 'Archive', run: () => ((archiveProblem = ''), (archiving = p)), disabled: !canArchive(p) }
-        : { label: `Archive from ${engineName}…`, run: () => ((chosen = 'engine'), (archiveProblem = ''), (archiving = p)) },
+        : {
+            label: `Archive from ${engineName}…`,
+            run: () => {
+              // The sidebar turns to the base game's book, and says so, so the writer is not
+              // left wondering where the world's own sections went (Cerys, November 27).
+              chosen = 'engine';
+              notice = `This is ${engineName}'s book now, where a core element is archived. "Back to ${worldName}" at the top of the sidebar returns to ${worldName}'s book.`;
+              archiveProblem = '';
+              archiving = p;
+            },
+          },
     ];
   }
   $effect(() => {
@@ -1115,7 +1124,6 @@
               kind={game!.kinds.get(p.element.kind) ?? null}
               {engineName}
               {worldName}
-              {vendors}
               onSave={(next, base) => save(p, next, base)}
               onSetAside={(on) => setAside(p, on)}
               onReskin={() => reskin(p, i)}
