@@ -76,6 +76,10 @@ jobs:
     needs: release
     permissions:
       contents: write
+    # Both jobs add their half to the release's latest.json. Run 174 (November 27, 2026)
+    # failed when the two finished in the same second and one replaced the file while the
+    # other was updating it. It is rare, and pushing again clears it. If it recurs, run the
+    # two one at a time with max-parallel: 1, which doubles the wait for a build.
     strategy:
       fail-fast: false
       matrix:
