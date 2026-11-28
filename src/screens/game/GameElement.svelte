@@ -8,6 +8,8 @@
   import { effective, type Placed } from '../../lib/game/game';
   import { cardOf } from '../../lib/game/card';
   import AspectCard from './AspectCard.svelte';
+  import Pick from '../Pick.svelte';
+  import { keepWord, word } from '../../lib/prefs';
 
   /**
    * One element, edited as a form (Cerys, November 7: structured data). Each field of the
@@ -101,6 +103,19 @@
   const card = $derived(cardOf(shown, kind));
   let flipped = $state(false);
 
+  // An aspect opens as its page in the book (Cerys, November 27): the card first, as it is
+  // dealt, and under it what the card has no room for, which is the file's body. The form
+  // with the card's fields is one switch away, and the app remembers which was last used.
+  const VIEW = 'immersion.game.aspect-view';
+  let view = $state<'page' | 'form'>(word(VIEW) === 'form' ? 'form' : 'page');
+  async function setView(v: 'page' | 'form') {
+    // What is waiting is saved first, so the other view starts from what was just typed.
+    await saver.flush();
+    view = v;
+    keepWord(VIEW, v);
+  }
+  const asPage = $derived(!!card && view === 'page');
+
   const fieldText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
 
   function setField(key: string, type: string, value: string) {
@@ -132,6 +147,7 @@
     <div class="row">
       <span class="meta">{draft.tags.join(', ')}</span>
       <span class="spacer"></span>
+      {#if card}<Pick small label="Show {draft.name} as" value={view} onpick={setView} options={[['page', 'Page'], ['form', 'Form']] as const} />{/if}
       <span class="status {saver.status}" aria-live="polite">{said(saver.status)}</span>
       {#if placed.origin === 'engine'}
         {#if placed.reskinnedBy}
@@ -155,6 +171,23 @@
     <p class="note">A reskin of {placed.base?.element.name}. It changes only the name and the flavor; the mechanics below are the core element's.</p>
   {/if}
 
+  {#if asPage && card}
+    <div class="bookpage">
+      <div class="lead">
+        <AspectCard {card} {icon} bind:flipped {tagKey} onOpenTag={onOpen} />
+        {#if card.hasDark}<p class="turn">The card, as it is dealt. Click it, or press F on it, to turn it over.</p>{/if}
+      </div>
+      <GameText
+        text={placed.element.flavor}
+        self="game:{placed.key}"
+        label={bodyLabel(kind)}
+        placeholder="What {draft.name || 'this'} is and does, in full sentences, with the rulings a table will ask for. A heading, ## Example, starts a worked example."
+        onChange={(t) => {
+          draft.flavor = t;
+          changed();
+        }} />
+    </div>
+  {:else}
   <div class="sides">
   <div class="form">
     {#if !reskin}
@@ -184,7 +217,9 @@
       </label>
     {/if}
     {#each kind?.layout ?? ['flavor'] as part (part)}
-      {#if part === bodyPart(kind)}
+      {#if part === bodyPart(kind) && card}
+        <!-- An aspect's page is written on its Page view, under its card. -->
+      {:else if part === bodyPart(kind)}
         <!-- The main text is written in the same editor as a rule or a chapter, so it links names and reads the same. -->
         <div class="field">
           <span class="label">{bodyLabel(kind)}</span>
@@ -226,6 +261,7 @@
     </aside>
   {/if}
   </div>
+  {/if}
 </article>
 
 <style>
@@ -249,6 +285,19 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+  .bookpage {
+    max-width: 720px;
+  }
+  .lead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .lead .turn {
+    max-width: 200px;
   }
   .turn {
     margin: 0;
