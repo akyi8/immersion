@@ -8,6 +8,7 @@
   import { icons } from '../lib/icons.svelte';
   import { quiet } from '../lib/view.svelte';
   import Icon from './Icon.svelte';
+  import AspectCard from './game/AspectCard.svelte';
 
   /**
    * Hover cards (Cerys, November 24). One card for the whole window. It watches for the
@@ -51,6 +52,14 @@
     };
   });
 
+  // An aspect's card turns over with a click or with F, and shows its lit face first.
+  let flipped = $state(false);
+  $effect(() => {
+    void hover.id;
+    flipped = false;
+  });
+  const typingIn = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
   $effect(() => {
     const over = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse' || e.buttons) return;
@@ -87,14 +96,29 @@
     document.addEventListener('pointerover', over);
     document.addEventListener('pointerout', out);
     // A key, a click, or a scroll means the writer has moved on.
-    document.addEventListener('keydown', away, true);
-    document.addEventListener('pointerdown', away, true);
+    // F turns an aspect's card over, unless the writer is typing, where F is a letter.
+    const keyed = (e: KeyboardEvent) => {
+      if (facts?.card?.hasDark && (e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)) {
+        e.preventDefault();
+        e.stopPropagation();
+        flipped = !flipped;
+        return;
+      }
+      away();
+    };
+    // A click on the card itself is the card's own: it turns over, or opens a tag.
+    const pressed = (e: PointerEvent) => {
+      if ((e.target as HTMLElement | null)?.closest('.hover-card')) return;
+      away();
+    };
+    document.addEventListener('keydown', keyed, true);
+    document.addEventListener('pointerdown', pressed, true);
     document.addEventListener('wheel', away, { capture: true, passive: true });
     return () => {
       document.removeEventListener('pointerover', over);
       document.removeEventListener('pointerout', out);
-      document.removeEventListener('keydown', away, true);
-      document.removeEventListener('pointerdown', away, true);
+      document.removeEventListener('keydown', keyed, true);
+      document.removeEventListener('pointerdown', pressed, true);
       document.removeEventListener('wheel', away, true);
       away();
     };
@@ -105,7 +129,7 @@
   <Popover.Portal>
     {#if facts}
       <Popover.Content
-        class="hover-card{facts.picture ? ' has-art' : ''}{facts.game ? ' game' : ''}"
+        class="hover-card{facts.card ? ' aspect' : facts.picture ? ' has-art' : ''}{facts.game ? ' game' : ''}"
         customAnchor={hover.anchor}
         side="bottom"
         align="start"
@@ -116,6 +140,9 @@
         onCloseAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         role="tooltip">
+        {#if facts.card}
+          <AspectCard card={facts.card} icon={facts.icon} bind:flipped scale={0.9} tagKey={facts.tagKey} onOpenTag={(k) => (facts.onOpenTag?.(k), hover.hide())} />
+        {:else}
         {#if facts.picture}
           <div class="art" aria-hidden="true"><img src={facts.picture.url} alt="" style={facts.picture.style} /></div>
         {/if}
@@ -131,6 +158,7 @@
             <dl>{#each facts.facts as [k, v] (k)}<div><dt class="k">{k}</dt><dd>{v}</dd></div>{/each}</dl>
           {/if}
         </div>
+        {/if}
       </Popover.Content>
     {/if}
   </Popover.Portal>
@@ -159,6 +187,17 @@
     box-shadow: 0 14px 34px var(--shadow);
     outline: none;
     animation: hover-card-in 0.14s ease-out;
+  }
+  /* An aspect's card is the whole of what shows, so the box around it steps away. */
+  :global(.hover-card.aspect) {
+    display: block;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    background: none;
+    border: 0;
+    box-shadow: none;
   }
   :global(.hover-card.game) {
     border-color: var(--structure);

@@ -5,6 +5,7 @@
   import { Saver, said } from '../../lib/game/saver.svelte';
   import CoreMark from './CoreMark.svelte';
   import { renderLines } from '../../lib/render';
+  import { hover } from '../../lib/hover.svelte';
 
   /**
    * One aspect as a row of a sheet (Cerys, November 21): its name, each of its kind's
@@ -105,6 +106,10 @@
       <button type="button" class="open" title="Open {placed.element.name} as a page" aria-label="Open {placed.element.name} as a page" onclick={onOpen}>
         <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.5 2.5 H2.5 V11.5 H11.5 V8.5 M8 2.5 H11.5 V6 M11.5 2.5 L6.5 7.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </button>
+      {#if hasPage(kind)}
+        <!-- The aspect's card, as it is dealt, shown from its row (Cerys, November 27). -->
+        <button type="button" class="open card" title="Show {placed.element.name} as a card" onclick={(e) => hover.show(e.currentTarget, `game:${placed.key}`)}>Card</button>
+      {/if}
       {#if saver.status !== 'saved'}<span class="status" title={saver.problem}>{said(saver.status)}</span>{/if}
     </span>
   </th>
@@ -190,6 +195,14 @@
     background: none;
     border: 1px solid var(--edge);
     border-radius: var(--round);
+  }
+  .open.card {
+    width: auto;
+    padding: 0 6px;
+    font-family: var(--font-label);
+    font-size: calc(10px * var(--type));
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
   .open:hover {
     color: var(--text);

@@ -12,24 +12,37 @@ export function sampleEngine(): MemoryFs {
     'kinds/gear.md': `---
 name: Gear
 fields:
-  - { key: availability, label: Availability, type: line, hint: "How hard it is to buy, from 1 to 8." }
+  - { key: prerequisite, label: Prerequisite, type: line }
+  - { key: flavor, label: Flavor, type: text }
   - { key: rules, label: Rules, type: list }
-  - { key: burned, label: Burned, type: text }
+  - { key: consequences, label: Consequences, type: list }
+  - { key: darkened_flavor, label: "Flavor (Darkened)", type: text }
+  - { key: darkened_rules, label: "Rules (Darkened)", type: list }
+  - { key: darkened_consequences, label: "Consequences (Darkened)", type: list }
   - { key: recovery, label: Recovery, type: text }
-layout: [ availability, flavor, rules, burned, recovery ]
+layout: [ prerequisite, flavor, rules, consequences, darkened_flavor, darkened_rules, darkened_consequences, recovery, body ]
+body: Page
 ---
 
 What a protagonist carries.
 `,
     'kinds/keyword.md': '---\nname: Keyword\nplural: Keywords\nfields:\n  - { key: reminder, label: Reminder, type: text }\n  - { key: full_rule, label: Full rule, type: line }\nlayout: [ reminder, full_rule ]\n---\n\nA name for a rule that many aspects share.\n',
+    'elements/keyword/tool.md': '---\nname: Tool\nkind: keyword\ntags: [ core, keyword ]\nreminder: "on a roll it applies to, your edge sharpens by one"\n---\n',
     'elements/keyword/trouble.md': '---\nname: Trouble\nkind: keyword\ntags: [ core, keyword ]\nreminder: "each die over your edge is one trouble; clear it or pay for it"\nfull_rule: Reading the Dice\n---\n',
     'kinds/need.md': `---
 name: Need
 plural: Needs
 fields:
+  - { key: prerequisite, label: Prerequisite, type: line }
+  - { key: flavor, label: Flavor, type: text }
   - { key: rules, label: Rules, type: list }
-  - { key: burned, label: Burned, type: text }
-layout: [ flavor, rules, burned ]
+  - { key: consequences, label: Consequences, type: list }
+  - { key: darkened_flavor, label: "Flavor (Darkened)", type: text }
+  - { key: darkened_rules, label: "Rules (Darkened)", type: list }
+  - { key: darkened_consequences, label: "Consequences (Darkened)", type: list }
+  - { key: recovery, label: Recovery, type: text }
+layout: [ prerequisite, flavor, rules, consequences, darkened_flavor, darkened_rules, darkened_consequences, recovery, body ]
+body: Page
 ---
 
 What a protagonist cannot go without.
@@ -63,9 +76,9 @@ A kind of place that sells, and the kind of person who runs it. Each world write
     'elements/chapter/taking-risks.md': '---\nname: Taking Risks\nkind: chapter\ntags: [ core, chapter ]\nitems:\n  - module/when-to-roll\n  - module/reading-the-dice\n---\n\nWhen a protagonist tries something uncertain, the dice decide.\n',
     'elements/module/when-to-roll.md': '---\nname: When to Roll\nkind: module\ntags: [ core, module ]\n---\n\nRoll only when failing would be *interesting*. Walking across a quiet room needs no dice.\n',
     'elements/module/reading-the-dice.md': '---\nname: Reading the Dice\nkind: module\ntags: [ core, module ]\n---\n\nEach die at or under your edge is a **success**. Each die over it is one trouble.\n\n### Ties\n\nA tie goes to the protagonist.\n',
-    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\ntags: [ core, gear, tool ]\navailability: "1"\nrules:\n  - "**Applies when** *(climbing, binding, or hauling)*."\nburned: Frayed through.\nrecovery: Buy more.\n---\n\nFifteen meters of braided line.\n',
-    'elements/gear/lantern.md': '---\nname: Lantern\nkind: gear\ntags: [ core, gear, tool ]\navailability: "1"\nrules:\n  - "**Applies when** *(seeing in the dark)*."\nburned: Shattered, and the oil is gone.\nrecovery: Buy another.\n---\n\nA shuttered lantern that throws light one way.\n',
-    'elements/need/rest.md': '---\nname: Rest\nkind: need\ntags: [ core, need ]\nburned: Exhausted. Every roll after midnight starts one die worse.\n---\n\nSleep, and somewhere safe enough to take it.\n',
+    'elements/gear/rope.md': '---\nname: Rope\nkind: gear\ntags: [ core, gear, tool ]\nflavor: Fifteen meters of braided line.\nrules:\n  - "**Tool** *(on a roll it applies to, your edge sharpens by one)*."\n  - "**Applies when** *(climbing, binding, or hauling)*."\ndarkened_flavor: Frayed through.\nrecovery: Buy more.\n---\n',
+    'elements/gear/lantern.md': '---\nname: Lantern\nkind: gear\ntags: [ core, gear, tool ]\nflavor: A shuttered lantern that throws light one way.\nrules:\n  - "**Tool** *(on a roll it applies to, your edge sharpens by one)*."\n  - "**Applies when** *(seeing in the dark)*."\nconsequences:\n  - "**8:** Someone on the water answers your light."\ndarkened_flavor: Shattered, and the oil is gone.\ndarkened_consequences:\n  - "**Two 1s:** You drop it, and everyone on the pier hears."\nrecovery: Buy another.\n---\n\nA lantern is a tool for the dark. It applies on any roll where a protagonist finds their way at night or signals someone at a distance.\n\n## Example\n\nWren rows out to the mudflats at low water. Her player declares the lantern, and her edge sharpens from 7 to 6.\n',
+    'elements/need/rest.md': '---\nname: Rest\nkind: need\ntags: [ core, need ]\nflavor: "Sleep, and somewhere safe enough to take it. You have gone without both for so long that you have stopped noticing what it costs you, and the people who love you have stopped saying so. A bed is a rumor. A locked door is a luxury. You sleep in boats, in doorways, and once in a confessional, and every morning you tell yourself that tonight will be different. It never is. The harbor does not sleep, and neither do the people who are looking for you, and so you have learned to rest with one hand on the gunwale and one eye on the tide."\nrules:\n  - "**Need** *(an inner aspect; darken it to skip a roll when the action directly feeds the need, now)*."\n  - "When you sleep a full night behind a door that locks, relight one inner aspect."\n  - "When someone keeps watch so that you can sleep, your edge sharpens by one on your first roll the next day."\n  - "When you go a second night without sleep, the narrator names one thing you did not notice."\nconsequences:\n  - "**8:** You dream of the answer."\n  - "**Two 1s:** You fall asleep where you stand."\ndarkened_flavor: Exhausted.\ndarkened_rules:\n  - Every roll after midnight starts one die worse.\nrecovery: A full night, somewhere safe.\n---\n',
   });
 }
 
@@ -84,12 +97,12 @@ export const SAMPLE_GAME: Record<string, string> = {
   'game/elements/module/low-water.md': '---\nname: Low Water\nkind: module\ntags: [ harbor, module ]\n---\n\nAt low water the mudflats open, and anything dropped in the harbor can be found.\n',
   'game/elements/add-on/when-to-roll.md': '---\nname: When to Roll\nkind: add-on\ntags: [ add-on ]\nextends: module/when-to-roll\n---\n\n*Wren wants to cross the pier in the fog. The narrator calls for a roll, because the guard is listening.*\n',
   'game/expansions/fogbound/expansion.md': '---\nname: Fogbound\n---\n\nAn expansion for the smugglers of the outer banks: their boats, their lamps, and their fence.\n',
-  'game/expansions/fogbound/elements/gear/dark-lantern.md': '---\nname: Dark Lantern\nkind: gear\ntags: [ fogbound, gear, tool ]\navailability: "3"\nrules:\n  - "**Applies when** *(signaling a boat without being seen from shore)*."\n---\n\nA lantern with a shutter that shows light to one boat and no one else.\n',
+  'game/expansions/fogbound/elements/gear/dark-lantern.md': '---\nname: Dark Lantern\nkind: gear\ntags: [ fogbound, gear, tool ]\nflavor: A lantern with a shutter that shows light to one boat and no one else.\nrules:\n  - "**Applies when** *(signaling a boat without being seen from shore)*."\n---\n',
   'game/expansions/fogbound/elements/add-on/when-to-roll.md': '---\nname: When to Roll\nkind: add-on\ntags: [ add-on ]\nextends: module/when-to-roll\n---\n\nIn fog, the narrator calls for a roll before anyone sees anything farther than an oar\'s length.\n',
   'game/game.md': '# Game\n\nHarrowgate\'s choices about its engine\'s core elements.\n',
   'game/elements/vendor/the-chandler.md': '---\nname: The Chandler\nkind: vendor\ntags: [ harbor, vendor ]\ncarries: Rope, lamps, oilskins, and anything a boat needs.\ncompetition: The Salt Market, where it is cheaper and nobody asks.\n---\n\nA counter on the east piers that smells of tar.\n',
-  'game/elements/gear/salt-knife.md': '---\nname: Salt Knife\nkind: gear\ntags: [ harbor, gear, weapon ]\nvendor: the-chandler\navailability: "2"\nrules:\n  - "**Weapon** *(clears no trouble)*."\nburned: Rusted to the handle.\nrecovery: The Chandler sells another.\n---\n\nA dock knife with a cork grip, so it floats.\n',
-  'game/elements/gear/storm-lamp.md': '---\nname: Storm Lamp\nkind: gear\ntags: [ harbor, gear, tool ]\nreskins: gear/lantern\n---\n\nA brass lamp that stays lit in the narrows\' wind.\n',
+  'game/elements/gear/salt-knife.md': '---\nname: Salt Knife\nkind: gear\ntags: [ harbor, gear, weapon ]\nprerequisite: A berth on the docks\nflavor: A dock knife with a cork grip, so it floats.\nrules:\n  - "**Weapon** *(clears no trouble)*."\ndarkened_flavor: Rusted to the handle.\nrecovery: The Chandler sells another.\n---\n',
+  'game/elements/gear/storm-lamp.md': '---\nname: Storm Lamp\nkind: gear\ntags: [ harbor, gear, tool ]\nreskins: gear/lantern\nflavor: A brass lamp that stays lit in the narrows\' wind.\n---\n',
 };
 
 /** A real game trial, generated locally from a private rulebook and never committed. */

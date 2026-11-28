@@ -7,6 +7,8 @@
  * The words on a card come from the files. `summary:` in a file's header is used when
  * there is one, and otherwise the card shows the first sentence. The app writes nothing.
  */
+import type { AspectCard } from './game/card.ts';
+
 export interface CardFacts {
   /** The link's id, which is what a click on the name opens. */
   id: string;
@@ -25,6 +27,11 @@ export interface CardFacts {
   picture: { url: string; style: string } | null;
   /** True for a game term, which is edged in the world's second color. */
   game: boolean;
+  /** An aspect shows as its own card, with two faces, in place of the small one. */
+  card?: AspectCard | null;
+  /** For an aspect's card: the keyword a tag names, and opening it. */
+  tagKey?: (tag: string) => string | null;
+  onOpenTag?: (key: string) => void;
 }
 
 /** The first sentence of a passage, for a card with no summary written for it. */

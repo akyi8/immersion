@@ -1,9 +1,11 @@
 <script lang="ts">
   import * as edit from '../../lib/game/edit';
+  import { cardOf } from '../../lib/game/card';
   import { hover, firstSentence } from '../../lib/hover.svelte';
   // ICONS TRIAL
   import IconPicker from '../IconPicker.svelte';
   import { labelIcon } from '../../lib/icons.svelte';
+  import { hasLabel } from '../../lib/game/labels';
   import { freePath } from '../../lib/archive';
   import { errorText } from '../../lib/errors';
   import Dialog from '../shelf/Dialog.svelte';
@@ -329,6 +331,9 @@
   // A game term's hover card (Cerys, November 24): what the term is, in a line. The line is
   // `summary:` in the element's file when it has one, else its `reminder:`, which every
   // keyword carries, else its first sentence, else its first rule.
+  // A tag that names a keyword, such as `tool` on a piece of gear, leads to that keyword.
+  const keywords = $derived(new Map((game?.elements ?? []).filter((p) => game && hasLabel(p.element, 'keyword', game.labels)).map((p) => [p.element.name.toLowerCase(), p.key])));
+  const keywordOf = (tag: string) => keywords.get(tag.trim().toLowerCase()) ?? null;
   $effect(() => {
     hover.game = (key) => {
       const p = byKey.get(key);
@@ -346,7 +351,7 @@
       if (text(el.fields.availability)) facts.push(['Availability', text(el.fields.availability)]);
       if (text(el.fields.full_rule)) facts.push(['Full rule', text(el.fields.full_rule)]);
       if (tags.length) facts.push(['Tags', tags.slice(0, 5).join(', ')]);
-      return { id: `game:${key}`, kind: kind?.name ?? el.kind, icon: iconOf(el.kind), main: el.name, lead: '', brief, also: [], facts, picture: pic ? { url: pic.url, style: '' } : null, game: true };
+      return { id: `game:${key}`, kind: kind?.name ?? el.kind, icon: iconOf(el.kind), main: el.name, lead: '', brief, also: [], facts, picture: pic ? { url: pic.url, style: '' } : null, game: true, card: cardOf(el, kind), tagKey: keywordOf, onOpenTag: (k) => openElement(k) };
     };
     return () => {
       hover.game = null;
@@ -1083,7 +1088,9 @@
               onOpen={(key) => openElement(key, i)}
               where={originName(p.origin)}
               homes={p.origin !== 'engine' && MOVABLE(p.element.kind) && !p.base ? homes : []}
-              onMove={(origin) => moveTo(p, origin, i)} />
+              onMove={(origin) => moveTo(p, origin, i)}
+              icon={iconOf(p.element.kind)}
+              tagKey={keywordOf} />
           {/if}
         {/key}
       {/snippet}

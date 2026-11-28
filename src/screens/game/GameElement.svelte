@@ -6,6 +6,8 @@
   import { Saver, said } from '../../lib/game/saver.svelte';
   import { bodyLabel, bodyPart, type Element, type Kind } from '../../lib/game/elements';
   import { effective, type Placed } from '../../lib/game/game';
+  import { cardOf } from '../../lib/game/card';
+  import AspectCard from './AspectCard.svelte';
 
   /**
    * One element, edited as a form (Cerys, November 7: structured data). Each field of the
@@ -33,6 +35,8 @@
     where,
     homes = [],
     onMove,
+    icon = null,
+    tagKey,
   }: {
     placed: Placed;
     kind: Kind | null;
@@ -47,6 +51,10 @@
     /** Where this element could live instead: the world and each expansion. Empty when it cannot move. */
     homes?: { origin: string; name: string }[];
     onMove?: (origin: string) => Promise<void>;
+    /** The kind's icon, for the aspect's card. */
+    icon?: string | null;
+    /** The keyword a tag names, so the card's tags lead to their keywords. */
+    tagKey?: (tag: string) => string | null;
   } = $props();
 
   let moving = $state(false);
@@ -88,6 +96,11 @@
   export const offersReskin = () => onReskin;
   const shown = $derived(effective({ ...placed, element: draft }));
 
+  // An aspect's card stands beside its form and redraws as the form is typed in, so the
+  // writer sees the moment a face fills (Cerys, November 27).
+  const card = $derived(cardOf(shown, kind));
+  let flipped = $state(false);
+
   const fieldText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join('\n') : (v ?? ''));
 
   function setField(key: string, type: string, value: string) {
@@ -107,7 +120,7 @@
   }
 </script>
 
-<article class="element">
+<article class="element" class:carded={!!card}>
   <header>
     <div class="label">
       {where} · {kind?.name ?? draft.kind}
@@ -142,6 +155,7 @@
     <p class="note">A reskin of {placed.base?.element.name}. It changes only the name and the flavor; the mechanics below are the core element's.</p>
   {/if}
 
+  <div class="sides">
   <div class="form">
     {#if !reskin}
       <label class="field">
@@ -205,11 +219,51 @@
       {/if}
     {/each}
   </div>
+  {#if card}
+    <aside class="card">
+      <AspectCard {card} {icon} bind:flipped {tagKey} onOpenTag={onOpen} />
+      {#if card.hasDark}<p class="turn">Click the card, or press F on it, to turn it over.</p>{/if}
+    </aside>
+  {/if}
+  </div>
 </article>
 
 <style>
   article {
     max-width: 720px;
+    container-type: inline-size;
+  }
+  /* An aspect's page is its form with its card beside it. In a narrow pane the card goes first. */
+  article.carded {
+    max-width: 1060px;
+  }
+  .sides {
+    display: grid;
+    grid-template-columns: minmax(0, 720px) auto;
+    gap: 32px;
+    align-items: start;
+  }
+  .card {
+    position: sticky;
+    top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .turn {
+    margin: 0;
+    max-width: 300px;
+    font-size: calc(12px * var(--type));
+    color: var(--muted);
+  }
+  @container (max-width: 800px) {
+    .sides {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .card {
+      position: static;
+      order: -1;
+    }
   }
   header {
     margin-bottom: 18px;
