@@ -29,7 +29,7 @@
     onPreviewTheme,
   }: {
     library: Library;
-    onOpen: (path: string) => void;
+    onOpen: (path: string, by?: { straight?: boolean; baseGame?: boolean }) => void;
     /** Shows a theme on the app while it is chosen; undefined returns to the shelf's own. */
     onPreviewTheme: (preview: { spec: ThemeSpec | null; side: Mode } | undefined) => void;
   } = $props();
@@ -115,12 +115,13 @@
     try {
       const sep = lib.includes('\\') ? '\\' : '/';
       const existing = (await library.list()).find((w) => w.journal);
+      const straight = { straight: true };
       onOpen(existing ? existing.path : await library.create(lib, JOURNAL_FOLDER, journalFile(), ['wiki', 'stories']).catch(async (e) => {
         // A folder left from before is opened as it is.
         const path = `${lib}${sep}${JOURNAL_FOLDER}`;
         if ((await library.inspect(path).catch(() => null))?.hasWorld) return path;
         throw e;
-      }));
+      }), straight);
     } catch (e) {
       problem = errorText(e);
     }
@@ -194,6 +195,47 @@
   const isArchived = (world: ShelfWorld) => !!world.worldMd && splitHeader(world.worldMd).header.archived === true;
   const active = $derived((worlds ?? []).filter((w) => !isArchived(w)));
   const archived = $derived((worlds ?? []).filter(isArchived));
+
+  // The lower shelf (Cerys, November 28): what is on the page and is not a world to walk
+  // into. Real World, the journal, opens straight to writing. A base game is found on its
+  // own, wherever a world names one as its engine, and opens straight to its book.
+  const shelved = $derived(active.filter((w) => !w.journal));
+  const journals = $derived(active.filter((w) => w.journal));
+  const engineOf = (w: ShelfWorld) => {
+    const e = w.worldMd ? splitHeader(w.worldMd).header.engine : null;
+    return typeof e === 'string' && e.trim() ? e.trim() : null;
+  };
+  const baseGames = $derived.by(() => {
+    const found = new Map<string, ShelfWorld[]>();
+    for (const w of [...active, ...archived]) {
+      const rel = w.missing ? null : engineOf(w);
+      if (rel) found.set(rel, [...(found.get(rel) ?? []), w]);
+    }
+    return [...found].map(([rel, built]) => ({ rel, built }));
+  });
+  let engineNames = $state<Record<string, string>>({});
+  $effect(() => {
+    const missing = baseGames.map((b) => b.rel).filter((rel) => !(rel in engineNames));
+    if (!missing.length) return;
+    void (async () => {
+      const names: Record<string, string> = {};
+      for (const rel of missing) {
+        const fallback = rel.split('/').filter(Boolean).pop() ?? rel;
+        try {
+          const efs = await library.openEngine(rel);
+          const md = efs && (await efs.exists('engine.md')) ? await efs.readText('engine.md') : '';
+          const { header, body } = splitHeader(md);
+          names[rel] = (typeof header.name === 'string' && header.name.trim()) || /^#\s+(.+)$/m.exec(body)?.[1]?.trim() || fallback;
+        } catch {
+          names[rel] = fallback;
+        }
+      }
+      await library.openEngine(null).catch(() => {});
+      engineNames = { ...engineNames, ...names };
+    })();
+  });
+  const listed = (names: string[]) => (names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`);
+  const lower = $derived(journals.length > 0 || baseGames.length > 0 || (!!info?.path && !hasJournal));
   async function archive(world: ShelfWorld, on: boolean) {
     if (world.worldMd === null) return;
     await library.writeWorldMd(world.path, withHeader(world.worldMd, { archived: on ? true : undefined }));
@@ -278,17 +320,8 @@
   {/snippet}
 
   {#if worlds}
-    {#if archived.length}<h2 class="label shelf-head">Active</h2>{/if}
     <div class="grid">
-      {#if info?.path && !hasJournal}
-        <div class="card">
-          <button type="button" class="cover" onclick={openJournal} title="Your journal">
-            <img src={realWorld} alt="" />
-            <span class="words"><span class="tagline">Your journal</span><span class="name">Real World</span></span>
-          </button>
-        </div>
-      {/if}
-      {#each active as world (world.path)}
+      {#each shelved as world (world.path)}
         {@render worldCard(world)}
       {/each}
 
@@ -305,8 +338,42 @@
         <span class="hint">Bring in a folder you already write in</span>
       </button>
     </div>
+    {#if lower}
+      <h2 class="shelf-head">Game and journal</h2>
+      <div class="strips">
+        {#each baseGames as base (base.rel)}
+          <button type="button" class="strip" onclick={() => onOpen(base.built[0].path, { straight: true, baseGame: true })} title={base.rel}>
+            <span class="thumb book" aria-hidden="true">
+              <svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z" /><path d="M4 21V5" /><path d="M9 8h6M9 12h4" /></svg>
+            </span>
+            <span class="about">
+              <span class="name">{engineNames[base.rel] ?? ''}</span>
+              <span class="does">The base game. {listed(base.built.map((w) => w.name))} {base.built.length === 1 ? 'is' : 'are'} built on it.</span>
+            </span>
+            <span class="opens">Game</span>
+          </button>
+        {/each}
+        {#each journals as world (world.path)}
+          <button type="button" class="strip" disabled={world.missing} onclick={() => onOpen(world.path, { straight: true })} oncontextmenu={(e) => worldMenu(e, world)} title={world.path}>
+            <span class="thumb"><img src={world.cover ?? realWorld} alt="" /></span>
+            <span class="about">
+              <span class="name">{world.name}</span>
+              <span class="does">{world.missing ? 'Not found on this computer' : world.tagline || 'Your journal'}</span>
+            </span>
+            <span class="opens">Story</span>
+          </button>
+        {/each}
+        {#if info?.path && !hasJournal}
+          <button type="button" class="strip" onclick={openJournal}>
+            <span class="thumb"><img src={realWorld} alt="" /></span>
+            <span class="about"><span class="name">Real World</span><span class="does">Your journal</span></span>
+            <span class="opens">Story</span>
+          </button>
+        {/if}
+      </div>
+    {/if}
     {#if archived.length}
-      <h2 class="label shelf-head">Archived</h2>
+      <h2 class="shelf-head">Archived</h2>
       <div class="grid">
         {#each archived as world (world.path)}
           {@render worldCard(world)}
@@ -446,12 +513,89 @@
     border: 1px solid rgb(216 210 203 / 0.5);
     padding: 2px 6px;
   }
+  /* A shelf's heading is a size down from the page's own title, so each shelf reads as
+     its own part of the page (Cerys, November 28). */
   .shelf-head {
-    margin: 34px 0 14px;
-    font-size: calc(12px * var(--type));
+    margin: 56px 0 18px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: calc(var(--title-size) * 0.62 * var(--type));
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: var(--title);
   }
-  .shelf-head:first-of-type {
-    margin-top: 0;
+  .strips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+  }
+  .strip {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 0 18px 0 0;
+    min-height: 88px;
+    overflow: hidden;
+    text-align: left;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--round-box);
+  }
+  .strip:hover,
+  .strip:focus-visible {
+    border-color: var(--hover-edge);
+  }
+  .strip:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .thumb {
+    align-self: stretch;
+    width: 104px;
+    display: grid;
+    place-items: center;
+    background: var(--well);
+    overflow: hidden;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .thumb.book svg {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .about {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+    min-width: 0;
+  }
+  .strip .name {
+    font-size: calc(30px * var(--type));
+  }
+  .does {
+    font-size: calc(14px * var(--type));
+    line-height: 1.35;
+    color: var(--text-soft);
+  }
+  .opens {
+    font-family: var(--font-label);
+    font-size: calc(11px * var(--type));
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--structure-soft);
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    padding: 3px 10px;
+    white-space: nowrap;
   }
   .grid {
     display: grid;

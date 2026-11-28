@@ -118,8 +118,9 @@
       fs = source;
       world = await loadWorld(source);
       index = null;
-      arriving = true;
-      phase = 'loading';
+      // A strip on the Worlds page's lower shelf goes straight in, with no world page between.
+      arriving = !how.straight;
+      phase = how.straight ? 'inside' : 'loading';
       // The index builds while the loading screen is up.
       index = await buildWikiIndex(source, world);
       watchWorld(source);
@@ -169,8 +170,11 @@
   $effect(() => {
     ui.world = openPath && world && phase !== 'shelf' ? { path: openPath, name: world.name } : null;
   });
-  async function open(path: string) {
+  /** How the open world was reached: a strip on the Worlds page's lower shelf goes straight in, and the base game's goes to its book. */
+  let how = $state<{ straight?: boolean; baseGame?: boolean }>({});
+  async function open(path: string, by: { straight?: boolean; baseGame?: boolean } = {}) {
     if (!library) return;
+    how = by;
     openPath = path;
     setWindowWorld(path);
     try {
@@ -388,6 +392,7 @@
     onTheme={editTheme}
     onDetails={editDetails}
     engineRel={world.engine}
+    baseGame={!!how.baseGame}
     gameDir={world.gameDir}
     openEngine={(rel) => (library ? library.openEngine(rel) : Promise.resolve(null))}
     engineChoices={async () => {

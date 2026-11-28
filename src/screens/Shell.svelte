@@ -36,6 +36,7 @@
     onTheme,
     onDetails,
     engineRel = '',
+    baseGame = false,
     gameDir = 'game',
     openEngine = async () => null,
     engineChoices = async () => [],
@@ -56,6 +57,8 @@
     onDetails: () => void;
     /** The engine this world's game is built on, as a path from the library's top. */
     engineRel?: string;
+    /** True when the world was opened from its base game's strip on the Worlds page, which goes to the Game module and the base game's book. */
+    baseGame?: boolean;
     gameDir?: string;
     openEngine?: (rel: string | null) => Promise<GameFs | null>;
     /** The engines the library's other worlds build on, for a world starting its game. */
@@ -112,12 +115,13 @@
   // A module switched off while it is on screen gives way to the first one still shown.
   $effect(() => {
     const shown = TABS.map(([id]) => id);
-    if (shown.length && !shown.includes(nav.current.module) && !(journal && nav.current.module === 'story')) nav.show(shown[0]);
+    if (shown.length && !shown.includes(nav.current.module) && !(journal && nav.current.module === 'story') && !(baseGame && nav.current.module === 'game')) nav.show(shown[0]);
   });
 
   // Real World opens on its journal (Cerys, October 26).
   onMount(() => {
     if (journal) nav.openIn('story', '@vault');
+    else if (baseGame) nav.show('game');
   });
 
   onMount(() => {
@@ -239,7 +243,7 @@
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'game'}
-    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} {engineChoices} />
+    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} {engineChoices} startBook={baseGame ? 'engine' : null} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}

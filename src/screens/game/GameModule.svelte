@@ -84,6 +84,7 @@
     gameDir,
     openEngine,
     engineChoices = async () => [],
+    startBook = null,
   }: {
     /** Narrator or Protagonist, which a wiki entry opened here follows. */
     view?: View;
@@ -100,6 +101,8 @@
     openEngine: (rel: string | null) => Promise<GameFs | null>;
     /** The engines the library's other worlds build on, each as its path from the library's top. */
     engineChoices?: () => Promise<string[]>;
+    /** The book the sidebar opens on, when the Worlds page asked for the base game's. */
+    startBook?: BookOrigin | null;
   } = $props();
 
   /**
@@ -225,7 +228,8 @@
   const MOVABLE = (kind: string) => !['module', 'chapter', 'division', 'add-on'].includes(kind);
 
   // The book open in the sidebar: the world's own, unless the writer switches to the base game.
-  let chosen = $state<BookOrigin | null>(null);
+  // svelte-ignore state_referenced_locally
+  let chosen = $state<BookOrigin | null>(startBook);
   const bookOrigin = $derived<BookOrigin | null>(chosen && game?.books[chosen] ? chosen : game?.books.world ? 'world' : game?.books.engine ? 'engine' : null);
   const inWorld = $derived(bookOrigin === 'world');
   const tree = $derived(game && bookOrigin ? bookTree(game, bookOrigin) : null);
