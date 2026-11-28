@@ -7,6 +7,7 @@
   import { buildStoryIndex } from '../lib/story/index';
   import { readTable } from '../lib/table/index';
   import { loadGame, type GameFs, type Source } from '../lib/game/game';
+  import { baseGameHere } from '../lib/game/base';
   import { find, type Findable } from '../lib/finder';
   import { portal } from '../lib/portal';
   import { ui } from '../lib/ui.svelte';
@@ -28,6 +29,7 @@
     storiesDir,
     worldName = '',
     engineRel = '',
+    only = '',
     gameDir = 'game',
     openEngine = async () => null,
     onClose,
@@ -43,6 +45,8 @@
     /** What the Game module needs to read the world's game, so its rules can be found. */
     worldName?: string;
     engineRel?: string;
+    /** The one module this world opens in, or ''. */
+    only?: string;
     gameDir?: string;
     openEngine?: (rel: string | null) => Promise<GameFs | null>;
     onClose: () => void;
@@ -65,7 +69,7 @@
   };
 
   // Only the modules the header shows are offered (Cerys, November 7).
-  const shown = (m: string) => account.look.modules.includes(m as never);
+  const shown = (m: string) => (only ? m === only : account.look.modules.includes(m as never));
   const allActions: Findable[] = [
     { kind: 'Go to', name: 'World', detail: 'The wiki', run: go(() => nav.show('world')) },
     { kind: 'Go to', name: 'Story', detail: 'Desk, drawer, and shelf', run: go(() => nav.show('story')) },
@@ -127,7 +131,8 @@
           const efs = await openEngine(engineRel).catch(() => null);
           if (efs) engine = { origin: 'engine', name: 'Engine', fs: efs, dir: '' };
         }
-        const loaded = await loadGame(engine, { origin: 'world', name: worldName, fs, dir: gameDir });
+        const here = await baseGameHere(fs);
+        const loaded = here ? await loadGame(here.engine, here.world) : await loadGame(engine, { origin: 'world', name: worldName, fs, dir: gameDir });
         const out: Findable[] = [];
         const SKIP = new Set(['add-on', 'division']);
         for (const p of loaded.elements) {

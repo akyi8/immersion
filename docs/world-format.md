@@ -51,6 +51,8 @@ stories: stories
 - `spelling_also: spanish` accepts Spanish words as well spelled too, for a world written in both languages.
 - `archived: true` moves the world below the others on the Worlds page, under an Archived heading. Nothing else about the world changes.
 - `journal:` and `daily:` mark the writer's journal world, which the app creates and manages.
+- `only:` keeps a world to one module: `world`, `boards`, `story`, `game`, or `table`. The world sits on the Worlds page's lower shelf, headed Game and journal, and opens straight into that module with no opening page. The journal is kept to Story without saying so.
+- **A base game on its own.** An engine's folder, the one that holds `engine.md`, can carry a `world.md` with `only: game`. The folder is then on the Worlds page as a base game and opens with the Game module alone, on the base game's own book, with no world built on it. The app writes this `world.md` the first time a base game is opened from the Worlds page. Worlds built on the engine still name it with `engine:` as before.
 - `engine:` names the engine this world's game is built on, as the engine folder's path from the top of the library. `game:` names the folder that holds the world's own game elements, and defaults to `game`. Section 11 describes both.
 
 A picture named `world.jpg`, `world.png`, or `world.webp` beside `world.md` is the world's cover. The app shows the cover on the Worlds page and on the world's loading screen, and can blur it behind the world as a glass backdrop.

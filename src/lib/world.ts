@@ -19,6 +19,12 @@ export interface World {
   daily: boolean;
   /** ICONS TRIAL: the icon each wiki category wears, from `icons:`, by the category's folder under the wiki. */
   icons: Record<string, string>;
+  /**
+   * The one module this world opens in, or '' for a world with every module (Cerys,
+   * November 28). The journal has only Story, and a base game only Game. Such a world
+   * opens straight into its module, with no opening page.
+   */
+  only: string;
   /** The engine this world's game is built on, as a path from the library's top, or ''. */
   engine: string;
   /** The folder that holds this world's own game elements (Cerys, November 7). */
@@ -59,6 +65,9 @@ function text(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
 }
 
+/** The modules a world can be kept to, as `only:` in its `world.md`. */
+const ONLY = ['world', 'boards', 'story', 'game', 'table'];
+
 /** What a `world.md` file says, with defaults for anything it leaves out. */
 export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
   const { header, body } = splitHeader(worldMd);
@@ -71,6 +80,7 @@ export function describeWorld(worldMd: string): Omit<World, 'imagePath'> {
     theme: themeFrom(header),
     journal: header.journal === true,
     daily: header.daily === true,
+    only: header.journal === true ? 'story' : ONLY.includes(String(header.only)) ? String(header.only) : '',
     engine: text(header.engine, ''),
     gameDir: text(header.game, 'game'),
     pictures: readShape(header.pictures),

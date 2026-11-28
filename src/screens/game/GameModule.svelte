@@ -6,6 +6,7 @@
   import IconPicker from '../IconPicker.svelte';
   import { labelIcon } from '../../lib/icons.svelte';
   import { hasLabel } from '../../lib/game/labels';
+  import { baseGameHere } from '../../lib/game/base';
   import { freePath } from '../../lib/archive';
   import { errorText } from '../../lib/errors';
   import Dialog from '../shelf/Dialog.svelte';
@@ -84,7 +85,6 @@
     gameDir,
     openEngine,
     engineChoices = async () => [],
-    startBook = null,
   }: {
     /** Narrator or Protagonist, which a wiki entry opened here follows. */
     view?: View;
@@ -101,8 +101,6 @@
     openEngine: (rel: string | null) => Promise<GameFs | null>;
     /** The engines the library's other worlds build on, each as its path from the library's top. */
     engineChoices?: () => Promise<string[]>;
-    /** The book the sidebar opens on, when the Worlds page asked for the base game's. */
-    startBook?: BookOrigin | null;
   } = $props();
 
   /**
@@ -175,10 +173,20 @@
   let naming = $state(false);
   let newName = $state('');
 
+  /** True when the open folder is a base game, with no world built on it here. */
+  let base = $state(false);
   async function load() {
     try {
       let engine: Source | null = null;
       problem = '';
+      // A base game opened on its own: the open folder is the engine, and no world stands on it.
+      const here = await baseGameHere(fs);
+      base = !!here;
+      if (here) {
+        engineName = here.engine.name;
+        game = await loadGame(here.engine, here.world);
+        return;
+      }
       if (engineRel) {
         try {
           const efs = await openEngine(engineRel);
@@ -204,7 +212,7 @@
     void load();
     let timer: ReturnType<typeof setTimeout> | null = null;
     return fs.onChange((paths) => {
-      if (!paths.some((p) => p.startsWith(gameDir + '/'))) return;
+      if (!base && !paths.some((p) => p.startsWith(gameDir + '/'))) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(load, 400);
     });
@@ -228,8 +236,7 @@
   const MOVABLE = (kind: string) => !['module', 'chapter', 'division', 'add-on'].includes(kind);
 
   // The book open in the sidebar: the world's own, unless the writer switches to the base game.
-  // svelte-ignore state_referenced_locally
-  let chosen = $state<BookOrigin | null>(startBook);
+  let chosen = $state<BookOrigin | null>(null);
   const bookOrigin = $derived<BookOrigin | null>(chosen && game?.books[chosen] ? chosen : game?.books.world ? 'world' : game?.books.engine ? 'engine' : null);
   const inWorld = $derived(bookOrigin === 'world');
   const tree = $derived(game && bookOrigin ? bookTree(game, bookOrigin) : null);
@@ -930,6 +937,7 @@
               </button>
             {/each}
           {/if}
+          {#if !base}
           <h2 class="label">{worldName}</h2>
           {#each worldKinds as { kind, count } (kind.id)}
             <button type="button" class="item" class:empty={count === 0} class:on={nav.panes.includes(`${KIND}world:${kind.id}`)} onclick={() => nav.open(`${KIND}world:${kind.id}`)}>
@@ -938,6 +946,7 @@
           {:else}
             <p class="hint">No elements of this world's own yet. A world can bring kinds of its own in its game folder.</p>
           {/each}
+          {/if}
         {/if}
       {/if}
     </nav>
@@ -1104,8 +1113,9 @@
       <h1>Game</h1>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <p>
-        A game's rules, kept as separate elements: each aspect and each rule is one file with its own fields. Core elements belong to
-        {game?.engine ? engineName : 'an engine'} and appear in every game built on it, and {worldName} adds its own.
+        A game's rules, kept as separate elements: each aspect and each rule is one file with its own fields.
+        {#if base}This is the base game. What is written here appears in every game built on it.{:else}Core elements belong to
+        {game?.engine ? engineName : 'an engine'} and appear in every game built on it, and {worldName} adds its own.{/if}
       </p>
       {#if game}
         <div class="cards">
@@ -1115,12 +1125,14 @@
               <span class="n">{count('engine')} core elements · {engineKinds.length} kinds</span>
             </div>
           {/if}
+          {#if !base}
           <div class="card">
             <span class="kind">World</span><span class="name">{worldName}</span>
             <span class="n">{count('world')} elements of its own{game.setAside.size ? ` · ${game.setAside.size} core set aside` : ''}</span>
           </div>
+          {/if}
         </div>
-        {#if game.engine && !game.books.world && !game.elements.some((p) => p.origin === 'world')}
+        {#if !base && game.engine && !game.books.world && !game.elements.some((p) => p.origin === 'world')}
           <p class="hint">{worldName} is built on {engineName} and has no book of its own yet.</p>
           <button type="button" class="start" disabled={starting} onclick={() => ((starting = true), layOut().catch((e) => (problem = errorText(e))).finally(() => (starting = false)))}>
             {starting ? 'Laying it out…' : `Lay out ${worldName}'s book from ${engineName}`}

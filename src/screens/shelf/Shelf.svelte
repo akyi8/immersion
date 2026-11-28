@@ -16,6 +16,7 @@
   import { account } from '../../lib/account.svelte';
   import { ui } from '../../lib/ui.svelte';
   import { JOURNAL_FOLDER, journalFile, splitHeader, withHeader } from '../../lib/world';
+  import { baseGameFile } from '../../lib/game/base';
   import realWorld from '../../assets/real-world.jpg';
 
   /**
@@ -29,7 +30,7 @@
     onPreviewTheme,
   }: {
     library: Library;
-    onOpen: (path: string, by?: { straight?: boolean; baseGame?: boolean }) => void;
+    onOpen: (path: string) => void;
     /** Shows a theme on the app while it is chosen; undefined returns to the shelf's own. */
     onPreviewTheme: (preview: { spec: ThemeSpec | null; side: Mode } | undefined) => void;
   } = $props();
@@ -115,13 +116,12 @@
     try {
       const sep = lib.includes('\\') ? '\\' : '/';
       const existing = (await library.list()).find((w) => w.journal);
-      const straight = { straight: true };
       onOpen(existing ? existing.path : await library.create(lib, JOURNAL_FOLDER, journalFile(), ['wiki', 'stories']).catch(async (e) => {
         // A folder left from before is opened as it is.
         const path = `${lib}${sep}${JOURNAL_FOLDER}`;
         if ((await library.inspect(path).catch(() => null))?.hasWorld) return path;
         throw e;
-      }), straight);
+      }));
     } catch (e) {
       problem = errorText(e);
     }
@@ -196,23 +196,54 @@
   const active = $derived((worlds ?? []).filter((w) => !isArchived(w)));
   const archived = $derived((worlds ?? []).filter(isArchived));
 
-  // The lower shelf (Cerys, November 28): what is on the page and is not a world to walk
-  // into. Real World, the journal, opens straight to writing. A base game is found on its
-  // own, wherever a world names one as its engine, and opens straight to its book.
-  const shelved = $derived(active.filter((w) => !w.journal));
-  const journals = $derived(active.filter((w) => w.journal));
+  // The lower shelf (Cerys, November 28): worlds kept to one module, which open straight
+  // into it. Real World, the journal, has only Story. A base game has only Game: it is an
+  // engine's folder with a `world.md` of its own. An engine some world names, and that has
+  // no `world.md` yet, is shown here too, and is given one the first time it is opened.
+  const onlyOf = (w: ShelfWorld) => {
+    if (w.journal) return 'story';
+    const only = w.worldMd ? splitHeader(w.worldMd).header.only : null;
+    return typeof only === 'string' ? only : '';
+  };
+  const shelved = $derived(active.filter((w) => !onlyOf(w)));
+  const lowerWorlds = $derived(active.filter((w) => !!onlyOf(w)));
+  const MODULE_NAMES: Record<string, string> = { world: 'World', boards: 'Boards', story: 'Story', game: 'Game', table: 'Table' };
   const engineOf = (w: ShelfWorld) => {
     const e = w.worldMd ? splitHeader(w.worldMd).header.engine : null;
     return typeof e === 'string' && e.trim() ? e.trim() : null;
   };
-  const baseGames = $derived.by(() => {
+  /** Where an engine's folder is on this computer, from its path in the library. */
+  const engineFolder = (rel: string) => {
+    const lib = info?.path;
+    if (!lib) return null;
+    const sep = lib.includes('\\') ? '\\' : '/';
+    return `${lib}${sep}${rel.split('/').join(sep)}`;
+  };
+  const builtOn = $derived.by(() => {
     const found = new Map<string, ShelfWorld[]>();
     for (const w of [...active, ...archived]) {
       const rel = w.missing ? null : engineOf(w);
       if (rel) found.set(rel, [...(found.get(rel) ?? []), w]);
     }
-    return [...found].map(([rel, built]) => ({ rel, built }));
+    return found;
   });
+  /** The worlds built on a base game that is on the page as a world of its own. */
+  const builtOnWorld = (w: ShelfWorld) => [...builtOn].find(([rel]) => engineFolder(rel) === w.path)?.[1] ?? [];
+  // Engines named by a world and not yet on the page themselves.
+  const baseGames = $derived(
+    [...builtOn].filter(([rel]) => !!engineFolder(rel) && !(worlds ?? []).some((w) => w.path === engineFolder(rel))).map(([rel, built]) => ({ rel, built })),
+  );
+  async function openBaseGame(rel: string) {
+    const path = engineFolder(rel);
+    if (!path) return;
+    problem = '';
+    try {
+      await library.add(path, baseGameFile(engineNames[rel] ?? rel.split('/').filter(Boolean).pop() ?? rel));
+      onOpen(path);
+    } catch (e) {
+      problem = errorText(e);
+    }
+  }
   let engineNames = $state<Record<string, string>>({});
   $effect(() => {
     const missing = baseGames.map((b) => b.rel).filter((rel) => !(rel in engineNames));
@@ -235,7 +266,7 @@
     })();
   });
   const listed = (names: string[]) => (names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`);
-  const lower = $derived(journals.length > 0 || baseGames.length > 0 || (!!info?.path && !hasJournal));
+  const lower = $derived(lowerWorlds.length > 0 || baseGames.length > 0 || (!!info?.path && !hasJournal));
   async function archive(world: ShelfWorld, on: boolean) {
     if (world.worldMd === null) return;
     await library.writeWorldMd(world.path, withHeader(world.worldMd, { archived: on ? true : undefined }));
@@ -342,7 +373,7 @@
       <h2 class="shelf-head">Game and journal</h2>
       <div class="strips">
         {#each baseGames as base (base.rel)}
-          <button type="button" class="strip" onclick={() => onOpen(base.built[0].path, { straight: true, baseGame: true })} title={base.rel}>
+          <button type="button" class="strip" onclick={() => openBaseGame(base.rel)} title={base.rel}>
             <span class="thumb book" aria-hidden="true">
               <svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z" /><path d="M4 21V5" /><path d="M9 8h6M9 12h4" /></svg>
             </span>
@@ -353,14 +384,24 @@
             <span class="opens">Game</span>
           </button>
         {/each}
-        {#each journals as world (world.path)}
-          <button type="button" class="strip" disabled={world.missing} onclick={() => onOpen(world.path, { straight: true })} oncontextmenu={(e) => worldMenu(e, world)} title={world.path}>
-            <span class="thumb"><img src={world.cover ?? realWorld} alt="" /></span>
+        {#each lowerWorlds as world (world.path)}
+          {@const only = onlyOf(world)}
+          {@const built = only === 'game' ? builtOnWorld(world) : []}
+          <button type="button" class="strip" disabled={world.missing} onclick={() => onOpen(world.path)} oncontextmenu={(e) => worldMenu(e, world)} title={world.path} use:dropImage={(image) => !world.missing && setCover(world, image)}>
+            {#if world.cover || world.journal}
+              <span class="thumb"><img src={world.cover ?? realWorld} alt="" /></span>
+            {:else}
+              <span class="thumb book" aria-hidden="true">
+                <svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z" /><path d="M4 21V5" /><path d="M9 8h6M9 12h4" /></svg>
+              </span>
+            {/if}
             <span class="about">
               <span class="name">{world.name}</span>
-              <span class="does">{world.missing ? 'Not found on this computer' : world.tagline || 'Your journal'}</span>
+              <span class="does">
+                {#if world.missing}Not found on this computer{:else if built.length}The base game. {listed(built.map((w) => w.name))} {built.length === 1 ? 'is' : 'are'} built on it.{:else}{world.tagline || (world.journal ? 'Your journal' : '')}{/if}
+              </span>
             </span>
-            <span class="opens">Story</span>
+            <span class="opens">{MODULE_NAMES[only] ?? only}</span>
           </button>
         {/each}
         {#if info?.path && !hasJournal}

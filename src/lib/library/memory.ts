@@ -106,7 +106,9 @@ export class MemoryLibrary implements Library {
   }
 
   async add(path: string, worldMd: string | null): Promise<void> {
-    const fs = this.worlds.get(path) ?? this.folders.get(path)!;
+    // An engine's folder, named by its place in the library, becomes a world when it gains a world.md.
+    const engine = Object.entries(this.engines).find(([rel]) => path === `${this.library.path}/${rel}`)?.[1];
+    const fs = this.worlds.get(path) ?? this.folders.get(path) ?? engine!;
     if (!(await fs.exists('world.md'))) {
       if (!worldMd) throw new Error(`${path} has no world.md`);
       await fs.writeText('world.md', worldMd);

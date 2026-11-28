@@ -36,7 +36,7 @@
     onTheme,
     onDetails,
     engineRel = '',
-    baseGame = false,
+    only = '',
     gameDir = 'game',
     openEngine = async () => null,
     engineChoices = async () => [],
@@ -57,8 +57,8 @@
     onDetails: () => void;
     /** The engine this world's game is built on, as a path from the library's top. */
     engineRel?: string;
-    /** True when the world was opened from its base game's strip on the Worlds page, which goes to the Game module and the base game's book. */
-    baseGame?: boolean;
+    /** The one module this world opens in, or '' for every module the writer has turned on. */
+    only?: string;
     gameDir?: string;
     openEngine?: (rel: string | null) => Promise<GameFs | null>;
     /** The engines the library's other worlds build on, for a world starting its game. */
@@ -102,7 +102,7 @@
   }
 
   // The header shows the modules the writer has turned on in Settings (Cerys, November 7).
-  const TABS = $derived(MODULES.filter(([id]) => account.look.modules.includes(id)).map(([id, label]) => [id, label] as [Module, string]));
+  const TABS = $derived(MODULES.filter(([id]) => (only ? id === only : account.look.modules.includes(id))).map(([id, label]) => [id, label] as [Module, string]));
   const COMING: Record<Module, string> = {
     character: 'The Character module gets its own design session first.',
     play: 'Play is built after the Game module.',
@@ -115,13 +115,12 @@
   // A module switched off while it is on screen gives way to the first one still shown.
   $effect(() => {
     const shown = TABS.map(([id]) => id);
-    if (shown.length && !shown.includes(nav.current.module) && !(journal && nav.current.module === 'story') && !(baseGame && nav.current.module === 'game')) nav.show(shown[0]);
+    if (shown.length && !shown.includes(nav.current.module)) nav.show(shown[0]);
   });
 
   // Real World opens on its journal (Cerys, October 26).
   onMount(() => {
     if (journal) nav.openIn('story', '@vault');
-    else if (baseGame) nav.show('game');
   });
 
   onMount(() => {
@@ -189,7 +188,7 @@
         {#each TABS as [module, label]}
           <button type="button" class:on={nav.current.module === module} aria-pressed={nav.current.module === module} onclick={() => (nav.current.module === module ? nav.panes.length && nav.setRow([]) : nav.show(module))}>{label}</button>
         {/each}
-        <button type="button" class="more-modules" aria-label="Show or hide modules" title="Show or hide modules, such as Game and Table" onclick={() => (ui.settings = 'modules')}>+</button>
+        {#if !only}<button type="button" class="more-modules" aria-label="Show or hide modules" title="Show or hide modules, such as Game and Table" onclick={() => (ui.settings = 'modules')}>+</button>{/if}
       </nav>
     </div>
     <div class="right">
@@ -243,7 +242,7 @@
       <div class="waiting">Reading the world…</div>
     {/if}
   {:else if nav.current.module === 'game'}
-    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} {engineChoices} startBook={baseGame ? 'engine' : null} />
+    <GameModule {fs} {nav} {index} {view} {rebuild} {worldName} {engineRel} {gameDir} {openEngine} {engineChoices} />
   {:else}
     <div class="waiting">{COMING[nav.current.module]}</div>
   {/if}
@@ -260,7 +259,7 @@
 
 
 {#if finding && index}
-  <Finder {index} {fs} {nav} {storiesDir} {worldName} {engineRel} {gameDir} {openEngine} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
+  <Finder {index} {fs} {nav} {storiesDir} {worldName} {engineRel} {only} {gameDir} {openEngine} onClose={() => (finding = false)} {onShowShelf} {onTheme} {onDetails} {onShowLoading} />
 {/if}
 
 <style>
